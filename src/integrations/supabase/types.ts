@@ -15531,6 +15531,33 @@ export type Database = {
           },
         ]
       }
+      erp_cp_enriq_rubysp: {
+        Row: {
+          created_at: string
+          custo_tpg: number | null
+          erp_id: string
+          historico_tpg: number | null
+          sincronizado_em: string | null
+          status_tpg: number | null
+        }
+        Insert: {
+          created_at?: string
+          custo_tpg?: number | null
+          erp_id: string
+          historico_tpg?: number | null
+          sincronizado_em?: string | null
+          status_tpg?: number | null
+        }
+        Update: {
+          created_at?: string
+          custo_tpg?: number | null
+          erp_id?: string
+          historico_tpg?: number | null
+          sincronizado_em?: string | null
+          status_tpg?: number | null
+        }
+        Relationships: []
+      }
       erp_estoque_distribuidora: {
         Row: {
           abrev_par: string | null
@@ -55863,6 +55890,15 @@ export type Database = {
             }
             Returns: string
           }
+      fn_enriquecer_contas_pagar_rubysp: {
+        Args: never
+        Returns: {
+          com_centro: number
+          com_plano: number
+          provisionados_total: number
+          titulos_casados: number
+        }[]
+      }
       fn_fabrica_recalc_custo_final: {
         Args: { p_produto_id: string }
         Returns: number
