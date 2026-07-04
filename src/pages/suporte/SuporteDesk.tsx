@@ -217,7 +217,7 @@ export default function SuporteDesk() {
         <SuporteCentralKpis tickets={ticketsPeriodo} />
 
         {/* Abas */}
-        <Tabs value={aba} onValueChange={(v) => setAba(v as any)} className="flex-1 min-h-0 flex flex-col">
+        <Tabs value={aba} onValueChange={(v) => setAba(v as any)} className="flex flex-col">
           <TabsList className="w-fit">
             <TabsTrigger value="tickets" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" /> Tickets
@@ -230,7 +230,8 @@ export default function SuporteDesk() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tickets" className="mt-3 flex-1 min-h-0 flex flex-col gap-3">
+          <TabsContent value="tickets" className="mt-3 flex flex-col gap-3 h-[calc(100vh-22rem)] min-h-[520px]">
+
             {/* Filtros */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
