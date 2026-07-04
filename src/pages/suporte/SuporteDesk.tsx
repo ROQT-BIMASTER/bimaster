@@ -222,8 +222,11 @@ export default function SuporteDesk() {
             <TabsTrigger value="tickets" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" /> Tickets
             </TabsTrigger>
-            <TabsTrigger value="graficos" className="gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" /> Gráficos
+            <TabsTrigger value="executiva" className="gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" /> Visão executiva
+            </TabsTrigger>
+            <TabsTrigger value="analises" className="gap-1.5">
+              <LineChartIcon className="h-3.5 w-3.5" /> Análises
             </TabsTrigger>
           </TabsList>
 
@@ -370,10 +373,23 @@ export default function SuporteDesk() {
             </div>
           </TabsContent>
 
-          <TabsContent value="graficos" className="mt-3 flex-1 min-h-0 overflow-y-auto">
-            <SuporteCentralGraficos
-              tickets={ticketsPeriodo}
-              periodoDias={parseInt(filtroPeriodo, 10)}
+          <TabsContent value="executiva" className="mt-3 flex-1 min-h-0 overflow-y-auto">
+            <SuporteVisaoExecutiva
+              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
+              ate={format(new Date(), "yyyy-MM-dd")}
+              filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
+              filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
+            />
+          </TabsContent>
+
+          <TabsContent value="analises" className="mt-3 flex-1 min-h-0 overflow-y-auto">
+            <SuporteAnalisesBuilder
+              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
+              ate={format(new Date(), "yyyy-MM-dd")}
+              filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
+              filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
+              filasSelecionaveis={filasSelecionaveis}
+              podeCompartilhar={podeVerTudo || filasAgente.length > 0}
             />
           </TabsContent>
         </Tabs>
