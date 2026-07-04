@@ -114,6 +114,7 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
   const gaugeOption = useMemo(() => {
     const v = Number(atual?.pct_sla_resolucao ?? 0);
     return {
+      tooltip: { confine: true },
       series: [{
         type: "gauge",
         min: 0, max: 100, startAngle: 210, endAngle: -30,
@@ -149,15 +150,34 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(l);
       return m ? `${m[3]}/${m[2]}` : l;
     });
+    const n = displayLabels.length;
+    const showZoom = n > 30;
+    const zoomStart = showZoom ? Math.max(0, 100 - (30 / n) * 100) : 0;
     return {
-      tooltip: { trigger: "axis" },
+      tooltip: { trigger: "axis", confine: true, axisPointer: { type: "line" } },
       legend: { data: ["Novos", "Resolvidos"], bottom: 0, textStyle: { fontSize: 11 } },
-      grid: { left: 8, right: 16, top: 24, bottom: 32, containLabel: true },
-      xAxis: { type: "category", data: displayLabels },
+      grid: { left: 8, right: 16, top: 24, bottom: showZoom ? 56 : 32, containLabel: true },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: displayLabels,
+        axisLabel: {
+          interval: "auto",
+          rotate: n > 14 ? 35 : 0,
+          hideOverlap: true,
+          fontSize: 10,
+        },
+      },
       yAxis: { type: "value" },
+      dataZoom: showZoom
+        ? [
+            { type: "inside", start: zoomStart, end: 100, minValueSpan: 7, zoomOnMouseWheel: true, moveOnMouseWheel: false },
+            { type: "slider", height: 16, bottom: 24, start: zoomStart, end: 100, minValueSpan: 7 },
+          ]
+        : undefined,
       series: [
-        { name: "Novos", type: "line", smooth: true, areaStyle: { color: BRAND_BASE, opacity: 0.18 }, lineStyle: { color: BRAND_BASE, width: 2 }, itemStyle: { color: BRAND_BASE }, data: labels.map((l) => mapN.get(l) ?? 0) },
-        { name: "Resolvidos", type: "line", smooth: true, lineStyle: { color: "#10b981", width: 2 }, itemStyle: { color: "#10b981" }, data: labels.map((l) => mapR.get(l) ?? 0) },
+        { name: "Novos", type: "line", smooth: true, showSymbol: false, symbol: "circle", symbolSize: 4, areaStyle: { color: BRAND_BASE, opacity: 0.18 }, lineStyle: { color: BRAND_BASE, width: 2 }, itemStyle: { color: BRAND_BASE }, data: labels.map((l) => mapN.get(l) ?? 0) },
+        { name: "Resolvidos", type: "line", smooth: true, showSymbol: false, symbol: "circle", symbolSize: 4, lineStyle: { color: "#10b981", width: 2 }, itemStyle: { color: "#10b981" }, data: labels.map((l) => mapR.get(l) ?? 0) },
       ],
     };
   }, [evolucaoNovos.data, evolucaoResolv.data]);
@@ -190,6 +210,7 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
     return {
       tooltip: {
         trigger: "item",
+        confine: true,
         formatter: (p: any) => {
           if (p.dataType === "edge") {
             const s = String(p.data.source).replace(/^de:/, "");
@@ -205,11 +226,12 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
         type: "sankey",
         emphasis: { focus: "adjacency" },
         nodeAlign: "justify",
+        nodeGap: 12,
         nodes,
         links,
         lineStyle: { color: "gradient", curveness: 0.5 },
         itemStyle: { borderWidth: 0 },
-        label: { fontSize: 11, color: "#0F1623" },
+        label: { fontSize: 11, color: "#0F1623", overflow: "truncate", width: 140 },
       }],
     };
   }, [transf.data, filaNomeMap]);
@@ -218,12 +240,12 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
   const csatOption = useMemo(() => {
     const dist = csatDist.data ?? [];
     return {
-      tooltip: { trigger: "axis", formatter: (params: any) => {
+      tooltip: { trigger: "axis", confine: true, axisPointer: { type: "shadow" }, formatter: (params: any) => {
         const p = Array.isArray(params) ? params[0] : params;
         return `${p.name} estrela${p.name === "1" ? "" : "s"}<br/><b>${p.value} avaliação${p.value === 1 ? "" : "es"}</b>`;
       } },
-      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
-      xAxis: { type: "category", data: dist.map((d) => String(d.score)) },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: dist.map((d) => String(d.score)), axisLabel: { hideOverlap: true, fontSize: 10 } },
       yAxis: { type: "value" },
       series: [{
         type: "bar",
