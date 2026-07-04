@@ -4150,6 +4150,7 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           empresa_id: number | null
+          erp_code: string | null
           id: string
           nome: string
           status: string | null
@@ -4160,6 +4161,7 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           empresa_id?: number | null
+          erp_code?: string | null
           id?: string
           nome: string
           status?: string | null
@@ -4170,6 +4172,7 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           empresa_id?: number | null
+          erp_code?: string | null
           id?: string
           nome?: string
           status?: string | null
@@ -15252,6 +15255,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      erp_ccusto_rubysp: {
+        Row: {
+          apurar: boolean | null
+          cod_contabil: string | null
+          created_at: string
+          descricao: string | null
+          empresa_par: number | null
+          raw: Json | null
+          rubysp_ccusto_id: number
+          sincronizado_em: string | null
+          tipo: number | null
+        }
+        Insert: {
+          apurar?: boolean | null
+          cod_contabil?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_par?: number | null
+          raw?: Json | null
+          rubysp_ccusto_id: number
+          sincronizado_em?: string | null
+          tipo?: number | null
+        }
+        Update: {
+          apurar?: boolean | null
+          cod_contabil?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_par?: number | null
+          raw?: Json | null
+          rubysp_ccusto_id?: number
+          sincronizado_em?: string | null
+          tipo?: number | null
+        }
+        Relationships: []
       }
       erp_cliente_compras_mensal_rubysp: {
         Row: {
@@ -55962,6 +56001,13 @@ export type Database = {
             Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
             Returns: Json
           }
+      fn_transform_ccusto_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
+          inseridos: number
+        }[]
+      }
       fn_transform_fornecedores_rubysp: {
         Args: never
         Returns: {
