@@ -80,9 +80,12 @@ Deno.serve(secureHandler(
       if (alvo === "pedidos") {
         patch.status_pedidos = status;
         if (status === "ok") patch.ultima_exec_pedidos = now;
-      } else {
+      } else if (alvo === "historico") {
         patch.status_historico = status;
         if (status === "ok") patch.ultima_exec_historico = now;
+      } else {
+        patch.status_contas_pagar = status;
+        if (status === "ok") patch.ultima_exec_contas_pagar = now;
       }
 
       const { data, error } = await supabase
