@@ -783,6 +783,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
       case "fornecedor_vendas": return 6;
+      case "cadastros": return cadastrosItems.filter(i => hasPermission(i.screenCode)).length;
       default: return 0;
     }
   };
