@@ -133,15 +133,22 @@ export default function SuporteMeusChamados() {
           </div>
 
           {/* Thread do chamado selecionado */}
-          <Card className="min-h-0 overflow-hidden hidden lg:flex">
+          <Card className="min-h-0 overflow-hidden hidden lg:flex lg:flex-col">
             {selecionado?.conversa_id ? (
-              <div className="flex-1 min-h-0">
-                <ChatThread
-                  conversaId={selecionado.conversa_id}
-                  onShowInfo={() => {}}
-                  onBack={() => setSelecionadoId(null)}
-                />
-              </div>
+              <>
+                {selecionado.status === "resolvido" && (
+                  <div className="p-2.5 border-b">
+                    <CsatPrompt ticketId={selecionado.id} />
+                  </div>
+                )}
+                <div className="flex-1 min-h-0">
+                  <ChatThread
+                    conversaId={selecionado.conversa_id}
+                    onShowInfo={() => {}}
+                    onBack={() => setSelecionadoId(null)}
+                  />
+                </div>
+              </>
             ) : (
               <CardContent className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
                 <MessageSquare className="h-8 w-8" />
