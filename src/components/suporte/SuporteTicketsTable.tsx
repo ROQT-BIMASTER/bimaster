@@ -91,7 +91,7 @@ export function SuporteTicketsTable({
   const nomes = data?.nomes ?? new Map<string, string>();
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  useMemo(() => {
+  useEffect(() => {
     onDataChange?.(tickets, nomes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, nomes]);
