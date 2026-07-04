@@ -212,6 +212,12 @@ export default function SuporteDesk() {
 
   const exibirSeletor = podeVerTudo || filasSelecionaveis.length > 1;
 
+  const ehLiderDaFila = !!minhas?.vinculos?.some(
+    (v) => v.fila_id === departamentoAtivo && v.ativo && v.papel === "lider",
+  );
+  const podeGerenciarMembros =
+    filaAtivaObj !== null && (isAdmin || ehLiderDaFila);
+
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-3 h-[calc(100vh-var(--dashboard-header,4rem))] min-h-0">
