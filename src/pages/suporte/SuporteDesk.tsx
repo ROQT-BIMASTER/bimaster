@@ -374,7 +374,7 @@ export default function SuporteDesk() {
             </div>
           </TabsContent>
 
-          <TabsContent value="executiva" className="mt-3 flex-1 min-h-0 overflow-y-auto">
+          <TabsContent value="executiva" className="mt-4">
             <SuporteVisaoExecutiva
               de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
               ate={format(new Date(), "yyyy-MM-dd")}
