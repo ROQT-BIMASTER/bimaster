@@ -30,7 +30,7 @@ var whoami_default = defineTool({
 });
 
 // src/lib/mcp/tools/list-projetos.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.58.0";
+import { createClient } from "npm:@supabase/supabase-js@^2.110.0";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^3.25.76";
 function supabaseForUser(ctx) {
