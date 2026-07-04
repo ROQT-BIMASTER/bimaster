@@ -16259,6 +16259,45 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_plano_contas_rubysp: {
+        Row: {
+          ccusto_padrao: number | null
+          cod_contabil: string | null
+          complemento: boolean | null
+          created_at: string
+          descricao: string | null
+          empresa_par: number | null
+          raw: Json | null
+          rubysp_hist_id: number
+          sincronizado_em: string | null
+          tipo: number | null
+        }
+        Insert: {
+          ccusto_padrao?: number | null
+          cod_contabil?: string | null
+          complemento?: boolean | null
+          created_at?: string
+          descricao?: string | null
+          empresa_par?: number | null
+          raw?: Json | null
+          rubysp_hist_id: number
+          sincronizado_em?: string | null
+          tipo?: number | null
+        }
+        Update: {
+          ccusto_padrao?: number | null
+          cod_contabil?: string | null
+          complemento?: boolean | null
+          created_at?: string
+          descricao?: string | null
+          empresa_par?: number | null
+          raw?: Json | null
+          rubysp_hist_id?: number
+          sincronizado_em?: string | null
+          tipo?: number | null
+        }
+        Relationships: []
+      }
       erp_portal_access_modules: {
         Row: {
           api_id: string | null
@@ -56009,6 +56048,13 @@ export type Database = {
         }[]
       }
       fn_transform_fornecedores_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
+          inseridos: number
+        }[]
+      }
+      fn_transform_plano_contas_rubysp: {
         Args: never
         Returns: {
           atualizados: number
