@@ -42,6 +42,7 @@ interface Props {
   filterDiaVencimento?: string;
   filterDiaPagamento?: string;
   filterConta?: string;
+  filterNatureza?: "all" | "provisionado" | "lancado";
 }
 
 interface FormData {
@@ -94,7 +95,7 @@ function isOverdue(dt: string | null) {
   return new Date(dt + "T00:00:00") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00");
 }
 
-export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all" }: Props) {
+export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all", filterNatureza = "all" }: Props) {
   const qc = useQueryClient();
   const nav = useNavigate();
 
@@ -118,7 +119,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   // ----- Queries -----
   const { data: contasResult, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page, filterDiaVencimento, filterDiaPagamento, filterConta],
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page, filterDiaVencimento, filterDiaPagamento, filterConta, filterNatureza],
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
@@ -152,6 +153,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (filterConta !== "all") q = q.eq("portador", filterConta);
       if (filterPortadores.length) q = q.in("portador", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (filterNatureza !== "all") q = q.eq("natureza_lancamento", filterNatureza);
       if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
       if (erpFilter === "pendente") q = q.eq("importado_api", false);
       if (search) {
@@ -420,6 +422,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <SelectItem value="pendente">Pendente</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Natureza:</span>
+            <Badge variant={filterNatureza === "provisionado" ? "default" : "outline"} className={cn("text-[11px]", filterNatureza === "provisionado" && "bg-amber-100 text-amber-700 border-0")}>
+              {filterNatureza === "all" ? "Todas" : filterNatureza === "provisionado" ? "Provisão" : "Dívida"}
+            </Badge>
+          </div>
           <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={d => { setDateFrom(d); setPage(1); }} onDateToChange={d => { setDateTo(d); setPage(1); }} />
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">Limpar</Button>
@@ -456,6 +464,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                       <TableHead className="text-right">Pago</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="hidden md:table-cell">Natureza</TableHead>
                       <TableHead className="hidden md:table-cell text-center">ERP</TableHead>
                       <TableHead className="hidden md:table-cell">Parcelas</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -474,6 +483,15 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_pago || 0)}</TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_aberto || 0)}</TableCell>
                         <TableCell>{statusBadge(calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago))}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {(c as any).natureza_lancamento === "provisionado" ? (
+                            <Badge className="text-xs font-medium border-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Provisão</Badge>
+                          ) : (c as any).natureza_lancamento === "lancado" ? (
+                            <Badge variant="secondary" className="text-xs font-medium">Dívida</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="hidden md:table-cell text-center">
                           {(c as any).importado_api && (c as any).codigo_integracao ? (
                             <Tooltip>

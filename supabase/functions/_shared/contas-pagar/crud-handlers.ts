@@ -140,12 +140,19 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   const params = QueryParamsSchema.safeParse({
     empresa_id: ctx.url.searchParams.get('empresa_id') || undefined,
+    empresa_ids: ctx.url.searchParams.get('empresa_ids') || undefined,
     fornecedor_codigo: ctx.url.searchParams.get('fornecedor_codigo') || undefined,
     status: ctx.url.searchParams.get('status') || undefined,
     vencimento_de: ctx.url.searchParams.get('vencimento_de') || undefined,
     vencimento_ate: ctx.url.searchParams.get('vencimento_ate') || undefined,
     emissao_de: ctx.url.searchParams.get('emissao_de') || undefined,
     emissao_ate: ctx.url.searchParams.get('emissao_ate') || undefined,
+    departamento_id: ctx.url.searchParams.get('departamento_id') || undefined,
+    portadores: ctx.url.searchParams.get('portadores') || undefined,
+    natureza_lancamento: ctx.url.searchParams.get('natureza_lancamento') || undefined,
+    centro_custo_id: ctx.url.searchParams.get('centro_custo_id') || undefined,
+    plano_contas_id: ctx.url.searchParams.get('plano_contas_id') || undefined,
+    search: ctx.url.searchParams.get('search') || undefined,
     limit: ctx.url.searchParams.get('limit') || undefined,
     offset: ctx.url.searchParams.get('offset') || undefined,
     order_by: ctx.url.searchParams.get('order_by') || undefined,
@@ -162,17 +169,30 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   let query = ctx.supabase.from('contas_pagar').select('*', { count: 'exact' });
 
   if (p.empresa_id) query = query.eq('empresa_id', p.empresa_id);
+  if (p.empresa_ids) {
+    const ids = p.empresa_ids.split(',').map(s => s.trim()).filter(Boolean);
+    if (ids.length) query = query.in('empresa_id', ids);
+  }
   if (p.fornecedor_codigo) query = query.eq('fornecedor_codigo', p.fornecedor_codigo);
   if (p.status) { const statusList = p.status.split(',').map(s => s.trim()); query = query.in('status', statusList); }
   if (p.vencimento_de) query = query.gte('data_vencimento', p.vencimento_de);
   if (p.vencimento_ate) query = query.lte('data_vencimento', p.vencimento_ate);
   if (p.emissao_de) query = query.gte('data_emissao', p.emissao_de);
   if (p.emissao_ate) query = query.lte('data_emissao', p.emissao_ate);
+  if (p.departamento_id) query = query.eq('departamento_id', p.departamento_id);
+  if (p.portadores) {
+    const list = p.portadores.split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length) query = query.in('portador', list);
+  }
+  if (p.natureza_lancamento) query = query.eq('natureza_lancamento', p.natureza_lancamento);
+  if (p.centro_custo_id) query = query.eq('centro_custo_id', p.centro_custo_id);
+  if (p.plano_contas_id) query = query.eq('plano_contas_id', p.plano_contas_id);
+  if (p.search) {
+    const term = p.search.replace(/[%,]/g, ' ').trim();
+    if (term) query = query.or(`fornecedor_nome.ilike.%${term}%,numero_documento.ilike.%${term}%`);
+  }
 
   // Paginação por offset estável (v4.4.3 hotfix).
-  // Cursor por UUID ('id') quebrava ordenação por data_vencimento e parava o loop client-side
-  // na 1ª página (nextCursor só era emitido se a request já trouxesse cursor).
-  // Offset com order(...) estável é o padrão Supabase mais simples e correto.
   const offset = p.offset || 0;
   query = query
     .order(p.order_by, { ascending: p.order_dir === 'asc' })
@@ -190,22 +210,36 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   const empresaIdsFaltando = [...new Set(rows.filter(r => r.empresa_id && !r.empresa_nome).map(r => r.empresa_id))];
   const catCodesFaltando   = [...new Set(rows.filter(r => r.categoria_codigo && !r.categoria_nome).map(r => String(r.categoria_codigo)))];
   const fornCodesFaltando  = [...new Set(rows.filter(r => r.fornecedor_codigo && !r.fornecedor_nome).map(r => String(r.fornecedor_codigo)))];
+  const centroIds          = [...new Set(rows.filter(r => r.centro_custo_id).map(r => r.centro_custo_id))];
+  const planoIds           = [...new Set(rows.filter(r => r.plano_contas_id).map(r => r.plano_contas_id))];
 
-  const [empRes, catRes, fornRes] = await Promise.all([
+  const [empRes, catRes, fornRes, centroRes, planoRes] = await Promise.all([
     empresaIdsFaltando.length ? ctx.supabase.from('empresas').select('id, nome').in('id', empresaIdsFaltando) : Promise.resolve({ data: [] }),
     catCodesFaltando.length   ? ctx.supabase.from('trade_chart_of_accounts').select('code, name').in('code', catCodesFaltando) : Promise.resolve({ data: [] }),
     fornCodesFaltando.length  ? ctx.supabase.from('fornecedores').select('codigo_externo, razao_social').in('codigo_externo', fornCodesFaltando) : Promise.resolve({ data: [] }),
+    centroIds.length          ? ctx.supabase.from('centros_custo').select('id, nome, codigo').in('id', centroIds) : Promise.resolve({ data: [] }),
+    planoIds.length           ? ctx.supabase.from('trade_chart_of_accounts').select('id, name, code').in('id', planoIds) : Promise.resolve({ data: [] }),
   ]);
   const empMap = new Map((empRes.data || []).map((r: any) => [r.id, r.nome]));
   const catMap = new Map((catRes.data || []).map((r: any) => [r.code, r.name]));
   const fornMap = new Map((fornRes.data || []).map((r: any) => [r.codigo_externo, r.razao_social]));
+  const centroMap = new Map((centroRes.data || []).map((r: any) => [r.id, r]));
+  const planoMap = new Map((planoRes.data || []).map((r: any) => [r.id, r]));
 
-  const enrichedData = rows.map((row: any) => shapeMetaRelacionados({
-    ...row,
-    empresa_nome: row.empresa_nome ?? empMap.get(row.empresa_id) ?? null,
-    categoria_nome: row.categoria_nome ?? catMap.get(String(row.categoria_codigo)) ?? null,
-    fornecedor_nome: row.fornecedor_nome ?? fornMap.get(String(row.fornecedor_codigo)) ?? null,
-  }));
+  const enrichedData = rows.map((row: any) => {
+    const centro = row.centro_custo_id ? centroMap.get(row.centro_custo_id) : null;
+    const plano = row.plano_contas_id ? planoMap.get(row.plano_contas_id) : null;
+    return shapeMetaRelacionados({
+      ...row,
+      empresa_nome: row.empresa_nome ?? empMap.get(row.empresa_id) ?? null,
+      categoria_nome: row.categoria_nome ?? catMap.get(String(row.categoria_codigo)) ?? null,
+      fornecedor_nome: row.fornecedor_nome ?? fornMap.get(String(row.fornecedor_codigo)) ?? null,
+      centro_custo_nome: centro?.nome ?? null,
+      centro_custo_codigo: centro?.codigo ?? null,
+      plano_contas_nome: plano?.name ?? null,
+      plano_contas_codigo: plano?.code ?? null,
+    });
+  });
 
   return apiResponse({
     data: enrichedData,

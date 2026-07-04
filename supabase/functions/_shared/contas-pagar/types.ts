@@ -115,12 +115,19 @@ const uuidOpt = z.string().uuid().optional();
 
 export const QueryParamsSchema = z.object({
   empresa_id: z.string().max(20).optional(),
+  empresa_ids: z.string().max(500).optional(), // csv (1..N)
   fornecedor_codigo: z.string().max(100).optional(),
   status: z.string().max(200).optional(),
   vencimento_de: dateStr,
   vencimento_ate: dateStr,
   emissao_de: dateStr,
   emissao_ate: dateStr,
+  departamento_id: z.string().uuid().optional(),
+  portadores: z.string().max(2000).optional(), // csv
+  natureza_lancamento: z.enum(['provisionado', 'lancado']).optional(),
+  centro_custo_id: z.string().uuid().optional(),
+  plano_contas_id: z.string().uuid().optional(),
+  search: z.string().max(200).optional(), // ilike sobre fornecedor_nome / numero_documento
   limit: z.coerce.number().int().min(1).max(1000).default(100),
   offset: nonNegativeInt.default(0),
   order_by: z.string().max(50).default('data_vencimento'),

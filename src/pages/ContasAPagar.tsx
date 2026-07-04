@@ -74,6 +74,7 @@ export default function ContasAPagar() {
   const [filterPortadores, setFilterPortadores] = useState<string[]>([]);
   const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
   const [filterDiaPagamento, setFilterDiaPagamento] = useState<string>("");
+  const [filterNatureza, setFilterNatureza] = useState<"all" | "provisionado" | "lancado">("all");
   
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
