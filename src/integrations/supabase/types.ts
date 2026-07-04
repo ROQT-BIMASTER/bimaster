@@ -46972,6 +46972,56 @@ export type Database = {
           },
         ]
       }
+      suporte_views: {
+        Row: {
+          colunas: Json
+          created_at: string
+          escopo: string
+          fila_id: string | null
+          filtros: Json
+          id: string
+          is_default: boolean
+          nome: string
+          ordenacao: Json
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          colunas?: Json
+          created_at?: string
+          escopo: string
+          fila_id?: string | null
+          filtros?: Json
+          id?: string
+          is_default?: boolean
+          nome: string
+          ordenacao?: Json
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          colunas?: Json
+          created_at?: string
+          escopo?: string
+          fila_id?: string | null
+          filtros?: Json
+          id?: string
+          is_default?: boolean
+          nome?: string
+          ordenacao?: Json
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_views_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_payment_exceptions: {
         Row: {
           allows_exceptions: boolean
@@ -58067,6 +58117,10 @@ export type Database = {
         Returns: Json
       }
       rpc_suporte_assumir: { Args: { p_ticket_id: string }; Returns: undefined }
+      rpc_suporte_bulk_update: {
+        Args: { p_patch: Json; p_ticket_ids: string[] }
+        Returns: Json
+      }
       rpc_suporte_mudar_status: {
         Args: { p_status: string; p_ticket_id: string }
         Returns: undefined
