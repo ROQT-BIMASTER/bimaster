@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ErpBadge } from "@/components/cadastros/ErpBadge";
 
 type CentroCusto = {
   id: string;
@@ -30,6 +31,7 @@ type CentroCusto = {
   codigo: string | null;
   descricao: string | null;
   status: string | null;
+  erp_code: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -193,21 +195,23 @@ export default function CentrosCusto() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Empresa</TableHead>
+                <TableHead>ERP</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum centro de custo encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum centro de custo encontrado</TableCell></TableRow>
               ) : filtered.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-mono text-sm">{c.codigo || "—"}</TableCell>
                   <TableCell className="font-medium">{c.nome}</TableCell>
                   <TableCell className="max-w-[250px] truncate text-muted-foreground">{c.descricao || "—"}</TableCell>
                   <TableCell>{c.empresa_id ? empresaMap.get(c.empresa_id) || "—" : "—"}</TableCell>
+                  <TableCell><ErpBadge code={c.erp_code} showCode /></TableCell>
                   <TableCell>
                     <Badge variant={c.status === "ativo" ? "success" : "ghost"}>
                       {c.status === "ativo" ? "Ativo" : "Inativo"}
