@@ -211,7 +211,7 @@ export default function SuporteDesk() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 h-[calc(100vh-var(--dashboard-header,4rem))] min-h-0">
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 flex-wrap">
           <div>
@@ -264,7 +264,7 @@ export default function SuporteDesk() {
         <SuporteCentralKpis tickets={ticketsPeriodo} />
 
         {/* Abas */}
-        <Tabs value={aba} onValueChange={(v) => setAba(v as any)} className="flex flex-col">
+        <Tabs value={aba} onValueChange={(v) => setAba(v as any)} className="flex flex-col flex-1 min-h-0">
           <TabsList className="w-fit">
             <TabsTrigger value="tickets" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" /> Tickets
@@ -277,7 +277,7 @@ export default function SuporteDesk() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tickets" className="mt-3 flex flex-col gap-2 h-[calc(100vh-22rem)] min-h-[520px]">
+          <TabsContent value="tickets" className="mt-3 flex-1 min-h-0 flex flex-col gap-2 data-[state=inactive]:hidden">
             {/* Barra superior: views + toggle de visão */}
             <div className="flex items-start justify-between gap-2 flex-wrap">
               <SuporteViewsBar
@@ -455,7 +455,7 @@ export default function SuporteDesk() {
           </TabsContent>
 
 
-          <TabsContent value="executiva" className="mt-4">
+          <TabsContent value="executiva" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteVisaoExecutiva
               de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
               ate={format(new Date(), "yyyy-MM-dd")}
@@ -464,7 +464,7 @@ export default function SuporteDesk() {
             />
           </TabsContent>
 
-          <TabsContent value="analises" className="mt-4">
+          <TabsContent value="analises" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteAnalisesBuilder
               de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
               ate={format(new Date(), "yyyy-MM-dd")}
