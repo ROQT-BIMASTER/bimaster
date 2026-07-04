@@ -363,14 +363,17 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2"><CardTitle className="text-sm">SLA resolução</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 220, width: "100%" }} notMerge lazyUpdate />
+            <div className="min-w-0 w-full">
+              <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 220, width: "100%" }} notMerge lazyUpdate />
+            </div>
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Novos × Resolvidos por dia</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 240, width: "100%" }} notMerge lazyUpdate />
-
+            <div className="min-w-0 w-full">
+              <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 240, width: "100%" }} notMerge lazyUpdate />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -416,7 +419,7 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
             {!sankeyOption ? (
               <EmptyState label="Nenhuma transferência no período." />
             ) : (
-              <ReactECharts ref={sankeyRef} option={sankeyOption} theme="rubyCorp" style={{ height: 320, width: "100%" }} notMerge lazyUpdate />
+              <div className="min-w-0 w-full"><ReactECharts ref={sankeyRef} option={sankeyOption} theme="rubyCorp" style={{ height: 320, width: "100%" }} notMerge lazyUpdate /></div>
             )}
           </CardContent>
         </Card>
