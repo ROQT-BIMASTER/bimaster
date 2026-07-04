@@ -91,7 +91,7 @@ export function useFilaMembrosMutations(filaId: string | null) {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["suporte", "fila-membros", filaId] });
       qc.invalidateQueries({ queryKey: ["suporte", "minhas-filas"] });
-      qc.invalidateQueries({ queryKey: ["suporte", "chamados-desk"] });
+      qc.invalidateQueries({ queryKey: ["suporte", "desk"] });
       toast.success(
         vars.acao === "adicionar"
           ? "Membro adicionado."
