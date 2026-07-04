@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,8 @@ import {
   Search,
   BarChart3,
   LineChart as LineChartIcon,
+  Table as TableIcon,
+  Columns2,
 } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,12 +38,23 @@ import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoD
 import { SuporteCentralKpis } from "@/components/suporte/SuporteCentralKpis";
 import { SuporteVisaoExecutiva } from "@/components/suporte/SuporteVisaoExecutiva";
 import { SuporteAnalisesBuilder } from "@/components/suporte/SuporteAnalisesBuilder";
+import { SuporteTicketsTable } from "@/components/suporte/SuporteTicketsTable";
+import { SuporteTicketsBulkBar } from "@/components/suporte/SuporteTicketsBulkBar";
+import { SuporteViewsBar } from "@/components/suporte/SuporteViewsBar";
+import { SuporteTicketDrawer } from "@/components/suporte/SuporteTicketDrawer";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import {
   SUPORTE_STATUS_LABEL,
+  type SuporteChamado,
   type SuporteFila,
   type SuporteTicketStatus,
 } from "@/hooks/suporte/types";
+import { COLUNAS_DEFAULT, type TicketColuna } from "@/lib/suporte/exportTickets";
+import type {
+  SuporteView,
+  SuporteViewFiltros,
+  SuporteViewOrdenacao,
+} from "@/hooks/suporte/useSuporteViews";
 
 const TODOS = "__todos__";
 
