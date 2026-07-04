@@ -2,18 +2,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-export type SyncAlvo = "pedidos" | "historico";
+export type SyncAlvo = "pedidos" | "historico" | "contas_pagar";
 
 export interface SyncControlRubysp {
   id: number;
   ultima_exec_pedidos: string | null;
   ultima_exec_historico: string | null;
+  ultima_exec_contas_pagar: string | null;
   status_pedidos: string | null;
   status_historico: string | null;
+  status_contas_pagar: string | null;
   mensagem_pedidos: string | null;
   mensagem_historico: string | null;
   solicitado_pedidos_em: string | null;
   solicitado_historico_em: string | null;
+  solicitar_contas_pagar_em: string | null;
 }
 
 const QUERY_KEY = ["sync-control-rubysp"] as const;
