@@ -19645,6 +19645,7 @@ export type Database = {
           pendente_complemento: boolean
           pix_chave: string | null
           pix_tipo: string | null
+          prazo_pagamento_padrao: number | null
           razao_social: string
           telefone: string | null
           tipo_conta: string | null
@@ -19679,6 +19680,7 @@ export type Database = {
           pendente_complemento?: boolean
           pix_chave?: string | null
           pix_tipo?: string | null
+          prazo_pagamento_padrao?: number | null
           razao_social: string
           telefone?: string | null
           tipo_conta?: string | null
@@ -19713,6 +19715,7 @@ export type Database = {
           pendente_complemento?: boolean
           pix_chave?: string | null
           pix_tipo?: string | null
+          prazo_pagamento_padrao?: number | null
           razao_social?: string
           telefone?: string | null
           tipo_conta?: string | null
