@@ -161,11 +161,22 @@ export default function SuporteDesk() {
   const { data: chamados = [], isLoading } = useChamadosDesk(filaIds);
 
 
+  const periodoRange = useMemo(() => {
+    if (filtroPeriodo === "custom" && periodoCustom?.from && periodoCustom?.to) {
+      return { de: periodoCustom.from, ate: periodoCustom.to };
+    }
+    const dias = parseInt(filtroPeriodo === "custom" ? "30" : filtroPeriodo, 10);
+    return { de: subDays(new Date(), dias - 1), ate: new Date() };
+  }, [filtroPeriodo, periodoCustom]);
+
   const ticketsPeriodo = useMemo(() => {
-    const dias = parseInt(filtroPeriodo, 10);
-    const limite = subDays(new Date(), dias).getTime();
-    return chamados.filter((t) => new Date(t.created_at).getTime() >= limite);
-  }, [chamados, filtroPeriodo]);
+    const deTs = periodoRange.de.getTime();
+    const ateTs = periodoRange.ate.getTime() + 24 * 3600_000;
+    return chamados.filter((t) => {
+      const ts = new Date(t.created_at).getTime();
+      return ts >= deTs && ts <= ateTs;
+    });
+  }, [chamados, periodoRange]);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
