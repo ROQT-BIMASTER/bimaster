@@ -91,7 +91,7 @@ export default function SuporteDesk() {
   const [busca, setBusca] = useState("");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [aba, setAba] = useState<"tickets" | "graficos">("tickets");
+  const [aba, setAba] = useState<"tickets" | "executiva" | "analises">("tickets");
   const { assumir, mudarStatus } = useSuporteAcoes();
 
   const { data: chamados = [], isLoading } = useChamadosDesk(filaIds);
