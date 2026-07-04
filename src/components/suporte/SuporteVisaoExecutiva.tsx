@@ -341,13 +341,14 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2"><CardTitle className="text-sm">SLA resolução</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate />
+            <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 220, width: "100%" }} notMerge lazyUpdate />
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Novos × Resolvidos por dia</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate />
+            <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 240, width: "100%" }} notMerge lazyUpdate />
+
           </CardContent>
         </Card>
       </div>
