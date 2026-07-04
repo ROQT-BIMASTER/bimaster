@@ -563,8 +563,8 @@ export default function SuporteDesk() {
 
           <TabsContent value="executiva" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteVisaoExecutiva
-              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
-              ate={format(new Date(), "yyyy-MM-dd")}
+              de={format(periodoRange.de, "yyyy-MM-dd")}
+              ate={format(periodoRange.ate, "yyyy-MM-dd")}
               filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
               filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
             />
@@ -572,8 +572,8 @@ export default function SuporteDesk() {
 
           <TabsContent value="analises" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteAnalisesBuilder
-              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
-              ate={format(new Date(), "yyyy-MM-dd")}
+              de={format(periodoRange.de, "yyyy-MM-dd")}
+              ate={format(periodoRange.ate, "yyyy-MM-dd")}
               filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
               filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
               filasSelecionaveis={filasSelecionaveis}
