@@ -14,6 +14,7 @@ import { NovaContaDialog } from "@/components/configuracoes/NovaContaDialog";
 import { EditarContaDialog } from "@/components/configuracoes/EditarContaDialog";
 import { ClassificarContasEmLoteDialog } from "@/components/configuracoes/ClassificarContasEmLoteDialog";
 import { MigracaoPlanoContasPanel } from "@/components/configuracoes/MigracaoPlanoContasPanel";
+import { ErpBadge } from "@/components/cadastros/ErpBadge";
 
 interface Account {
   id: string;
@@ -33,6 +34,7 @@ interface Account {
   excluir_dre?: boolean | null;
   versao?: string | null;
   tipo_categoria?: string | null;
+  erp_code?: string | null;
   children?: Account[];
 }
 
@@ -85,7 +87,7 @@ export default function PlanoContas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_chart_of_accounts")
-        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre, versao, excluir_dre, tipo_categoria")
+        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre, versao, excluir_dre, tipo_categoria, erp_code")
         .order("code", { ascending: true });
 
       if (error) throw error;
@@ -247,12 +249,26 @@ export default function PlanoContas() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isTopLevel && account.tipo_categoria && (
-              <Badge 
-                variant="outline" 
+            {!isTopLevel && account.natureza && (
+              <Badge
+                variant="outline"
                 className={`text-[10px] px-1.5 py-0 ${
-                  account.tipo_categoria === 'R' 
-                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' 
+                  account.natureza === 'C'
+                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                    : 'bg-orange-500/10 text-orange-700 border-orange-500/20'
+                }`}
+                title={account.natureza === 'C' ? 'Natureza: Credora (receita)' : 'Natureza: Devedora (despesa)'}
+              >
+                {account.natureza}
+              </Badge>
+            )}
+            {!isTopLevel && <ErpBadge code={account.erp_code} />}
+            {!isTopLevel && account.tipo_categoria && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 ${
+                  account.tipo_categoria === 'R'
+                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
                     : 'bg-orange-500/10 text-orange-700 border-orange-500/20'
                 }`}
               >
