@@ -1500,7 +1500,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
                   <MenuItemLink to="/dashboard/admin-api-support" icon={MessageCircle} title="Suporte API" />
-                  <MenuItemLink to="/admin/suporte" icon={LifeBuoy} title="Central de Suporte" />
+                  
                   <MenuItemLink to="/admin/documentacao-tecnica" icon={FileText} title="Documentação Técnica" />
                   <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/integracoes/shipsgo" icon={Ship} title="Integração ShipsGo" />

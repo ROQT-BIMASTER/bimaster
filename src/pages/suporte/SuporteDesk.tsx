@@ -27,7 +27,14 @@ import {
   Users,
   Settings2,
   Plus,
+  CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
+import { useFilaMembros } from "@/hooks/suporte/useFilaMembros";
+import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
 import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
 import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
@@ -107,7 +114,9 @@ export default function SuporteDesk() {
 
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "30" | "90">("30");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "30" | "90" | "custom">("30");
+  const [periodoCustom, setPeriodoCustom] = useState<DateRange | undefined>(undefined);
+  const [popPeriodoOpen, setPopPeriodoOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -152,11 +161,22 @@ export default function SuporteDesk() {
   const { data: chamados = [], isLoading } = useChamadosDesk(filaIds);
 
 
+  const periodoRange = useMemo(() => {
+    if (filtroPeriodo === "custom" && periodoCustom?.from && periodoCustom?.to) {
+      return { de: periodoCustom.from, ate: periodoCustom.to };
+    }
+    const dias = parseInt(filtroPeriodo === "custom" ? "30" : filtroPeriodo, 10);
+    return { de: subDays(new Date(), dias - 1), ate: new Date() };
+  }, [filtroPeriodo, periodoCustom]);
+
   const ticketsPeriodo = useMemo(() => {
-    const dias = parseInt(filtroPeriodo, 10);
-    const limite = subDays(new Date(), dias).getTime();
-    return chamados.filter((t) => new Date(t.created_at).getTime() >= limite);
-  }, [chamados, filtroPeriodo]);
+    const deTs = periodoRange.de.getTime();
+    const ateTs = periodoRange.ate.getTime() + 24 * 3600_000;
+    return chamados.filter((t) => {
+      const ts = new Date(t.created_at).getTime();
+      return ts >= deTs && ts <= ateTs;
+    });
+  }, [chamados, periodoRange]);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -262,26 +282,48 @@ export default function SuporteDesk() {
                 </Badge>
               )
             )}
-            <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as any)}>
-              <SelectTrigger className="w-[150px] h-9">
+            <Select
+              value={filtroPeriodo}
+              onValueChange={(v) => {
+                setFiltroPeriodo(v as any);
+                if (v === "custom") setPopPeriodoOpen(true);
+              }}
+            >
+              <SelectTrigger className="w-[170px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="7">Últimos 7 dias</SelectItem>
                 <SelectItem value="30">Últimos 30 dias</SelectItem>
                 <SelectItem value="90">Últimos 90 dias</SelectItem>
+                <SelectItem value="custom">Personalizado…</SelectItem>
               </SelectContent>
             </Select>
+            {filtroPeriodo === "custom" && (
+              <Popover open={popPeriodoOpen} onOpenChange={setPopPeriodoOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {periodoCustom?.from && periodoCustom?.to
+                      ? `${format(periodoCustom.from, "dd/MM")} – ${format(periodoCustom.to, "dd/MM/yyyy")}`
+                      : "Selecionar período"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    selected={periodoCustom}
+                    onSelect={setPeriodoCustom}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             {podeGerenciarMembros && filaAtivaObj && (
               <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 gap-1.5"
-                  onClick={() => setMembrosOpen(true)}
-                >
-                  <Users className="h-3.5 w-3.5" /> Membros
-                </Button>
+                <MembrosButton filaId={filaAtivaObj.id} onClick={() => setMembrosOpen(true)} />
                 <Button
                   size="sm"
                   variant="outline"
@@ -450,13 +492,14 @@ export default function SuporteDesk() {
                     {selecionado ? (
                       <>
                         <div className="flex items-center justify-between gap-2 border-b p-2.5">
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
                             {selecionado.protocolo && (
                               <Badge variant="outline" className="font-mono text-[10px] shrink-0">
                                 {selecionado.protocolo}
                               </Badge>
                             )}
                             <span className="text-sm font-medium truncate">{selecionado.titulo}</span>
+                            <TicketEtapaBadge projetoTarefaId={selecionado.projeto_tarefa_id} />
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {selecionado.assignee_id !== user?.id && (
@@ -521,8 +564,8 @@ export default function SuporteDesk() {
 
           <TabsContent value="executiva" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteVisaoExecutiva
-              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
-              ate={format(new Date(), "yyyy-MM-dd")}
+              de={format(periodoRange.de, "yyyy-MM-dd")}
+              ate={format(periodoRange.ate, "yyyy-MM-dd")}
               filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
               filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
             />
@@ -530,8 +573,8 @@ export default function SuporteDesk() {
 
           <TabsContent value="analises" className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
             <SuporteAnalisesBuilder
-              de={format(subDays(new Date(), parseInt(filtroPeriodo, 10) - 1), "yyyy-MM-dd")}
-              ate={format(new Date(), "yyyy-MM-dd")}
+              de={format(periodoRange.de, "yyyy-MM-dd")}
+              ate={format(periodoRange.ate, "yyyy-MM-dd")}
               filaId={departamentoAtivo === TODOS ? null : departamentoAtivo}
               filaNome={filaAtivaObj?.nome ?? "Todos os departamentos"}
               filasSelecionaveis={filasSelecionaveis}
@@ -568,5 +611,19 @@ export default function SuporteDesk() {
         </>
       )}
     </DashboardLayout>
+  );
+}
+
+function MembrosButton({ filaId, onClick }: { filaId: string; onClick: () => void }) {
+  const { data: membros = [] } = useFilaMembros(filaId);
+  return (
+    <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={onClick}>
+      <Users className="h-3.5 w-3.5" /> Membros
+      {membros.length > 0 && (
+        <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+          {membros.length}
+        </Badge>
+      )}
+    </Button>
   );
 }

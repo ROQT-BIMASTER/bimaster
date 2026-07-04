@@ -14,6 +14,27 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  LifeBuoy, Headphones, MessageSquare, Wrench, ShieldCheck, Truck,
+  Building2, DollarSign, ShoppingCart, Users, Cpu, HeartPulse,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const ICONES: { key: string; icon: LucideIcon }[] = [
+  { key: "life-buoy", icon: LifeBuoy },
+  { key: "headphones", icon: Headphones },
+  { key: "message-square", icon: MessageSquare },
+  { key: "wrench", icon: Wrench },
+  { key: "shield-check", icon: ShieldCheck },
+  { key: "truck", icon: Truck },
+  { key: "building-2", icon: Building2 },
+  { key: "dollar-sign", icon: DollarSign },
+  { key: "shopping-cart", icon: ShoppingCart },
+  { key: "users", icon: Users },
+  { key: "cpu", icon: Cpu },
+  { key: "heart-pulse", icon: HeartPulse },
+];
 
 interface Props {
   open: boolean;
@@ -37,6 +58,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
   const [slugTouched, setSlugTouched] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState("#185FA5");
+  const [icone, setIcone] = useState<string>("life-buoy");
   const [salvando, setSalvando] = useState(false);
 
   const reset = () => {
@@ -45,6 +67,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
     setSlugTouched(false);
     setDescricao("");
     setCor("#185FA5");
+    setIcone("life-buoy");
   };
 
   const salvar = async () => {
@@ -59,7 +82,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
         p_slug: slug.trim(),
         p_descricao: descricao.trim() || null,
         p_cor: cor || null,
-        p_icone: null,
+        p_icone: icone || null,
       });
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["suporte", "filas"] });
@@ -136,6 +159,28 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
                 onChange={(e) => setCor(e.target.value)}
                 className="font-mono text-sm w-32"
               />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ícone</Label>
+            <div className="grid grid-cols-6 gap-1.5">
+              {ICONES.map(({ key, icon: Ic }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setIcone(key)}
+                  className={cn(
+                    "flex items-center justify-center h-9 rounded-md border transition-colors",
+                    icone === key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-input bg-background hover:bg-muted",
+                  )}
+                  aria-label={key}
+                  title={key}
+                >
+                  <Ic className="h-4 w-4" />
+                </button>
+              ))}
             </div>
           </div>
         </div>

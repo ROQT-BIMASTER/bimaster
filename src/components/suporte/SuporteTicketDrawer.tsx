@@ -100,11 +100,12 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                 </div>
               </div>
 
-              {ticket.status === "resolvido" && (
-                <div className="px-3 pt-3">
-                  <CsatPrompt ticketId={ticket.id} />
-                </div>
-              )}
+              {ticket.status === "resolvido" &&
+                (ticket.requester_id ?? ticket.owner_id) === user?.id && (
+                  <div className="px-3 pt-3">
+                    <CsatPrompt ticketId={ticket.id} />
+                  </div>
+                )}
 
               <div className="flex-1 min-h-0">
                 <ChatThread
