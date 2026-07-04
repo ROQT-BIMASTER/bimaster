@@ -58121,6 +58121,15 @@ export type Database = {
         Args: { p_patch: Json; p_ticket_ids: string[] }
         Returns: Json
       }
+      rpc_suporte_fila_membro: {
+        Args: {
+          p_acao: string
+          p_fila_id: string
+          p_papel?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       rpc_suporte_mudar_status: {
         Args: { p_status: string; p_ticket_id: string }
         Returns: undefined
