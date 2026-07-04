@@ -477,7 +477,7 @@ export default function SuporteDesk() {
         </Tabs>
       </div>
 
-      {selecionado && (
+      {selecionado && modoVisao === "split" && (
         <TransferirChamadoDialog
           open={transferOpen}
           onOpenChange={setTransferOpen}
@@ -485,6 +485,23 @@ export default function SuporteDesk() {
           filaAtualId={selecionado.fila_id}
           onTransferido={() => setSelecionadoId(null)}
         />
+      )}
+
+      {modoVisao === "tabela" && (
+        <>
+          <SuporteTicketDrawer
+            ticket={selecionado}
+            onClose={() => setSelecionadoId(null)}
+          />
+          <SuporteTicketsBulkBar
+            selecionados={selecionados}
+            onClear={() => setSelecionados(new Set())}
+            filasSelecionaveis={filasSelecionaveis}
+            tickets={ticketsVisiveis}
+            nomes={nomesVisiveis}
+            colunas={tabelaColunas}
+          />
+        </>
       )}
     </DashboardLayout>
   );
