@@ -106,9 +106,42 @@ export default function SuporteDesk() {
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [aba, setAba] = useState<"tickets" | "executiva" | "analises">("tickets");
+  const [modoVisao, setModoVisao] = useState<"tabela" | "split">(
+    () => (localStorage.getItem("suporte:modo-visao") as "tabela" | "split") ?? "tabela",
+  );
+  const trocarModoVisao = (v: "tabela" | "split") => {
+    if (!v) return;
+    setModoVisao(v);
+    localStorage.setItem("suporte:modo-visao", v);
+  };
+
+  // Estado da tabela (compartilhado com views salvas)
+  const [tabelaFiltros, setTabelaFiltros] = useState<SuporteViewFiltros>({
+    status: "abertos",
+    periodo_dias: 30,
+  });
+  const [tabelaColunas, setTabelaColunas] = useState<TicketColuna[]>(COLUNAS_DEFAULT);
+  const [tabelaOrdenacao, setTabelaOrdenacao] = useState<SuporteViewOrdenacao>({
+    campo: "atualizado_em",
+    dir: "desc",
+  });
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [viewAtivaId, setViewAtivaId] = useState<string | null>(null);
+  const [ticketsVisiveis, setTicketsVisiveis] = useState<SuporteChamado[]>([]);
+  const [nomesVisiveis, setNomesVisiveis] = useState<Map<string, string>>(new Map());
+
+  const aplicarView = (v: SuporteView) => {
+    setTabelaFiltros(v.filtros ?? {});
+    setTabelaColunas((v.colunas as TicketColuna[]) ?? COLUNAS_DEFAULT);
+    setTabelaOrdenacao(v.ordenacao ?? { campo: "atualizado_em", dir: "desc" });
+    setViewAtivaId(v.id);
+    setSelecionados(new Set());
+  };
+
   const { assumir, mudarStatus } = useSuporteAcoes();
 
   const { data: chamados = [], isLoading } = useChamadosDesk(filaIds);
+
 
   const ticketsPeriodo = useMemo(() => {
     const dias = parseInt(filtroPeriodo, 10);
