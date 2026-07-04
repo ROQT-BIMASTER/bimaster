@@ -161,6 +161,28 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
               />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label>Ícone</Label>
+            <div className="grid grid-cols-6 gap-1.5">
+              {ICONES.map(({ key, icon: Ic }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setIcone(key)}
+                  className={cn(
+                    "flex items-center justify-center h-9 rounded-md border transition-colors",
+                    icone === key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-input bg-background hover:bg-muted",
+                  )}
+                  aria-label={key}
+                  title={key}
+                >
+                  <Ic className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
