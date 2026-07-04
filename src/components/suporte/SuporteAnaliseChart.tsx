@@ -95,6 +95,7 @@ export function SuporteAnaliseChart({
       return BRAND_BASE;
     };
 
+    const small = data.length <= 12;
     const series: any = {
       type: seriesType,
       data: values,
@@ -103,19 +104,38 @@ export function SuporteAnaliseChart({
       areaStyle: tipo === "area" ? { color: BRAND_BASE, opacity: 0.18 } : undefined,
       smooth: seriesType === "line",
       barMaxWidth: 36,
+      label: small
+        ? {
+            show: true,
+            position: seriesType === "bar" && !horizontal ? "top" : (horizontal ? "right" : "top"),
+            fontSize: 10,
+            color: "#6B7280",
+            formatter: (p: any) => formatValor(Number(p.value ?? 0), metrica),
+          }
+        : undefined,
     };
 
     const valFmt = axisFormatter(metrica);
     const catAxis = { type: "category", data: labels, axisLabel: { interval: 0, rotate: horizontal ? 0 : (labels.length > 6 ? 30 : 0) } };
     const valAxis = { type: "value", axisLabel: { formatter: valFmt } };
 
+    const temporal = dimensao === "dia" || dimensao === "semana" || dimensao === "mes";
+    const showZoom = temporal && data.length > 20 && !horizontal;
+
     return {
       tooltip: baseTooltip,
-      grid: { left: 8, right: 24, top: 24, bottom: 24, containLabel: true },
+      grid: { left: 8, right: 24, top: 24, bottom: showZoom ? 48 : 24, containLabel: true },
       xAxis: horizontal ? valAxis : catAxis,
       yAxis: horizontal ? { ...catAxis, inverse: true } : valAxis,
+      dataZoom: showZoom
+        ? [
+            { type: "inside", start: Math.max(0, 100 - (20 / data.length) * 100), end: 100 },
+            { type: "slider", height: 18, bottom: 6, start: Math.max(0, 100 - (20 / data.length) * 100), end: 100 },
+          ]
+        : undefined,
       series: [series],
     };
+
   }, [tipo, data, metrica, dimensao, highlightLabel]);
 
   const handleExport = () => {

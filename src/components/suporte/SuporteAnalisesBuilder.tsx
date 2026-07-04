@@ -261,8 +261,16 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
       {/* Gráfico + galeria */}
       <div className="space-y-3 min-w-0">
         <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base truncate">{tituloAtual}</CardTitle>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <CardTitle className="text-base truncate">{tituloAtual}</CardTitle>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {filaNome}
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {format(new Date(de), "dd/MM")} – {format(new Date(ate), "dd/MM/yyyy")}
+              </span>
+            </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1" onClick={handleCsv} disabled={!query.data || query.data.length === 0}>
                 <Download className="h-3.5 w-3.5" /> CSV
@@ -272,15 +280,15 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0">
             {query.isLoading ? (
-              <Skeleton className="h-[400px] w-full" />
+              <Skeleton className="h-[440px] w-full" />
             ) : query.error ? (
-              <div className="h-[400px] flex items-center justify-center text-sm text-destructive">
+              <div className="h-[440px] flex items-center justify-center text-sm text-destructive">
                 Erro ao carregar análise.
               </div>
             ) : (query.data || []).length === 0 ? (
-              <div className="h-[400px] flex items-center justify-center text-sm text-muted-foreground">
+              <div className="h-[440px] flex items-center justify-center text-sm text-muted-foreground">
                 Sem dados no período.
               </div>
             ) : (
@@ -290,11 +298,12 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
                 metrica={metrica}
                 dimensao={dimensao}
                 titulo={tituloAtual}
-                height={400}
+                height={440}
               />
             )}
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader className="pb-2">
@@ -308,7 +317,7 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
                     {grupo} <span className="text-xs text-muted-foreground ml-2">({lista.length})</span>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2">
                       {lista.map((p) => (
                         <button
                           key={p.id}
