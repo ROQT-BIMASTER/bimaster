@@ -277,149 +277,183 @@ export default function SuporteDesk() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tickets" className="mt-3 flex flex-col gap-3 h-[calc(100vh-22rem)] min-h-[520px]">
-
-            {/* Filtros */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar título, protocolo, resumo…"
-                  className="pl-8 w-64 h-9"
-                />
-              </div>
-              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger className="w-44 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="abertos">Abertos</SelectItem>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  {(Object.keys(SUPORTE_STATUS_LABEL) as SuporteTicketStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {SUPORTE_STATUS_LABEL[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-                <SelectTrigger className="w-44 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas categorias</SelectItem>
-                  {Object.entries(CATEGORIA_LABEL).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <TabsContent value="tickets" className="mt-3 flex flex-col gap-2 h-[calc(100vh-22rem)] min-h-[520px]">
+            {/* Barra superior: views + toggle de visão */}
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <SuporteViewsBar
+                filaIds={filaIds}
+                filasSelecionaveis={filasSelecionaveis}
+                podeCompartilhar={podeVerTudo || filasAgente.length > 0}
+                filtros={tabelaFiltros}
+                colunas={tabelaColunas}
+                ordenacao={tabelaOrdenacao}
+                viewAtivaId={viewAtivaId}
+                onAplicar={aplicarView}
+                onLimparView={() => setViewAtivaId(null)}
+              />
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={modoVisao}
+                onValueChange={(v) => trocarModoVisao(v as "tabela" | "split")}
+                className="shrink-0"
+              >
+                <ToggleGroupItem value="tabela" className="h-7 px-2 text-xs gap-1.5">
+                  <TableIcon className="h-3.5 w-3.5" /> Tabela
+                </ToggleGroupItem>
+                <ToggleGroupItem value="split" className="h-7 px-2 text-xs gap-1.5">
+                  <Columns2 className="h-3.5 w-3.5" /> Split
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
-            {/* Grid lista + detalhe */}
-            <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
-                {isLoading || carregandoFilas ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : filtrados.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">
-                    Nenhum chamado nesta visão.
-                  </p>
-                ) : (
-                  filtrados.map((c) => (
-                    <ChamadoListItem
-                      key={c.id}
-                      chamado={c}
-                      selecionado={c.id === selecionadoId}
-                      onClick={() => setSelecionadoId(c.id)}
-                      mostrarSolicitante
+            {modoVisao === "tabela" ? (
+              <SuporteTicketsTable
+                filaIds={filaIds}
+                filasSelecionaveis={filasSelecionaveis}
+                filtros={tabelaFiltros}
+                onFiltrosChange={(f) => { setTabelaFiltros(f); setViewAtivaId(null); }}
+                colunas={tabelaColunas}
+                onColunasChange={(c) => { setTabelaColunas(c); setViewAtivaId(null); }}
+                ordenacao={tabelaOrdenacao}
+                onOrdenacaoChange={(o) => { setTabelaOrdenacao(o); setViewAtivaId(null); }}
+                selecionados={selecionados}
+                onSelecionadosChange={setSelecionados}
+                onOpenTicket={setSelecionadoId}
+                onDataChange={(t, n) => {
+                  setTicketsVisiveis(t);
+                  setNomesVisiveis(n);
+                }}
+              />
+            ) : (
+              <>
+                {/* Filtros do modo split (legado) */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                      placeholder="Buscar título, protocolo, resumo…"
+                      className="pl-8 w-64 h-9"
                     />
-                  ))
-                )}
-              </div>
+                  </div>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abertos">Abertos</SelectItem>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      {(Object.keys(SUPORTE_STATUS_LABEL) as SuporteTicketStatus[]).map((s) => (
+                        <SelectItem key={s} value={s}>{SUPORTE_STATUS_LABEL[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                    <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas categorias</SelectItem>
+                      {Object.entries(CATEGORIA_LABEL).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <Card className="min-h-0 overflow-hidden hidden lg:flex lg:flex-col">
-                {selecionado ? (
-                  <>
-                    <div className="flex items-center justify-between gap-2 border-b p-2.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {selecionado.protocolo && (
-                          <Badge variant="outline" className="font-mono text-[10px] shrink-0">
-                            {selecionado.protocolo}
-                          </Badge>
-                        )}
-                        <span className="text-sm font-medium truncate">{selecionado.titulo}</span>
+                <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
+                    {isLoading || carregandoFilas ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {selecionado.assignee_id !== user?.id && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5"
-                            disabled={assumir.isPending}
-                            onClick={() => assumir.mutate(selecionado.id)}
-                          >
-                            <UserCheck className="h-3.5 w-3.5" />
-                            Assumir
-                          </Button>
-                        )}
-                        {selecionado.status !== "resolvido" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5"
-                            onClick={() => setTransferOpen(true)}
-                          >
-                            <ArrowRightLeft className="h-3.5 w-3.5" />
-                            Transferir
-                          </Button>
-                        )}
-                        <Select
-                          value={selecionado.status}
-                          onValueChange={(v) =>
-                            mudarStatus.mutate({
-                              ticketId: selecionado.id,
-                              status: v as SuporteTicketStatus,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="w-[180px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Object.keys(SUPORTE_STATUS_LABEL) as SuporteTicketStatus[]).map(
-                              (s) => (
-                                <SelectItem key={s} value={s}>
-                                  {SUPORTE_STATUS_LABEL[s]}
-                                </SelectItem>
-                              ),
+                    ) : filtrados.length === 0 ? (
+                      <p className="text-center text-sm text-muted-foreground py-8">
+                        Nenhum chamado nesta visão.
+                      </p>
+                    ) : (
+                      filtrados.map((c) => (
+                        <ChamadoListItem
+                          key={c.id}
+                          chamado={c}
+                          selecionado={c.id === selecionadoId}
+                          onClick={() => setSelecionadoId(c.id)}
+                          mostrarSolicitante
+                        />
+                      ))
+                    )}
+                  </div>
+
+                  <Card className="min-h-0 overflow-hidden hidden lg:flex lg:flex-col">
+                    {selecionado ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2 border-b p-2.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {selecionado.protocolo && (
+                              <Badge variant="outline" className="font-mono text-[10px] shrink-0">
+                                {selecionado.protocolo}
+                              </Badge>
                             )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                      <ChatThread
-                        conversaId={selecionado.conversa_id}
-                        onShowInfo={() => {}}
-                        onBack={() => setSelecionadoId(null)}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <CardContent className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <MessageSquare className="h-8 w-8" />
-                    <p className="text-sm">Selecione um chamado para atender.</p>
-                  </CardContent>
-                )}
-              </Card>
-            </div>
+                            <span className="text-sm font-medium truncate">{selecionado.titulo}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {selecionado.assignee_id !== user?.id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                disabled={assumir.isPending}
+                                onClick={() => assumir.mutate(selecionado.id)}
+                              >
+                                <UserCheck className="h-3.5 w-3.5" /> Assumir
+                              </Button>
+                            )}
+                            {selecionado.status !== "resolvido" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() => setTransferOpen(true)}
+                              >
+                                <ArrowRightLeft className="h-3.5 w-3.5" /> Transferir
+                              </Button>
+                            )}
+                            <Select
+                              value={selecionado.status}
+                              onValueChange={(v) =>
+                                mudarStatus.mutate({
+                                  ticketId: selecionado.id,
+                                  status: v as SuporteTicketStatus,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {(Object.keys(SUPORTE_STATUS_LABEL) as SuporteTicketStatus[]).map((s) => (
+                                  <SelectItem key={s} value={s}>{SUPORTE_STATUS_LABEL[s]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <ChatThread
+                            conversaId={selecionado.conversa_id}
+                            onShowInfo={() => {}}
+                            onBack={() => setSelecionadoId(null)}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <CardContent className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                        <MessageSquare className="h-8 w-8" />
+                        <p className="text-sm">Selecione um chamado para atender.</p>
+                      </CardContent>
+                    )}
+                  </Card>
+                </div>
+              </>
+            )}
           </TabsContent>
+
 
           <TabsContent value="executiva" className="mt-4">
             <SuporteVisaoExecutiva
