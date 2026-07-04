@@ -210,6 +210,8 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
                   />
                 </section>
 
+                <PosicaoFinanceiraClienteCard clienteFuturaId={pedido.cliente_futura_id} />
+
                 <section className="rounded-md border border-border p-3 space-y-2">
                   <div className="flex items-start gap-2 min-w-0">
                     <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
