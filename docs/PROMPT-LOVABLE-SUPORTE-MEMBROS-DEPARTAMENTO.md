@@ -9,6 +9,7 @@
 2. **Proteção**: não é permitido remover o **último líder ativo** de uma fila (nem pelo admin — primeiro promova outro).
 3. **Ao adicionar** um membro: além do vínculo, ele entra como **participante das conversas dos chamados abertos** da fila (senão vê o ticket no desk mas o chat aparece vazio — a RLS de `mensagens` exige participação). Reativação limpa `saiu_em`.
 4. **Ao remover**: o vínculo é **desativado** (`ativo=false`, preserva histórico); os chamados **abertos** da fila em que ele era `assignee` voltam ao pool (`assignee_id=NULL`, audit `membro_removido`); ele é marcado com `saiu_em` nas conversas de chamados abertos da fila em que **não** é solicitante.
+5. **Integração com o fluxo kanban** (spec `PROMPT-LOVABLE-SUPORTE-FLUXO-KANBAN.md`): ao adicionar, o membro entra também no `projeto_membros` do projeto vinculado à fila (`suporte_filas.projeto_id`), senão não vê o kanban. Na remoção, **não** remove do projeto (histórico de cards preservado; remoção manual).
 
 ---
 
@@ -72,6 +73,15 @@ BEGIN
     JOIN public.conversas c ON c.id = t.conversa_id AND c.tipo = 'suporte'
     WHERE t.fila_id = p_fila_id AND t.status <> 'resolvido'
     ON CONFLICT (conversa_id, usuario_id) DO UPDATE SET saiu_em = NULL;
+
+    -- entra também no projeto do fluxo do departamento (se houver) —
+    -- senão o novo agente não vê o kanban (RLS de Projetos). Integração
+    -- com PROMPT-LOVABLE-SUPORTE-FLUXO-KANBAN.md.
+    INSERT INTO public.projeto_membros (projeto_id, user_id, papel)
+    SELECT f.projeto_id, p_user_id, CASE WHEN p_papel = 'lider' THEN 'coordenador' ELSE 'membro' END
+    FROM public.suporte_filas f
+    WHERE f.id = p_fila_id AND f.projeto_id IS NOT NULL
+    ON CONFLICT DO NOTHING;
 
     RETURN jsonb_build_object('ok', true, 'acao', 'adicionar', 'papel', p_papel);
   END IF;
