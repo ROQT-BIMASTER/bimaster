@@ -65,6 +65,7 @@ interface Fornecedor {
   linha_digitavel: string | null;
   erp_code: string | null;
   erp_synced_at: string | null;
+  prazo_pagamento_padrao: number | null;
 }
 
 interface FornecedorForm {
@@ -94,6 +95,7 @@ interface FornecedorForm {
   chave_pix: string;
   inscricao_estadual: string;
   inscricao_municipal: string;
+  prazo_pagamento_padrao: string;
 }
 
 const emptyForm: FornecedorForm = {
@@ -103,6 +105,7 @@ const emptyForm: FornecedorForm = {
   banco: "", agencia: "", conta_bancaria: "", tipo_conta: "corrente", favorecido: "",
   tipo_pix: "", chave_pix: "",
   inscricao_estadual: "", inscricao_municipal: "",
+  prazo_pagamento_padrao: "",
 };
 
 function formatCNPJ(value: string): string {
@@ -421,6 +424,7 @@ export default function Fornecedores() {
       chave_pix: f.chave_pix || "",
       inscricao_estadual: f.inscricao_estadual || "",
       inscricao_municipal: f.inscricao_municipal || "",
+      prazo_pagamento_padrao: f.prazo_pagamento_padrao != null ? String(f.prazo_pagamento_padrao) : "",
     });
     setEditingId(f.id);
     setDialogTab("basico");
@@ -486,6 +490,7 @@ export default function Fornecedores() {
       chave_pix: form.chave_pix.trim() || null,
       inscricao_estadual: form.inscricao_estadual.trim() || null,
       inscricao_municipal: form.inscricao_municipal.trim() || null,
+      prazo_pagamento_padrao: form.prazo_pagamento_padrao.trim() ? Number(form.prazo_pagamento_padrao) : null,
       updated_at: new Date().toISOString(),
     };
   }, [form]);
