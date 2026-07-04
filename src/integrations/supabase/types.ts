@@ -8042,6 +8042,60 @@ export type Database = {
           },
         ]
       }
+      cliente_financeiro: {
+        Row: {
+          a_vencer: number
+          batch_ts: string | null
+          cliente_futura_id: number
+          cliente_nome: string | null
+          created_at: string
+          em_aberto: number
+          maior_atraso_dias: number
+          n_parcelas_abertas: number
+          n_parcelas_vencidas: number
+          n_pedidos_abertos: number
+          n_titulos_abertos: number
+          proximo_vencimento: string | null
+          sincronizado_em: string
+          updated_at: string
+          vencido: number
+        }
+        Insert: {
+          a_vencer?: number
+          batch_ts?: string | null
+          cliente_futura_id: number
+          cliente_nome?: string | null
+          created_at?: string
+          em_aberto?: number
+          maior_atraso_dias?: number
+          n_parcelas_abertas?: number
+          n_parcelas_vencidas?: number
+          n_pedidos_abertos?: number
+          n_titulos_abertos?: number
+          proximo_vencimento?: string | null
+          sincronizado_em?: string
+          updated_at?: string
+          vencido?: number
+        }
+        Update: {
+          a_vencer?: number
+          batch_ts?: string | null
+          cliente_futura_id?: number
+          cliente_nome?: string | null
+          created_at?: string
+          em_aberto?: number
+          maior_atraso_dias?: number
+          n_parcelas_abertas?: number
+          n_parcelas_vencidas?: number
+          n_pedidos_abertos?: number
+          n_titulos_abertos?: number
+          proximo_vencimento?: string | null
+          sincronizado_em?: string
+          updated_at?: string
+          vencido?: number
+        }
+        Relationships: []
+      }
       cliente_tags: {
         Row: {
           cliente_id: string

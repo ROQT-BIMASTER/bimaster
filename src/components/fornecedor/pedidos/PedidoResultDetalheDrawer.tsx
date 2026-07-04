@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 import { useRubyspPedidoItens } from "@/hooks/fornecedor/useRubyspPedidoItens";
+import { PosicaoFinanceiraClienteCard } from "./PosicaoFinanceiraClienteCard";
 import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
 import { PedidoTimelineRubysp } from "./PedidoTimelineRubysp";
 
@@ -208,6 +209,8 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
                     valueClassName="text-base"
                   />
                 </section>
+
+                <PosicaoFinanceiraClienteCard clienteFuturaId={pedido.cliente_futura_id} />
 
                 <section className="rounded-md border border-border p-3 space-y-2">
                   <div className="flex items-start gap-2 min-w-0">

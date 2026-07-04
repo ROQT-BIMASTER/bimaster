@@ -29,6 +29,7 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { usePedidoItens } from "@/hooks/fornecedor/usePedidoItens";
 import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
+import { PosicaoFinanceiraClienteCard } from "./PosicaoFinanceiraClienteCard";
 
 interface PedidoDetalheDrawerProps {
   pedido: PedidoFornecedor | null;
@@ -176,6 +177,9 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                     valueClassName="text-base"
                   />
                 </section>
+
+                {/* Posição financeira do cliente (contas a receber, snapshot Futura) */}
+                <PosicaoFinanceiraClienteCard clienteFuturaId={pedido.cliente_futura_id} />
 
                 {/* Entrega */}
                 <section className="rounded-md border border-border p-3 space-y-2">

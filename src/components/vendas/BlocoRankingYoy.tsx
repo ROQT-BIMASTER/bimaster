@@ -6,6 +6,10 @@ import { useVendasYoy, type YoyDim, type VendasYoyRow } from "@/hooks/vendas/use
 import { formatMi, formatVarPct, variacaoTone } from "@/lib/vendas/format";
 import { RankingYoyFocoDialog } from "./RankingYoyFocoDialog";
 import { ClienteDetalheDialog } from "./ClienteDetalheDialog";
+import { usePosicaoFinanceiraClientesBulk } from "@/hooks/financeiro/usePosicaoFinanceiraCliente";
+import { computeSemaforo } from "@/lib/financeiro/semaforoCliente";
+import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 
 export type SortKey = "faturamento" | "crescimento";
 export type SortDir = "asc" | "desc";
@@ -103,6 +107,17 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
 
   const rows = useMemo(() => sortYoyRows(data ?? [], sort), [data, sort]);
 
+  // Semáforo financeiro (só faz sentido para clientes)
+  const clienteIds = useMemo(
+    () => (dim === "cliente" ? rows.map((r) => r.chave).filter((x): x is number => x != null) : []),
+    [dim, rows],
+  );
+  const { data: finMap } = usePosicaoFinanceiraClientesBulk(clienteIds);
+  const showSituacao = dim === "cliente";
+  const gridCols = showSituacao
+    ? "grid-cols-[36px_1fr_140px_1fr_130px_80px]"
+    : "grid-cols-[36px_1fr_140px_1fr_100px]";
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const virt = useVirtualizer({
     count: rows.length,
@@ -164,7 +179,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
       </div>
 
       <div className="border-t border-rv-linha">
-        <div className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 py-3 pl-1 pr-4 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
+        <div className={cn("grid gap-4 py-3 pl-1 pr-4 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha", gridCols)}>
           <div>#</div>
           <div>Nome</div>
           <button
@@ -185,6 +200,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
           >
             Crescimento vs {ano - 1} <SortIcon active={sort.key === "crescimento"} dir={sort.dir} />
           </button>
+          {showSituacao && <div className="text-right">Situação</div>}
           <div className="text-right">Notas</div>
         </div>
 
@@ -216,6 +232,13 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
                       : "border-l-2 border-l-transparent";
                   const nomeCls = quedaForte ? "text-rv-negativo" : "text-rv-ink";
                   const fatCls = quedaForte ? "text-rv-negativo" : "text-rv-ink";
+                  const fin = showSituacao && r.chave != null ? finMap?.get(r.chave) : undefined;
+                  const sem = showSituacao
+                    ? computeSemaforo({
+                        vencido: fin?.vencido ?? 0,
+                        maior_atraso_dias: fin?.maior_atraso_dias ?? 0,
+                      })
+                    : null;
                   return (
                     <button
                       key={`${r.chave ?? "na"}-${vi.index}`}
@@ -225,7 +248,11 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
                         position: "absolute", top: 0, left: 0, right: 0,
                         transform: `translateY(${vi.start}px)`, height: vi.size,
                       }}
-                      className={`grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 items-center pl-1 pr-4 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors text-left ${borderCls}`}
+                      className={cn(
+                        "grid gap-4 items-center pl-1 pr-4 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors text-left",
+                        gridCols,
+                        borderCls,
+                      )}
                     >
                       <div className="text-xs text-rv-muted tabular-nums">{vi.index + 1}</div>
                       <div className={`text-sm truncate ${nomeCls}`} title={r.nome}>{r.nome}</div>
@@ -233,6 +260,16 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
                       <div className={`${varCls}`}>
                         <DivergingBar variacao={r.variacao} novo={r.novo} />
                       </div>
+                      {showSituacao && sem && (
+                        <div className="flex items-center justify-end gap-1.5 min-w-0" title={sem.label}>
+                          <span className={cn("h-2 w-2 rounded-full shrink-0", sem.dotClass)} aria-hidden />
+                          <span className={cn("text-xs tabular-nums truncate", sem.textClass)}>
+                            {sem.tone === "verde"
+                              ? "em dia"
+                              : formatCurrency(fin?.vencido ?? 0)}
+                          </span>
+                        </div>
+                      )}
                       <div className="text-right text-sm text-rv-muted tabular-nums">
                         {r.notas_atual.toLocaleString("pt-BR")}
                       </div>
