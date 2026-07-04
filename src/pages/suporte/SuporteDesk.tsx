@@ -266,8 +266,27 @@ export default function SuporteDesk() {
                 <SelectItem value="90">Últimos 90 dias</SelectItem>
               </SelectContent>
             </Select>
+            {podeGerenciarMembros && filaAtivaObj && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1.5"
+                onClick={() => setMembrosOpen(true)}
+              >
+                <Users className="h-3.5 w-3.5" /> Membros
+              </Button>
+            )}
           </div>
         </div>
+
+        {filaAtivaObj && (
+          <MembrosFilaDialog
+            open={membrosOpen}
+            onOpenChange={setMembrosOpen}
+            filaId={filaAtivaObj.id}
+            filaNome={filaAtivaObj.nome}
+          />
+        )}
 
         {/* KPIs */}
         <SuporteCentralKpis tickets={ticketsPeriodo} />
