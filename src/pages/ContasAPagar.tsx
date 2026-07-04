@@ -308,6 +308,25 @@ export default function ContasAPagar() {
     }
   });
 
+  // Faixa de KPIs OFICIAIS (banco) — RPC agregada, sempre exata, independente da paginação da tela.
+  // Provisão × Dívida × Total aberto × Vence 7d × Vencido 30+.
+  const { data: cpHeadline, isLoading: isLoadingHeadline } = useQuery({
+    queryKey: ['contas-pagar-headline', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterPortadoresKey, filterNatureza],
+    queryFn: async () => {
+      const range = getDateRange(true);
+      const { data, error } = await supabase.rpc('fn_cp_dashboard', {
+        p_empresa_ids: filterEmpresas.length > 0 ? filterEmpresas : null,
+        p_data_de: range.vencimento_de || null,
+        p_data_ate: range.vencimento_ate || null,
+        p_departamento: filterDepartamento !== 'all' ? filterDepartamento : null,
+        p_portadores: filterPortadores.length > 0 ? filterPortadores : null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    staleTime: 60_000,
+  });
+
   // Query para TABELA - via API /query
   // Quando há filtros não suportados pelo /query (multi-empresa, departamento, portador, busca por nome),
   // buscamos amplo, filtramos client-side, e paginamos client-side.
