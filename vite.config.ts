@@ -105,7 +105,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2,json}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/, /^\/\.well-known/, /^\/\.lovable\/oauth/],
+        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/, /^\/\.well-known/],
         cleanupOutdatedCaches: true,
         // skipWaiting + clientsClaim: novo SW assume controle imediatamente após
         // ativar (sem precisar fechar todas as abas). Combinado com o listener
