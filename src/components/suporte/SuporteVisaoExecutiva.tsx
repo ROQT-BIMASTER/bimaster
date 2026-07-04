@@ -285,12 +285,21 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Ação de PDF */}
-      <div className="flex justify-end">
+    <div className="space-y-3">
+      {/* Cabeçalho compacto */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">Visão executiva</h3>
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {filaNome}
+          </span>
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {format(new Date(de), "dd/MM")} – {format(new Date(ate), "dd/MM/yyyy")}
+          </span>
+        </div>
         <Popover open={pdfOpen} onOpenChange={setPdfOpen}>
           <PopoverTrigger asChild>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button size="sm" variant="outline" className="gap-2 h-8">
               <FileDown className="h-4 w-4" /> Relatório executivo (PDF)
             </Button>
           </PopoverTrigger>
@@ -319,6 +328,7 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
         </Popover>
       </div>
 
+
       {/* KPI heroes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((k, i) => (
@@ -331,13 +341,14 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2"><CardTitle className="text-sm">SLA resolução</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate />
+            <ReactECharts ref={gaugeRef} option={gaugeOption} theme="rubyCorp" style={{ height: 220, width: "100%" }} notMerge lazyUpdate />
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Novos × Resolvidos por dia</CardTitle></CardHeader>
           <CardContent>
-            <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate />
+            <ReactECharts ref={evolRef} option={evolOption} theme="rubyCorp" style={{ height: 240, width: "100%" }} notMerge lazyUpdate />
+
           </CardContent>
         </Card>
       </div>
