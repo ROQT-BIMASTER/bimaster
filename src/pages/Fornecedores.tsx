@@ -748,7 +748,7 @@ export default function Fornecedores() {
                         </CollapsibleTrigger>
                         <CollapsibleContent asChild>
                           <tr>
-                            <td colSpan={9} className="p-0">
+                            <td colSpan={11} className="p-0">
                               <FornecedorDetailPanel f={f} />
                             </td>
                           </tr>
