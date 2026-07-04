@@ -375,6 +375,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
       { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
+      { code: "cadastros", label: "Cadastros", icon: Database },
       ...(isAdmin ? [{ code: "design_studio", label: "Design Studio", icon: Wand2 }] : []),
     ];
     return allModules.filter(m => hasModulePermission(m.code));
@@ -441,6 +442,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["/dashboard/reunioes"],
     processos: ["/dashboard/processos"],
     inteligencia: ["/dashboard/painel-executivo", "/dashboard/performance-vendas", "/dashboard/clientes", "/dashboard/detalhamento", "/dashboard/geografico", "/dashboard/produtos", "/dashboard/metas", "/dashboard/consolidado"],
+    cadastros: [
+      "/dashboard/fornecedores", "/dashboard/financeiro/fornecedores",
+      "/dashboard/bancos", "/dashboard/portadores",
+      "/dashboard/centros-custo", "/dashboard/financeiro/plano-contas",
+      "/dashboard/departamentos", "/dashboard/empresas", "/dashboard/clientes",
+    ],
   }), []);
 
   // Dynamic moduleToCategoryMap from DB config
@@ -554,6 +561,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     projetos: ["projetos", "inbox", "vincular china"],
     reunioes: ["reuniões"],
     processos: ["processos", "workflows", "etapas"],
+    cadastros: ["cadastros", "fornecedores", "bancos", "portadores", "centros de custo", "plano de contas", "departamentos", "empresas", "clientes"],
   }), [t]);
 
   // Auto-open modules matching search (must be before early return)
