@@ -8151,6 +8151,7 @@ export type Database = {
           cidade_normalizada: string | null
           classificacao: number | null
           cnpj: string | null
+          cnpj_digits: string | null
           cod_equipe: number | null
           cod_vend: number | null
           codigo: string
@@ -8211,6 +8212,7 @@ export type Database = {
           cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           cod_equipe?: number | null
           cod_vend?: number | null
           codigo: string
@@ -8271,6 +8273,7 @@ export type Database = {
           cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           cod_equipe?: number | null
           cod_vend?: number | null
           codigo?: string
@@ -14925,6 +14928,7 @@ export type Database = {
           cnae: string | null
           cnae_municipal: string | null
           cnpj: string | null
+          cnpj_digits: string | null
           codigo_empresa_integracao: string | null
           codigo_erp: string | null
           codigo_ibge_municipio: number | null
@@ -14972,6 +14976,7 @@ export type Database = {
           cnae?: string | null
           cnae_municipal?: string | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           codigo_empresa_integracao?: string | null
           codigo_erp?: string | null
           codigo_ibge_municipio?: number | null
@@ -15019,6 +15024,7 @@ export type Database = {
           cnae?: string | null
           cnae_municipal?: string | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           codigo_empresa_integracao?: string | null
           codigo_erp?: string | null
           codigo_ibge_municipio?: number | null
@@ -19547,6 +19553,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          cnpj_digits: string | null
           complemento: string | null
           conta: string | null
           contato: string | null
@@ -19580,6 +19587,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           complemento?: string | null
           conta?: string | null
           contato?: string | null
@@ -19613,6 +19621,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cnpj_digits?: string | null
           complemento?: string | null
           conta?: string | null
           contato?: string | null
