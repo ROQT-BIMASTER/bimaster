@@ -178,6 +178,9 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                   />
                 </section>
 
+                {/* Posição financeira do cliente (contas a receber, snapshot Futura) */}
+                <PosicaoFinanceiraClienteCard clienteFuturaId={pedido.cliente_futura_id} />
+
                 {/* Entrega */}
                 <section className="rounded-md border border-border p-3 space-y-2">
                   <div className="flex items-start justify-between gap-3">
