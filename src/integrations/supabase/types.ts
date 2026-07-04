@@ -55925,6 +55925,36 @@ export type Database = {
         }[]
       }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
+      fn_cp_calendario: {
+        Args: {
+          p_data_ate?: string
+          p_data_de?: string
+          p_departamento?: string
+          p_empresa_ids?: number[]
+          p_portadores?: string[]
+        }
+        Returns: Json
+      }
+      fn_cp_dashboard: {
+        Args: {
+          p_data_ate?: string
+          p_data_de?: string
+          p_departamento?: string
+          p_empresa_ids?: number[]
+          p_portadores?: string[]
+        }
+        Returns: Json
+      }
+      fn_cp_kpis_avancados: {
+        Args: {
+          p_data_ate?: string
+          p_data_de?: string
+          p_departamento?: string
+          p_empresa_ids?: number[]
+          p_portadores?: string[]
+        }
+        Returns: Json
+      }
       fn_criar_titulo_com_parcelas: {
         Args: {
           p_categoria_nome?: string
