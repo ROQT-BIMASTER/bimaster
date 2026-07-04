@@ -15531,6 +15531,87 @@ export type Database = {
           },
         ]
       }
+      erp_contas_pagar_rubysp: {
+        Row: {
+          categoria_codigo: string | null
+          categoria_nome: string | null
+          created_at: string
+          custo_tpg: number | null
+          data_emissao: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          empresa_id: number | null
+          erp_id: string
+          fornecedor_codigo: string | null
+          fornecedor_nome: string | null
+          historico_tpg: number | null
+          numero_documento: string | null
+          parcela: number | null
+          portador: string | null
+          raw: Json | null
+          sincronizado_em: string | null
+          status_tpg: number | null
+          tipo_documento: string | null
+          valor_aberto: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_original: number | null
+          valor_pago: number | null
+        }
+        Insert: {
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id?: number | null
+          erp_id: string
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          historico_tpg?: number | null
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          raw?: Json | null
+          sincronizado_em?: string | null
+          status_tpg?: number | null
+          tipo_documento?: string | null
+          valor_aberto?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Update: {
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id?: number | null
+          erp_id?: string
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          historico_tpg?: number | null
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          raw?: Json | null
+          sincronizado_em?: string | null
+          status_tpg?: number | null
+          tipo_documento?: string | null
+          valor_aberto?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Relationships: []
+      }
       erp_cp_enriq_rubysp: {
         Row: {
           created_at: string
@@ -56080,6 +56161,15 @@ export type Database = {
         Args: never
         Returns: {
           atualizados: number
+          inseridos: number
+        }[]
+      }
+      fn_transform_contas_pagar_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
+          com_centro: number
+          com_plano: number
           inseridos: number
         }[]
       }
