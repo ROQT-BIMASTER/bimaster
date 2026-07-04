@@ -20,8 +20,9 @@ import {
   ArrowRightLeft,
   Search,
   BarChart3,
+  LineChart as LineChartIcon,
 } from "lucide-react";
-import { subDays } from "date-fns";
+import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
@@ -32,7 +33,8 @@ import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { SuporteCentralKpis } from "@/components/suporte/SuporteCentralKpis";
-import { SuporteCentralGraficos } from "@/components/suporte/SuporteCentralGraficos";
+import { SuporteVisaoExecutiva } from "@/components/suporte/SuporteVisaoExecutiva";
+import { SuporteAnalisesBuilder } from "@/components/suporte/SuporteAnalisesBuilder";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import {
   SUPORTE_STATUS_LABEL,
