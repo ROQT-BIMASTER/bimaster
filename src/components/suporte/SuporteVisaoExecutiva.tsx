@@ -434,7 +434,7 @@ export function SuporteVisaoExecutiva({ de, ate, filaId, filaNome }: Props) {
             {totalCsat === 0 ? (
               <EmptyState label="Sem avaliações no período — as avaliações são coletadas ao resolver o chamado." />
             ) : (
-              <ReactECharts ref={csatRef} option={csatOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate />
+              <div className="min-w-0 w-full"><ReactECharts ref={csatRef} option={csatOption} theme="rubyCorp" style={{ height: 260, width: "100%" }} notMerge lazyUpdate /></div>
             )}
           </CardContent>
         </Card>
