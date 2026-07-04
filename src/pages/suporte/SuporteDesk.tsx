@@ -114,7 +114,9 @@ export default function SuporteDesk() {
 
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "30" | "90">("30");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "30" | "90" | "custom">("30");
+  const [periodoCustom, setPeriodoCustom] = useState<DateRange | undefined>(undefined);
+  const [popPeriodoOpen, setPopPeriodoOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
