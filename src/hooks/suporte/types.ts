@@ -52,6 +52,11 @@ export interface SuporteChamado {
   prazo_resolucao_em: string | null;
   ultima_interacao_em: string | null;
   resolved_at: string | null;
+  reaberto_em: string | null;
+  escalado_em: string | null;
+  sla_pausado_em: string | null;
+  sentimento: string | null;
+  tags: string[] | null;
   created_at: string;
   // enriquecidos no client
   fila?: SuporteFila | null;

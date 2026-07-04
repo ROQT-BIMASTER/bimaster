@@ -46285,6 +46285,50 @@ export type Database = {
         }
         Relationships: []
       }
+      suporte_analises_salvas: {
+        Row: {
+          compartilhada: boolean
+          config: Json
+          created_at: string
+          descricao: string | null
+          fila_id: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compartilhada?: boolean
+          config?: Json
+          created_at?: string
+          descricao?: string | null
+          fila_id?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compartilhada?: boolean
+          config?: Json
+          created_at?: string
+          descricao?: string | null
+          fila_id?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_analises_salvas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_calendarios: {
         Row: {
           ativo: boolean
@@ -58264,9 +58308,30 @@ export type Database = {
         Args: { p_calendario_id?: string; p_horas: number; p_inicio: string }
         Returns: string
       }
+      suporte_analise: {
+        Args: {
+          p_ate: string
+          p_canal?: string
+          p_categoria?: string
+          p_de: string
+          p_dimensao: string
+          p_fila_id?: string
+          p_limit?: number
+          p_metrica: string
+          p_prioridade?: string
+        }
+        Returns: {
+          label: string
+          valor: number
+        }[]
+      }
       suporte_horas_comerciais_entre: {
         Args: { p_ate: string; p_calendario_id?: string; p_de: string }
         Returns: number
+      }
+      suporte_kpis: {
+        Args: { p_ate: string; p_de: string; p_fila_id?: string }
+        Returns: Json
       }
       suporte_recalcular_sla: {
         Args: { p_base?: string; p_ticket_id: string }
