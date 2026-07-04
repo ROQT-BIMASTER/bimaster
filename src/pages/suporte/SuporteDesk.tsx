@@ -24,7 +24,9 @@ import {
   LineChart as LineChartIcon,
   Table as TableIcon,
   Columns2,
+  Users,
 } from "lucide-react";
+import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
