@@ -65,6 +65,10 @@ export function SuporteAnaliseChart({
 
     const baseTooltip = {
       trigger: tipo === "pie" ? "item" : "axis",
+      confine: true,
+      axisPointer: tipo === "pie" ? undefined : { type: (tipo === "line" || tipo === "area") ? "line" : "shadow" },
+      borderColor: "hsl(var(--border))",
+      textStyle: { color: "#0F1623", fontSize: 12 },
       formatter: tooltipFactory(metrica),
     };
 
@@ -95,7 +99,7 @@ export function SuporteAnaliseChart({
       return BRAND_BASE;
     };
 
-    const small = data.length <= 12;
+    const small = data.length <= 8;
     const series: any = {
       type: seriesType,
       data: values,
@@ -103,6 +107,9 @@ export function SuporteAnaliseChart({
       lineStyle: seriesType === "line" ? { color: BRAND_BASE, width: 2 } : undefined,
       areaStyle: tipo === "area" ? { color: BRAND_BASE, opacity: 0.18 } : undefined,
       smooth: seriesType === "line",
+      showSymbol: seriesType === "line" ? data.length <= 40 : undefined,
+      symbol: seriesType === "line" ? "circle" : undefined,
+      symbolSize: 4,
       barMaxWidth: 36,
       label: small
         ? {
@@ -110,27 +117,53 @@ export function SuporteAnaliseChart({
             position: seriesType === "bar" && !horizontal ? "top" : (horizontal ? "right" : "top"),
             fontSize: 10,
             color: "#6B7280",
+            distance: 4,
+            overflow: "truncate",
             formatter: (p: any) => formatValor(Number(p.value ?? 0), metrica),
           }
         : undefined,
     };
 
     const valFmt = axisFormatter(metrica);
-    const catAxis = { type: "category", data: labels, axisLabel: { interval: 0, rotate: horizontal ? 0 : (labels.length > 6 ? 30 : 0) } };
+    const catAxis = {
+      type: "category",
+      data: labels,
+      axisLabel: {
+        interval: "auto" as const,
+        rotate: horizontal ? 0 : (labels.length > 10 ? 35 : (labels.length > 6 ? 20 : 0)),
+        hideOverlap: true,
+        fontSize: 10,
+      },
+    };
     const valAxis = { type: "value", axisLabel: { formatter: valFmt } };
 
     const temporal = dimensao === "dia" || dimensao === "semana" || dimensao === "mes";
-    const showZoom = temporal && data.length > 20 && !horizontal;
+    const showZoom = temporal && data.length > 30 && !horizontal;
+    const zoomStart = showZoom ? Math.max(0, 100 - (30 / data.length) * 100) : 0;
 
     return {
       tooltip: baseTooltip,
-      grid: { left: 8, right: 24, top: 24, bottom: showZoom ? 48 : 24, containLabel: true },
+      grid: {
+        left: 8,
+        right: showZoom ? 32 : 24,
+        top: 24,
+        bottom: showZoom ? 48 : 24,
+        containLabel: true,
+      },
       xAxis: horizontal ? valAxis : catAxis,
       yAxis: horizontal ? { ...catAxis, inverse: true } : valAxis,
       dataZoom: showZoom
         ? [
-            { type: "inside", start: Math.max(0, 100 - (20 / data.length) * 100), end: 100 },
-            { type: "slider", height: 18, bottom: 6, start: Math.max(0, 100 - (20 / data.length) * 100), end: 100 },
+            {
+              type: "inside",
+              start: zoomStart,
+              end: 100,
+              minValueSpan: 7,
+              zoomOnMouseWheel: true,
+              moveOnMouseMove: true,
+              moveOnMouseWheel: false,
+            },
+            { type: "slider", height: 18, bottom: 6, start: zoomStart, end: 100, minValueSpan: 7 },
           ]
         : undefined,
       series: [series],
@@ -177,7 +210,7 @@ export function SuporteAnaliseChart({
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0 w-full">
       <div className="absolute right-2 top-2 z-10 flex gap-1">
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleExport} title="Exportar PNG">
           <Download className="h-3 w-3 mr-1" /> PNG
