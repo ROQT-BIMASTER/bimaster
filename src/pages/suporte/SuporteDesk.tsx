@@ -282,26 +282,48 @@ export default function SuporteDesk() {
                 </Badge>
               )
             )}
-            <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as any)}>
-              <SelectTrigger className="w-[150px] h-9">
+            <Select
+              value={filtroPeriodo}
+              onValueChange={(v) => {
+                setFiltroPeriodo(v as any);
+                if (v === "custom") setPopPeriodoOpen(true);
+              }}
+            >
+              <SelectTrigger className="w-[170px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="7">Últimos 7 dias</SelectItem>
                 <SelectItem value="30">Últimos 30 dias</SelectItem>
                 <SelectItem value="90">Últimos 90 dias</SelectItem>
+                <SelectItem value="custom">Personalizado…</SelectItem>
               </SelectContent>
             </Select>
+            {filtroPeriodo === "custom" && (
+              <Popover open={popPeriodoOpen} onOpenChange={setPopPeriodoOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {periodoCustom?.from && periodoCustom?.to
+                      ? `${format(periodoCustom.from, "dd/MM")} – ${format(periodoCustom.to, "dd/MM/yyyy")}`
+                      : "Selecionar período"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    selected={periodoCustom}
+                    onSelect={setPeriodoCustom}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             {podeGerenciarMembros && filaAtivaObj && (
               <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 gap-1.5"
-                  onClick={() => setMembrosOpen(true)}
-                >
-                  <Users className="h-3.5 w-3.5" /> Membros
-                </Button>
+                <MembrosButton filaId={filaAtivaObj.id} onClick={() => setMembrosOpen(true)} />
                 <Button
                   size="sm"
                   variant="outline"
