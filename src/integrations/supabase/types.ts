@@ -25583,6 +25583,7 @@ export type Database = {
           optante_simples_nacional: string | null
           pessoa_fisica: string | null
           porte: string | null
+          prazo_pagamento_padrao: number | null
           razao_social: string | null
           regime_tributario: string | null
           situacao_cadastral: string | null
@@ -25638,6 +25639,7 @@ export type Database = {
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
           porte?: string | null
+          prazo_pagamento_padrao?: number | null
           razao_social?: string | null
           regime_tributario?: string | null
           situacao_cadastral?: string | null
@@ -25693,6 +25695,7 @@ export type Database = {
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
           porte?: string | null
+          prazo_pagamento_padrao?: number | null
           razao_social?: string | null
           regime_tributario?: string | null
           situacao_cadastral?: string | null

@@ -24,6 +24,7 @@ import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton
 import { Link } from "react-router-dom";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { ErpBadge } from "@/components/cadastros/ErpBadge";
 
 interface Fornecedor {
   id: string;
@@ -65,6 +66,7 @@ interface Fornecedor {
   linha_digitavel: string | null;
   erp_code: string | null;
   erp_synced_at: string | null;
+  prazo_pagamento_padrao: number | null;
 }
 
 interface FornecedorForm {
@@ -94,6 +96,7 @@ interface FornecedorForm {
   chave_pix: string;
   inscricao_estadual: string;
   inscricao_municipal: string;
+  prazo_pagamento_padrao: string;
 }
 
 const emptyForm: FornecedorForm = {
@@ -103,6 +106,7 @@ const emptyForm: FornecedorForm = {
   banco: "", agencia: "", conta_bancaria: "", tipo_conta: "corrente", favorecido: "",
   tipo_pix: "", chave_pix: "",
   inscricao_estadual: "", inscricao_municipal: "",
+  prazo_pagamento_padrao: "",
 };
 
 function formatCNPJ(value: string): string {
@@ -421,6 +425,7 @@ export default function Fornecedores() {
       chave_pix: f.chave_pix || "",
       inscricao_estadual: f.inscricao_estadual || "",
       inscricao_municipal: f.inscricao_municipal || "",
+      prazo_pagamento_padrao: f.prazo_pagamento_padrao != null ? String(f.prazo_pagamento_padrao) : "",
     });
     setEditingId(f.id);
     setDialogTab("basico");
@@ -486,6 +491,7 @@ export default function Fornecedores() {
       chave_pix: form.chave_pix.trim() || null,
       inscricao_estadual: form.inscricao_estadual.trim() || null,
       inscricao_municipal: form.inscricao_municipal.trim() || null,
+      prazo_pagamento_padrao: form.prazo_pagamento_padrao.trim() ? Number(form.prazo_pagamento_padrao) : null,
       updated_at: new Date().toISOString(),
     };
   }, [form]);
@@ -649,15 +655,17 @@ export default function Fornecedores() {
                 <TableHead>Email</TableHead>
                 <TableHead>Cidade/UF</TableHead>
                 <TableHead>Empresa</TableHead>
+                <TableHead className="text-center">Prazo (d)</TableHead>
+                <TableHead>ERP</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
               ) : fornecedores.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum fornecedor encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhum fornecedor encontrado</TableCell></TableRow>
               ) : (
                 fornecedores.map((f) => {
                   const isExpanded = expandedRow === f.id;
@@ -682,6 +690,8 @@ export default function Fornecedores() {
                             <TableCell className="text-sm">{f.email || "—"}</TableCell>
                             <TableCell className="text-sm">{[f.cidade, f.estado].filter(Boolean).join("/") || "—"}</TableCell>
                             <TableCell className="text-sm">{empresaNome(f.empresa_id)}</TableCell>
+                            <TableCell className="text-center tabular-nums text-sm">{f.prazo_pagamento_padrao ?? "—"}</TableCell>
+                            <TableCell><ErpBadge code={f.erp_code} /></TableCell>
                             <TableCell>{statusBadge(f.status)}</TableCell>
                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-end gap-1">
@@ -738,7 +748,7 @@ export default function Fornecedores() {
                         </CollapsibleTrigger>
                         <CollapsibleContent asChild>
                           <tr>
-                            <td colSpan={9} className="p-0">
+                            <td colSpan={11} className="p-0">
                               <FornecedorDetailPanel f={f} />
                             </td>
                           </tr>
@@ -854,6 +864,20 @@ export default function Fornecedores() {
                 <div className="grid gap-1.5">
                   <Label>Fonte ERP</Label>
                   <Input value={form.fonte_erp} onChange={(e) => setForm({ ...form, fonte_erp: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Prazo de pagamento padrão (dias)</Label>
+                  <Input
+                    type="number" min={0} max={365}
+                    value={form.prazo_pagamento_padrao}
+                    onChange={(e) => setForm({ ...form, prazo_pagamento_padrao: e.target.value.replace(/[^\d]/g, "") })}
+                    placeholder="Ex: 30"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Usado como padrão na integração com o Result para calcular vencimento a partir da emissão.
+                  </p>
                 </div>
               </div>
             </div>

@@ -375,6 +375,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
       { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
+      { code: "cadastros", label: "Cadastros", icon: Database },
       ...(isAdmin ? [{ code: "design_studio", label: "Design Studio", icon: Wand2 }] : []),
     ];
     return allModules.filter(m => hasModulePermission(m.code));
@@ -441,6 +442,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["/dashboard/reunioes"],
     processos: ["/dashboard/processos"],
     inteligencia: ["/dashboard/painel-executivo", "/dashboard/performance-vendas", "/dashboard/clientes", "/dashboard/detalhamento", "/dashboard/geografico", "/dashboard/produtos", "/dashboard/metas", "/dashboard/consolidado"],
+    cadastros: [
+      "/dashboard/fornecedores", "/dashboard/financeiro/fornecedores",
+      "/dashboard/bancos", "/dashboard/portadores",
+      "/dashboard/centros-custo", "/dashboard/financeiro/plano-contas",
+      "/dashboard/departamentos", "/dashboard/empresas", "/dashboard/clientes",
+    ],
   }), []);
 
   // Dynamic moduleToCategoryMap from DB config
@@ -554,6 +561,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     projetos: ["projetos", "inbox", "vincular china"],
     reunioes: ["reuniões"],
     processos: ["processos", "workflows", "etapas"],
+    cadastros: ["cadastros", "fornecedores", "bancos", "portadores", "centros de custo", "plano de contas", "departamentos", "empresas", "clientes"],
   }), [t]);
 
   // Auto-open modules matching search (must be before early return)
@@ -659,13 +667,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const finBottomItems = [
     { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
     { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
-    { title: "Contas Bancárias", url: "/dashboard/bancos", icon: Building2, screenCode: "financeiro_contas_bancarias" },
     { title: "Gestão Contas a Pagar", url: "/dashboard/contas-pagar", icon: FileText, screenCode: "financeiro_contas_pagar_gestao" },
     { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
-    { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
-    { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "financeiro_empresas" },
-    { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "financeiro_centros_custo" },
+  ];
+
+  // Módulo "Cadastros" — fonte única para telas de cadastro
+  const cadastrosItems = [
+    { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "cadastros_fornecedores" },
+    { title: "Contas Bancárias", url: "/dashboard/bancos", icon: Landmark, screenCode: "cadastros_bancos" },
+    { title: "Portadores", url: "/dashboard/portadores", icon: Wallet, screenCode: "cadastros_portadores" },
+    { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "cadastros_centros_custo" },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "cadastros_plano_contas" },
+    { title: "Departamentos", url: "/dashboard/departamentos", icon: Building2, screenCode: "cadastros_departamentos" },
+    { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "cadastros_empresas" },
+    { title: "Clientes", url: "/dashboard/clientes", icon: Users, screenCode: "cadastros_clientes" },
   ];
 
   const tradeSubMenus = [
@@ -767,6 +783,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
       case "fornecedor_vendas": return 6;
+      case "cadastros": return cadastrosItems.filter(i => hasPermission(i.screenCode)).length;
       default: return 0;
     }
   };
@@ -1146,6 +1163,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         );
 
       // case "departamentos" removido: itens duplicavam os módulos próprios da sidebar.
+
+      case "cadastros": {
+        const visible = cadastrosItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
+        return (
+          <ModuleSubmenu icon={Database} title="Cadastros" colorKey="financeiro">
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
+            ))}
+          </ModuleSubmenu>
+        );
+      }
+
+
 
 
 

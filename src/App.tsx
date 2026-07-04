@@ -230,6 +230,7 @@ const Pagamentos = lazyWithRetry(() => import("./pages/Pagamentos"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
 const ContasBancarias = lazyWithRetry(() => import("./pages/ContasBancarias"));
+const Portadores = lazyWithRetry(() => import("./pages/Portadores"));
 const TabelasPrecosModule = lazyWithRetry(() => import("./pages/modules/TabelasPrecosModule"));
 const FabricaTabelasPreco = lazyWithRetry(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazyWithRetry(() => import("./pages/FabricaAprovacaoPrecos"));
@@ -998,6 +999,7 @@ function AppContent() {
             <Route path="/dashboard/centros-custo" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_centros_custo"><CentrosCusto /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/contas-pagar" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_pagar_gestao"><ContasPagarGestao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/bancos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_bancarias"><ContasBancarias /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/portadores" element={<ModuleRoute moduleCode="cadastros"><ScreenProtectedRoute screenCode="cadastros_portadores"><Portadores /></ScreenProtectedRoute></ModuleRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
