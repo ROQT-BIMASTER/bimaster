@@ -1164,6 +1164,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       // case "departamentos" removido: itens duplicavam os módulos próprios da sidebar.
 
+      case "cadastros": {
+        const visible = cadastrosItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
+        return (
+          <ModuleSubmenu icon={Database} title="Cadastros" colorKey="financeiro">
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
+            ))}
+          </ModuleSubmenu>
+        );
+      }
+
+
+
 
 
       case "fornecedor_vendas":
