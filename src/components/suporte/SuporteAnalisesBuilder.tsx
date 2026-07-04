@@ -317,7 +317,7 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
                     {grupo} <span className="text-xs text-muted-foreground ml-2">({lista.length})</span>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2">
                       {lista.map((p) => (
                         <button
                           key={p.id}
