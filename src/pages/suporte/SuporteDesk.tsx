@@ -273,26 +273,56 @@ export default function SuporteDesk() {
               </SelectContent>
             </Select>
             {podeGerenciarMembros && filaAtivaObj && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => setMembrosOpen(true)}
+                >
+                  <Users className="h-3.5 w-3.5" /> Membros
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => setFluxoOpen(true)}
+                >
+                  <Settings2 className="h-3.5 w-3.5" /> Fluxo
+                </Button>
+              </>
+            )}
+            {isAdmin && (
               <Button
                 size="sm"
-                variant="outline"
                 className="h-9 gap-1.5"
-                onClick={() => setMembrosOpen(true)}
+                onClick={() => setNovoDeptoOpen(true)}
               >
-                <Users className="h-3.5 w-3.5" /> Membros
+                <Plus className="h-3.5 w-3.5" /> Novo departamento
               </Button>
             )}
           </div>
         </div>
 
         {filaAtivaObj && (
-          <MembrosFilaDialog
-            open={membrosOpen}
-            onOpenChange={setMembrosOpen}
-            filaId={filaAtivaObj.id}
-            filaNome={filaAtivaObj.nome}
-          />
+          <>
+            <MembrosFilaDialog
+              open={membrosOpen}
+              onOpenChange={setMembrosOpen}
+              filaId={filaAtivaObj.id}
+              filaNome={filaAtivaObj.nome}
+            />
+            <FluxoDepartamentoDialog
+              open={fluxoOpen}
+              onOpenChange={setFluxoOpen}
+              fila={filaAtivaObj}
+            />
+          </>
         )}
+        <NovoDepartamentoDialog
+          open={novoDeptoOpen}
+          onOpenChange={setNovoDeptoOpen}
+        />
 
         {/* KPIs */}
         <SuporteCentralKpis tickets={ticketsPeriodo} />
