@@ -29,6 +29,7 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { usePedidoItens } from "@/hooks/fornecedor/usePedidoItens";
 import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
+import { PosicaoFinanceiraClienteCard } from "./PosicaoFinanceiraClienteCard";
 
 interface PedidoDetalheDrawerProps {
   pedido: PedidoFornecedor | null;
