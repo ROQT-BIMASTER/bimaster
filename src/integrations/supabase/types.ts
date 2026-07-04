@@ -10166,6 +10166,7 @@ export type Database = {
           id_origem: string | null
           importado_api: boolean | null
           is_honeytoken: boolean
+          natureza_lancamento: string
           numero_documento: string | null
           numero_documento_fiscal: string | null
           numero_parcela: number | null
@@ -10261,6 +10262,7 @@ export type Database = {
           id_origem?: string | null
           importado_api?: boolean | null
           is_honeytoken?: boolean
+          natureza_lancamento?: string
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: number | null
@@ -10356,6 +10358,7 @@ export type Database = {
           id_origem?: string | null
           importado_api?: boolean | null
           is_honeytoken?: boolean
+          natureza_lancamento?: string
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: number | null
@@ -24145,6 +24148,42 @@ export type Database = {
           codigo?: string
           descricao?: string
           id?: string
+        }
+        Relationships: []
+      }
+      financeiro_status_erp: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          erp: string
+          erp_status_codigo: string
+          erp_status_label: string | null
+          id: number
+          natureza: string
+          observacao: string | null
+          status_huugs: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          erp?: string
+          erp_status_codigo: string
+          erp_status_label?: string | null
+          id?: never
+          natureza: string
+          observacao?: string | null
+          status_huugs: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          erp?: string
+          erp_status_codigo?: string
+          erp_status_label?: string | null
+          id?: never
+          natureza?: string
+          observacao?: string | null
+          status_huugs?: string
         }
         Relationships: []
       }
