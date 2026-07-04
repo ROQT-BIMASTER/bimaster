@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   useSuporteAnalise, useAnalisesSalvas, useSalvarAnalise,
   useExcluirAnalise, useToggleCompartilhar,
@@ -27,6 +28,7 @@ import {
 import { PRESETS_SUPORTE, type SuportePreset } from "@/lib/suporte/analisePresets";
 import { SuporteAnaliseChart, type AnaliseChartTipo } from "./SuporteAnaliseChart";
 import { buildAnaliseCsv, downloadBlob } from "@/lib/suporte/csvExport";
+import { exportToExcel } from "@/utils/excelExport";
 import type { SuporteFila } from "@/hooks/suporte/types";
 
 interface Props {
@@ -46,16 +48,56 @@ const TIPOS: { value: AnaliseChartTipo; label: string; icon: any }[] = [
   { value: "table", label: "Tabela", icon: TableIcon },
 ];
 
+const CANAIS: { value: string; label: string }[] = [
+  { value: "__todos__", label: "Todos os canais" },
+  { value: "web", label: "Web" },
+  { value: "chat", label: "Chat" },
+  { value: "email", label: "E-mail" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "api", label: "API" },
+];
+
+const PRIORIDADES: { value: string; label: string }[] = [
+  { value: "__todos__", label: "Todas prioridades" },
+  { value: "baixa", label: "Baixa" },
+  { value: "media", label: "Média" },
+  { value: "alta", label: "Alta" },
+  { value: "critica", label: "Crítica" },
+];
+
+const CATEGORIAS: { value: string; label: string }[] = [
+  { value: "__todas__", label: "Todas categorias" },
+  { value: "bug", label: "Bug" },
+  { value: "duvida_uso", label: "Dúvida de uso" },
+  { value: "solicitacao_acesso", label: "Acesso" },
+  { value: "solicitacao_funcionalidade", label: "Nova feature" },
+  { value: "integracao", label: "Integração" },
+  { value: "financeiro", label: "Financeiro" },
+  { value: "performance", label: "Performance" },
+  { value: "dados_inconsistentes", label: "Dados" },
+  { value: "outro", label: "Outro" },
+];
+
+const TODOS_CANAL = "__todos__";
+const TODAS_CAT = "__todas__";
+
 export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecionaveis, podeCompartilhar }: Props) {
+  const { user } = useAuth();
   const [metrica, setMetrica] = useState<SuporteMetrica>("chamados");
   const [dimensao, setDimensao] = useState<SuporteDimensao>("dia");
   const [tipo, setTipo] = useState<AnaliseChartTipo>("area");
+  const [canal, setCanal] = useState<string>(TODOS_CANAL);
+  const [prioridade, setPrioridade] = useState<string>(TODOS_CANAL);
+  const [categoria, setCategoria] = useState<string>(TODAS_CAT);
   const [tituloSalvar, setTituloSalvar] = useState("");
   const [compartilhar, setCompartilhar] = useState(false);
 
   const query = useSuporteAnalise({
     metrica, dimensao, de, ate,
     fila_id: filaId,
+    canal: canal === TODOS_CANAL ? null : canal,
+    prioridade: prioridade === TODOS_CANAL ? null : prioridade,
+    categoria: categoria === TODAS_CAT ? null : categoria,
     limit: 50,
   });
 
@@ -65,7 +107,6 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
   const compartilharMut = useToggleCompartilhar();
 
   useEffect(() => {
-    // Sugere tipo coerente ao mudar a dimensão
     if (dimensao === "dia" || dimensao === "semana" || dimensao === "mes") {
       if (tipo === "pie") setTipo("line");
     }
@@ -87,6 +128,9 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
     setMetrica(s.config.metrica);
     setDimensao(s.config.dimensao);
     setTipo(s.config.tipo);
+    setCanal(s.config.canal ?? TODOS_CANAL);
+    setPrioridade(s.config.prioridade ?? TODOS_CANAL);
+    setCategoria(s.config.categoria ?? TODAS_CAT);
     setTituloSalvar(s.nome);
     setCompartilhar(!!s.compartilhada);
   };
@@ -106,7 +150,12 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
     salvarMut.mutate(
       {
         nome,
-        config: { metrica, dimensao, tipo },
+        config: {
+          metrica, dimensao, tipo,
+          canal: canal === TODOS_CANAL ? null : canal,
+          prioridade: prioridade === TODOS_CANAL ? null : prioridade,
+          categoria: categoria === TODAS_CAT ? null : categoria,
+        },
         fila_id: filaId ?? null,
         compartilhada: compartilhar,
       },
@@ -136,21 +185,19 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
 
   const handleXlsx = async () => {
     const rows = query.data ?? [];
-    // exceljs é grande — carregar sob demanda
-    const ExcelJS = (await import("exceljs")).default;
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Análise");
-    ws.addRow([tituloAtual]);
-    ws.addRow([`Período: ${format(new Date(de), "dd/MM/yyyy")} a ${format(new Date(ate), "dd/MM/yyyy")}`]);
-    ws.addRow([`Departamento: ${filaNome}`]);
-    ws.addRow([]);
-    ws.addRow(["Label", "Valor"]).font = { bold: true };
-    rows.forEach((r) => ws.addRow([r.label, r.valor ?? 0]));
-    ws.getColumn(1).width = 40;
-    ws.getColumn(2).width = 16;
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    downloadBlob(blob, `${tituloAtual.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${format(new Date(), "yyyyMMdd")}.xlsx`);
+    // Usa helper centralizado (integra auditExport para trilha de auditoria).
+    await exportToExcel(
+      rows.map((r) => ({ label: r.label, valor: r.valor ?? 0 })),
+      {
+        filename: `${tituloAtual.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        sheetName: "Análise Suporte",
+        columns: [
+          { header: "Label", key: "label", width: 40 },
+          { header: "Valor", key: "valor", width: 16 },
+        ],
+        includeTimestamp: true,
+      },
+    );
     toast.success("Excel exportado");
   };
 
@@ -169,6 +216,47 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
     if (!id) return "—";
     return filasSelecionaveis.find((f) => f.id === id)?.nome ?? "outro depto";
   };
+
+  const minhas = useMemo(
+    () => salvas.filter((a) => a.user_id === user?.id),
+    [salvas, user?.id],
+  );
+  const doDepto = useMemo(
+    () => salvas.filter((a) => a.user_id !== user?.id && a.compartilhada),
+    [salvas, user?.id],
+  );
+
+  const renderLinhaSalva = (a: any, dono: boolean) => (
+    <div key={a.id} className="flex items-center justify-between gap-2 group rounded-md px-2 py-1.5 hover:bg-muted/50">
+      <button className="flex-1 text-left min-w-0" onClick={() => aplicarSalva(a)}>
+        <div className="text-xs truncate font-medium">{a.nome}</div>
+        <div className="text-[10px] text-muted-foreground truncate">
+          {a.compartilhada ? <><Users className="inline h-2.5 w-2.5 mr-0.5" />{nomeFilaSalva(a)}</> : "pessoal"}
+        </div>
+      </button>
+      {dono && (
+        <>
+          {podeCompartilhar && a.fila_id && (
+            <Switch
+              checked={!!a.compartilhada}
+              onCheckedChange={(v) =>
+                compartilharMut.mutate({ id: a.id, compartilhada: v, fila_id: a.fila_id })
+              }
+              className="scale-75 opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100"
+              aria-label="Compartilhar com o departamento"
+            />
+          )}
+          <Button
+            variant="ghost" size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100"
+            onClick={() => excluirMut.mutate(a.id)}
+            title="Excluir">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
@@ -211,6 +299,36 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
             </div>
 
             <div className="pt-2 border-t border-border space-y-2">
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Canal</Label>
+                <Select value={canal} onValueChange={setCanal}>
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CANAIS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Prioridade</Label>
+                <Select value={prioridade} onValueChange={setPrioridade}>
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRIORIDADES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border space-y-2">
               <Input
                 value={tituloSalvar}
                 onChange={(e) => setTituloSalvar(e.target.value)}
@@ -230,29 +348,24 @@ export function SuporteAnalisesBuilder({ de, ate, filaId, filaNome, filasSelecio
           </CardContent>
         </Card>
 
-        {salvas.length > 0 && (
+        {minhas.length > 0 && (
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Minhas análises</CardTitle></CardHeader>
             <CardContent className="space-y-1">
-              {salvas.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-2 group rounded-md px-2 py-1.5 hover:bg-muted/50">
-                  <button className="flex-1 text-left min-w-0" onClick={() => aplicarSalva(a)}>
-                    <div className="text-xs truncate font-medium">{a.nome}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">
-                      {a.compartilhada ? <><Users className="inline h-2.5 w-2.5 mr-0.5" />{nomeFilaSalva(a)}</> : "pessoal"}
-                    </div>
-                  </button>
-                  {a.compartilhada !== undefined && (
-                    <Button
-                      variant="ghost" size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                      onClick={() => excluirMut.mutate(a.id)}
-                      title="Excluir">
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              {minhas.map((a) => renderLinhaSalva(a, true))}
+            </CardContent>
+          </Card>
+        )}
+
+        {doDepto.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" /> Do departamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {doDepto.map((a) => renderLinhaSalva(a, false))}
             </CardContent>
           </Card>
         )}
