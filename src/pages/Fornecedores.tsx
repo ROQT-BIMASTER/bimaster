@@ -24,6 +24,7 @@ import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton
 import { Link } from "react-router-dom";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { ErpBadge } from "@/components/cadastros/ErpBadge";
 
 interface Fornecedor {
   id: string;
@@ -859,6 +860,20 @@ export default function Fornecedores() {
                 <div className="grid gap-1.5">
                   <Label>Fonte ERP</Label>
                   <Input value={form.fonte_erp} onChange={(e) => setForm({ ...form, fonte_erp: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Prazo de pagamento padrão (dias)</Label>
+                  <Input
+                    type="number" min={0} max={365}
+                    value={form.prazo_pagamento_padrao}
+                    onChange={(e) => setForm({ ...form, prazo_pagamento_padrao: e.target.value.replace(/[^\d]/g, "") })}
+                    placeholder="Ex: 30"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Usado como padrão na integração com o Result para calcular vencimento a partir da emissão.
+                  </p>
                 </div>
               </div>
             </div>
