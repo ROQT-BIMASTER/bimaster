@@ -13,6 +13,8 @@ export interface SuporteFila {
   ativo: boolean;
   aceita_chamados: boolean;
   ordem: number;
+  projeto_id?: string | null;
+  auto_criar_tarefa?: boolean;
 }
 
 export interface SuporteFilaAgente {
