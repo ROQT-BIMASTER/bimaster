@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 import { useRubyspPedidoItens } from "@/hooks/fornecedor/useRubyspPedidoItens";
+import { PosicaoFinanceiraClienteCard } from "./PosicaoFinanceiraClienteCard";
 import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
 import { PedidoTimelineRubysp } from "./PedidoTimelineRubysp";
 
