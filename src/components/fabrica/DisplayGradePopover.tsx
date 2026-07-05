@@ -96,7 +96,7 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
             ${itens.map((item, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td>${item.cor_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${item.cor_hex};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>` : ""}${esc(item.cor_numero || "—")}</td>
+                <td>${item.cor_hex && /^#?[0-9a-fA-F]{3,8}$/.test(item.cor_hex) ? `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${esc(item.cor_hex)};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>` : ""}${esc(item.cor_numero || "—")}</td>
                 <td class="mono">${esc(item.codigo)}</td>
                 <td>${esc(item.nome)}</td>
                 <td class="mono">${esc(item.codigo_barras_ean || "—")}</td>
