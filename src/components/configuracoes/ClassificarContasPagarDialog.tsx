@@ -60,29 +60,64 @@ export function ClassificarContasPagarDialog({
       setContasComErro(0);
       setLogs([]);
 
-      // PASSO 1: Buscar grupos únicos não classificados (excluindo classificações manuais)
-      logger.log("Buscando grupos únicos para classificação...");
-      
-      const { data: grupos, error: gruposError } = await supabase
-        .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, tipo_documento")
-        .eq("classificado_automaticamente", false)
-        .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+      // PASSO 1: Buscar grupos únicos.
+      // Em modo normal: só contas ainda não classificadas automaticamente e sem correção manual.
+      // Em modo forceReclassifyAll: TODA a base, incluindo classificações manuais.
+      logger.log(
+        forceReclassifyAll
+          ? "Buscando TODAS as contas para reclassificação (com Centro de Custo)..."
+          : "Buscando grupos únicos para classificação..."
+      );
 
-      if (gruposError) {
-        throw gruposError;
+      // Paginação (limite padrão do PostgREST é 1000 por request)
+      const PAGE = 1000;
+      const gruposRaw: Array<{
+        categoria_nome: string | null;
+        fornecedor_nome: string | null;
+        tipo_documento: string | null;
+        centro_custo_id: string | null;
+        centros_custo?: { codigo: string | null; nome: string | null } | null;
+      }> = [];
+
+      for (let offset = 0; ; offset += PAGE) {
+        let q = supabase
+          .from("contas_pagar")
+          .select("categoria_nome, fornecedor_nome, tipo_documento, centro_custo_id, centros_custo(codigo, nome)")
+          .order("id")
+          .range(offset, offset + PAGE - 1);
+
+        if (!forceReclassifyAll) {
+          q = q
+            .eq("classificado_automaticamente", false)
+            .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        gruposRaw.push(...(data as any));
+        if (data.length < PAGE) break;
       }
 
-      if (!grupos || grupos.length === 0) {
-        toast.success("Todas as contas já foram classificadas!");
+      if (gruposRaw.length === 0) {
+        toast.success(forceReclassifyAll ? "Nenhuma conta encontrada." : "Todas as contas já foram classificadas!");
         return;
       }
 
-      // Agrupar e contar
-      const gruposMap = new Map<string, { categoria_nome: string; fornecedor_nome: string | null; tipo_documento: string | null; count: number }>();
-      
-      grupos.forEach(g => {
-        const key = `${g.categoria_nome}|${g.fornecedor_nome}|${g.tipo_documento}`;
+      // Agrupar por chave composta incluindo centro_custo_id
+      const gruposMap = new Map<string, {
+        categoria_nome: string;
+        fornecedor_nome: string | null;
+        tipo_documento: string | null;
+        centro_custo_id: string | null;
+        centro_custo_codigo: string | null;
+        centro_custo_nome: string | null;
+        count: number;
+      }>();
+
+      gruposRaw.forEach(g => {
+        if (!g.categoria_nome) return;
+        const key = `${g.categoria_nome}|${g.fornecedor_nome}|${g.tipo_documento}|${g.centro_custo_id ?? ''}`;
         const existing = gruposMap.get(key);
         if (existing) {
           existing.count++;
@@ -91,13 +126,16 @@ export function ClassificarContasPagarDialog({
             categoria_nome: g.categoria_nome,
             fornecedor_nome: g.fornecedor_nome,
             tipo_documento: g.tipo_documento,
+            centro_custo_id: g.centro_custo_id,
+            centro_custo_codigo: g.centros_custo?.codigo ?? null,
+            centro_custo_nome: g.centros_custo?.nome ?? null,
             count: 1
           });
         }
       });
 
       const gruposUnicos = Array.from(gruposMap.values());
-      logger.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${grupos.length} contas`);
+      logger.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${gruposRaw.length} contas`);
 
       setTotalContas(gruposUnicos.length);
       const totalGrupos = gruposUnicos.length;
