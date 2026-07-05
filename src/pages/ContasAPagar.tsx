@@ -20,7 +20,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
-import { ContasPagarFrescor } from "@/components/financeiro/ContasPagarFrescor";
+import { ContasPagarHeaderKpis } from "@/components/financeiro/ContasPagarHeaderKpis";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
 import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
 import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
@@ -259,9 +259,9 @@ export default function ContasAPagar() {
     staleTime: 60_000,
   });
 
-  // "Pagas no Mês": fonte única = fn_cp_dashboard v2 (campo pago_mes_atual).
-  // Sem varredura client-side — mesma query dos demais cards/gráficos.
-  const pagasMesTotal = cpHeadline?.pago_mes_atual ?? 0;
+  // "Pagas no Mês", assim como todos os KPIs do header, sai direto de cpHeadline.pago_mes_atual (fn_cp_dashboard v2).
+
+
 
   // Dataset completo — usado APENAS pela aba Classificação IA (lista/classifica títulos individualmente).
   // Gateado pela aba ativa: não pesa o carregamento inicial da página.
@@ -366,13 +366,7 @@ export default function ContasAPagar() {
 
   const isLoading = isLoadingIA;
 
-  // KPIs do topo — derivados dos agregados do servidor (mesma fonte da faixa oficial: zero divergência)
-  const kpis = useMemo(() => ({
-    totalAPagar: cpHeadline?.total_aberto ?? 0,
-    vencendoHoje: cpHeadline?.vence_hoje?.valor ?? 0,
-    vencidas: cpHeadline?.vencido_total?.valor ?? 0,
-    pagasNoMes: pagasMesTotal,
-  }), [cpHeadline, pagasMesTotal]);
+  // KPIs consolidados vivem em ContasPagarHeaderKpis (lê cpHeadline/cpKpis direto).
 
   // Empresas para o filtro — cadastro oficial (não depende mais de dataset carregado)
   const { data: empresas = [] } = useQuery({
@@ -715,59 +709,17 @@ export default function ContasAPagar() {
           </div>
         </div>
 
-        {/* KPIs Financeiros */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="contas-pagar-kpis">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pagas no Mês</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.pagasNoMes)}
-              </div>
-              <p className="text-xs text-muted-foreground">Pagamentos realizados</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vencendo Hoje</CardTitle>
-              <Clock className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.vencendoHoje)}
-              </div>
-              <p className="text-xs text-muted-foreground">A pagar hoje</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
-              <Receipt className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.totalAPagar)}
-              </div>
-              <p className="text-xs text-muted-foreground">Valor pendente</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vencido</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.vencidas)}
-              </div>
-              <p className="text-xs text-muted-foreground">Atenção necessária</p>
-            </CardContent>
-          </Card>
+        {/* Header consolidado de KPIs (fonte: fn_cp_dashboard v2 + fn_cp_kpis_avancados v2) */}
+        <div data-tour="contas-pagar-kpis">
+          <ContasPagarHeaderKpis
+            dashboard={cpHeadline}
+            kpis={cpKpis}
+            isLoading={isLoadingHeadline || isLoadingKpisAv}
+            onOpenVencidos={() => {
+              setFilterStatus('vencido');
+              setActiveTab('contas');
+            }}
+          />
         </div>
 
         {/* Filtros Globais */}
@@ -1044,74 +996,20 @@ export default function ContasAPagar() {
           </CardContent>
         </Card>
 
-        {/* Frescor da carga do Contas a Pagar */}
-        <ContasPagarFrescor />
-
-        {/* Faixa oficial (banco) — valores exatos independentemente da paginação */}
-        <Card className="border-primary/20 bg-gradient-to-r from-muted/40 to-background">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold">Valores oficiais (banco)</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Agregados pelo servidor sobre o total de títulos que atendem aos filtros — sempre exatos.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Natureza:</label>
-                <Select value={filterNatureza} onValueChange={(v) => setFilterNatureza(v as any)}>
-                  <SelectTrigger className="h-8 w-40 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="provisionado">Provisão</SelectItem>
-                    <SelectItem value="lancado">Dívida firme</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {isLoadingHeadline ? (
-              <div className="text-sm text-muted-foreground py-4">Carregando agregados oficiais...</div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="rounded-md border border-amber-200/40 bg-amber-50/40 dark:bg-amber-900/10 p-3">
-                  <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium uppercase tracking-wide">Provisão em aberto</div>
-                  <div className="text-xl font-bold text-amber-800 dark:text-amber-300 mt-1">
-                    {(cpHeadline?.provisionado_aberto ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Dívida firme em aberto</div>
-                  <div className="text-xl font-bold mt-1">
-                    {(cpHeadline?.lancado_aberto ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                </div>
-                <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
-                  <div className="text-[11px] text-primary font-medium uppercase tracking-wide">Total em aberto</div>
-                  <div className="text-xl font-bold text-primary mt-1">
-                    {(cpHeadline?.total_aberto ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{cpHeadline?.qtd_aberto ?? 0} títulos</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Vence em 7 dias</div>
-                  <div className="text-xl font-bold mt-1">
-                    {(cpHeadline?.vence_7d?.valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{cpHeadline?.vence_7d?.qtd ?? 0} títulos</div>
-                </div>
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-                  <div className="text-[11px] text-destructive font-medium uppercase tracking-wide">Vencido há +30 dias</div>
-                  <div className="text-xl font-bold text-destructive mt-1">
-                    {(cpHeadline?.vencido_30_mais?.valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{cpHeadline?.vencido_30_mais?.qtd ?? 0} títulos</div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Filtro de natureza (Provisão / Dívida firme) — atua sobre header + tabs */}
+        <div className="flex items-center gap-2 justify-end">
+          <label className="text-xs text-muted-foreground">Natureza:</label>
+          <Select value={filterNatureza} onValueChange={(v) => setFilterNatureza(v as any)}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="provisionado">Provisão</SelectItem>
+              <SelectItem value="lancado">Dívida firme</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" data-tour="contas-pagar-tabs">

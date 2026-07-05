@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users,
-  BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
-} from "lucide-react";
-import { format, parse, subMonths } from "date-fns";
+import { Users, BarChart3, PieChart as PieChartIcon } from "lucide-react";
+import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
@@ -60,33 +57,7 @@ export function DashboardContasPagar({ dashboard, kpis, isLoading }: DashboardCo
   const { t } = useLanguage();
   const [chartViewType, setChartViewType] = useState<'area' | 'bar' | 'line'>('area');
 
-  // KPIs — direto dos payloads do servidor
-  const kpisAvancados = useMemo(() => {
-    const evol = dashboard?.evolucao_mensal || [];
-    // Semântica preservada do client antigo: "Mês Atual" = valor_original com vencimento no mês corrente
-    const ymAtual = format(new Date(), 'yyyy-MM');
-    const ymAnterior = format(subMonths(new Date(), 1), 'yyyy-MM');
-    const totalMesAtual = evol.find(m => m.mes === ymAtual)?.original ?? kpis?.total_mes_atual ?? 0;
-    const totalMesAnterior = evol.find(m => m.mes === ymAnterior)?.original ?? kpis?.total_mes_anterior ?? 0;
-    const variacaoMensal = totalMesAnterior > 0
-      ? Math.round(((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100)
-      : 0;
-
-    return {
-      pmp: kpis?.pmp_dias_aprox ?? 0,
-      indicePontualidade: Math.round(kpis?.pontualidade_pct_aprox ?? 0),
-      aproximado: kpis?.aproximado ?? true,
-      concentracao30dias: kpis?.concentracao_30d ?? 0,
-      totalMesAtual,
-      variacaoMensal,
-      qtdVencendoHoje: dashboard?.vence_hoje?.qtd ?? 0,
-      valorVencendoHoje: dashboard?.vence_hoje?.valor ?? 0,
-      qtdVencendo7dias: dashboard?.vence_7d?.qtd ?? 0,
-      valorVencendo7dias: dashboard?.vence_7d?.valor ?? 0,
-      qtdVencidas30dias: dashboard?.vencido_30_mais?.qtd ?? 0,
-      valorVencidas30dias: dashboard?.vencido_30_mais?.valor ?? 0,
-    };
-  }, [dashboard, kpis]);
+  // KPIs numéricos migraram para o header consolidado (ContasPagarHeaderKpis).
 
   // Evolução mensal — buckets do servidor (pago = valor_pago; pendente = valor_aberto)
   const dadosEvolucaoMensal = useMemo(() => {
@@ -165,130 +136,7 @@ export function DashboardContasPagar({ dashboard, kpis, isLoading }: DashboardCo
 
   return (
     <div className="space-y-6">
-      {/* KPIs Estratégicos */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("fin.avg_payment_term")}</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" title={kpisAvancados.aproximado ? "Valor aproximado — refinamento da data de pagamento em andamento" : undefined}>
-              {kpisAvancados.pmp} {t("fin.days")}{kpisAvancados.aproximado ? ' ≈' : ''}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("fin.avg_payment_desc")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("fin.punctuality_index")}</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${kpisAvancados.indicePontualidade >= 80 ? 'text-green-600' : kpisAvancados.indicePontualidade >= 50 ? 'text-yellow-600' : 'text-destructive'}`}
-              title={kpisAvancados.aproximado ? "Valor aproximado — refinamento da data de pagamento em andamento" : undefined}
-            >
-              {kpisAvancados.indicePontualidade}%{kpisAvancados.aproximado ? ' ≈' : ''}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("fin.paid_on_time")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("fin.current_month")}</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCompact(kpisAvancados.totalMesAtual)}</div>
-            <div className="flex items-center gap-1 text-xs">
-              {kpisAvancados.variacaoMensal > 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-destructive" />
-                  <span className="text-destructive">+{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span>
-                </>
-              ) : kpisAvancados.variacaoMensal < 0 ? (
-                <>
-                  <TrendingDown className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span>
-                </>
-              ) : (
-                <span className="text-muted-foreground">{t("fin.no_variation")}</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("fin.next_30_days")}</CardTitle>
-            <Hourglass className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCompact(kpisAvancados.concentracao30dias)}</div>
-            <p className="text-xs text-muted-foreground">{t("fin.due_in_period")}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Cards de Alerta */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className={kpisAvancados.qtdVencendoHoje > 0 ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : ''}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className={`h-4 w-4 ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : 'text-muted-foreground'}`} />
-              {t("fin.due_today")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : ''}`}>
-                {kpisAvancados.qtdVencendoHoje}
-              </span>
-              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
-            </div>
-            <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendoHoje)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className={kpisAvancados.qtdVencendo7dias > 5 ? 'border-orange-500 bg-orange-50/50 dark:bg-orange-900/10' : ''}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className={`h-4 w-4 ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : 'text-muted-foreground'}`} />
-              {t("fin.next_7_days")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : ''}`}>
-                {kpisAvancados.qtdVencendo7dias}
-              </span>
-              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
-            </div>
-            <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendo7dias)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className={kpisAvancados.qtdVencidas30dias > 0 ? 'border-destructive bg-destructive/5' : ''}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className={`h-4 w-4 ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-              {t("fin.overdue_30d")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : ''}`}>
-                {kpisAvancados.qtdVencidas30dias}
-              </span>
-              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
-            </div>
-            <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencidas30dias)}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* KPIs consolidados agora vivem no header da página (ContasPagarHeaderKpis). */}
 
       {/* Gráfico de Evolução Mensal */}
       <Card>
