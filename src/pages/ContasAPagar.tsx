@@ -1055,6 +1055,7 @@ export default function ContasAPagar() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Filtro de natureza (Provisão / Dívida firme) — atua sobre header + tabs */}
         <div className="flex items-center gap-2 justify-end">
