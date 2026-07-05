@@ -1669,11 +1669,22 @@ export default function ContasAPagar() {
           open={classificarIAOpen}
           onOpenChange={setClassificarIAOpen}
           onComplete={() => {
-            // Invalida todas as queries de contas a pagar para garantir atualização
             invalidateContasQueries();
             setSelectedIdsIA(new Set());
             toast.success("Classificação concluída! Atualizando lista...");
           }}
+        />
+
+        <ClassificarContasPagarDialog
+          open={reclassificarTudoOpen}
+          onOpenChange={setReclassificarTudoOpen}
+          forceReclassifyAll
+          onComplete={() => {
+            invalidateContasQueries();
+            setSelectedIdsIA(new Set());
+            toast.success("Reclassificação concluída! Atualizando lista...");
+          }}
+        />
         />
 
         <EditarClassificacaoRapidaDialog
