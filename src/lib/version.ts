@@ -2,7 +2,7 @@ import { logger } from "@/lib/logger";
 
 // Histórico de versões em CHANGELOG.md (raiz do repo).
 
-export const APP_VERSION = '3.5.95';
+export const APP_VERSION = '3.5.96';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
@@ -133,23 +133,42 @@ export async function forceCleanNavigate(targetPath: string): Promise<void> {
 //
 // Uso seguro: falha silenciosa em qualquer erro de rede/parse; nunca
 // quebra a UI; apenas retorna null.
-export async function getDeployedVersionFromHtml(): Promise<string | null> {
+export async function getDeployedVersionFromHtml(): Promise<{ version: string | null; buildId: string | null }> {
   try {
-    const res = await fetch('/index.html', {
+    const res = await fetch(`/index.html?ts=${Date.now()}`, {
       cache: 'no-store',
       credentials: 'same-origin',
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { version: null, buildId: null };
     const html = await res.text();
-    const m = html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
-    return m ? m[1] : null;
+    const v = html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
+    const b = html.match(/<meta\s+name=["']app-build-id["']\s+content=["']([^"']+)["']/i);
+    return { version: v ? v[1] : null, buildId: b ? b[1] : null };
   } catch {
-    return null;
+    return { version: null, buildId: null };
   }
 }
 
-/** Retorna true se a versão remota for diferente (não vazia) da local. */
-export function isVersionMismatch(remote: string | null): boolean {
-  if (!remote || remote === 'unknown') return false;
-  return remote !== APP_VERSION;
+/** Lê o build-id do bundle atual (embutido em index.html pelo plugin Vite). */
+export function getLocalBuildId(): string | null {
+  if (typeof document === 'undefined') return null;
+  const el = document.querySelector('meta[name="app-build-id"]');
+  return el?.getAttribute('content') || null;
+}
+
+/** Retorna true se a versão OU o build-id remoto for diferente do local. */
+export function isVersionMismatch(
+  remote: { version: string | null; buildId: string | null } | string | null,
+): boolean {
+  // Backwards-compat: aceita string simples (versão) além do objeto novo.
+  if (remote === null) return false;
+  if (typeof remote === 'string') {
+    if (!remote || remote === 'unknown') return false;
+    return remote !== APP_VERSION;
+  }
+  const { version, buildId } = remote;
+  if (version && version !== 'unknown' && version !== APP_VERSION) return true;
+  const localBuild = getLocalBuildId();
+  if (buildId && localBuild && buildId !== localBuild) return true;
+  return false;
 }

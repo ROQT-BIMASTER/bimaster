@@ -21,6 +21,9 @@ import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
  */
 function appVersionMetaPlugin(): Plugin {
   let cachedVersion: string | null = null;
+  // BUILD_ID único por processo de build: garante que dois deploys com a mesma
+  // APP_VERSION ainda sejam distinguíveis pelo heartbeat de cache-busting.
+  const buildId = String(Date.now());
   const readVersion = (): string => {
     if (cachedVersion) return cachedVersion;
     try {
@@ -41,9 +44,16 @@ function appVersionMetaPlugin(): Plugin {
       order: "pre",
       handler(html) {
         const v = readVersion();
-        const tag = `<meta name="app-version" content="${v}">`;
-        if (html.includes('name="app-version"')) return html;
-        return html.replace(/<\/head>/i, `  ${tag}\n  </head>`);
+        const versionTag = `<meta name="app-version" content="${v}">`;
+        const buildTag = `<meta name="app-build-id" content="${buildId}">`;
+        let out = html;
+        if (!/name=["']app-version["']/.test(out)) {
+          out = out.replace(/<\/head>/i, `  ${versionTag}\n  </head>`);
+        }
+        if (!/name=["']app-build-id["']/.test(out)) {
+          out = out.replace(/<\/head>/i, `  ${buildTag}\n  </head>`);
+        }
+        return out;
       },
     },
   };
