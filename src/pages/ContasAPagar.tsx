@@ -726,20 +726,63 @@ export default function ContasAPagar() {
           </div>
         </div>
 
+        {/* Barra de visualização — permite colapsar KPIs e Filtros para ganhar espaço */}
+        {(() => {
+          const activeFilters: string[] = [];
+          if (filterAno !== 'all') activeFilters.push(`Ano: ${filterAno}`);
+          if (filterMes !== 'all') activeFilters.push(`Mês: ${filterMes}`);
+          if (filterEmpresas.length) activeFilters.push(`${filterEmpresas.length} empresa${filterEmpresas.length > 1 ? 's' : ''}`);
+          if (filterDepartamento !== 'all') {
+            const d = departamentos?.find(x => x.id === filterDepartamento);
+            activeFilters.push(`Dept: ${d?.nome ?? '—'}`);
+          }
+          if (filterPortadores.length) activeFilters.push(`${filterPortadores.length} portador${filterPortadores.length > 1 ? 'es' : ''}`);
+          if (filterCentroCusto !== 'all') activeFilters.push('C. Custo');
+          if (filterPlanoContas !== 'all') activeFilters.push('Plano Contas');
+          if (filterDiaVencimento) activeFilters.push(`Venc: ${filterDiaVencimento}`);
+          if (filterDiaPagamento) activeFilters.push(`Pgto: ${filterDiaPagamento}`);
+          return (
+            <div className="flex items-center justify-between gap-2 flex-wrap border-b pb-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                <Button variant="ghost" size="sm" onClick={() => setShowKpis(v => !v)} className="gap-2 h-8 text-muted-foreground hover:text-foreground">
+                  {showKpis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <BarChart3 className="h-4 w-4" />
+                  {showKpis ? 'Ocultar indicadores' : 'Mostrar indicadores'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowFilters(v => !v)} className="gap-2 h-8 text-muted-foreground hover:text-foreground">
+                  {showFilters ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                </Button>
+              </div>
+              {!showFilters && activeFilters.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {activeFilters.map((f) => (
+                    <Badge key={f} variant="secondary" className="text-xs font-normal">{f}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Header consolidado de KPIs (fonte: fn_cp_dashboard v2 + fn_cp_kpis_avancados v2) */}
-        <div data-tour="contas-pagar-kpis">
-          <ContasPagarHeaderKpis
-            dashboard={cpHeadline}
-            kpis={cpKpis}
-            isLoading={isLoadingHeadline || isLoadingKpisAv}
-            onOpenVencidos={() => {
-              setFilterStatus('vencido');
-              setActiveTab('contas');
-            }}
-          />
-        </div>
+        {showKpis && (
+          <div data-tour="contas-pagar-kpis">
+            <ContasPagarHeaderKpis
+              dashboard={cpHeadline}
+              kpis={cpKpis}
+              isLoading={isLoadingHeadline || isLoadingKpisAv}
+              onOpenVencidos={() => {
+                setFilterStatus('vencido');
+                setActiveTab('contas');
+              }}
+            />
+          </div>
+        )}
 
         {/* Filtros Globais */}
+        {showFilters && (
         <Card data-tour="contas-pagar-filtros">
           <CardContent className="pt-6">
             <div className="flex flex-col gap-4">
