@@ -107,6 +107,23 @@ export default function ContasAPagar() {
   const [filtroFornecedorIA, setFiltroFornecedorIA] = useState<string>("");
   const [filtroDepartamentoIA, setFiltroDepartamentoIA] = useState<string>("");
 
+  // Toggle UI (persistido em localStorage) — permite ocultar KPIs e Filtros para ganhar espaço
+  const [showKpis, setShowKpis] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('cp:ui:showKpis') !== '0';
+  });
+  const [showFilters, setShowFilters] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('cp:ui:showFilters') !== '0';
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('cp:ui:showKpis', showKpis ? '1' : '0'); } catch {}
+  }, [showKpis]);
+  useEffect(() => {
+    try { window.localStorage.setItem('cp:ui:showFilters', showFilters ? '1' : '0'); } catch {}
+  }, [showFilters]);
+
+
   // Realtime: auto-refresh quando contas_pagar mudar (ex: sync via n8n)
   useEffect(() => {
     const channel = supabase
