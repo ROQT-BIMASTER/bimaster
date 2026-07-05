@@ -52,24 +52,30 @@ async function processGroup(
   lovableApiKey: string
 ): Promise<ClassificationResult> {
   try {
-    // Verificar se existe regra aprendida
+    // Verificar se existe regra aprendida (chave inclui centro_custo)
     let ruleQuery = supabase
       .from("account_classification_rules")
       .select("*")
       .eq("categoria_nome", group.categoria_nome);
-    
+
     if (group.fornecedor_nome) {
       ruleQuery = ruleQuery.eq("fornecedor_nome", group.fornecedor_nome);
     } else {
       ruleQuery = ruleQuery.is("fornecedor_nome", null);
     }
-    
+
     if (group.tipo_documento) {
       ruleQuery = ruleQuery.eq("tipo_documento", group.tipo_documento);
     } else {
       ruleQuery = ruleQuery.is("tipo_documento", null);
     }
-    
+
+    if (group.centro_custo_id) {
+      ruleQuery = ruleQuery.eq("centro_custo_id", group.centro_custo_id);
+    } else {
+      ruleQuery = ruleQuery.is("centro_custo_id", null);
+    }
+
     const { data: existingRule } = await ruleQuery.maybeSingle();
 
     if (existingRule) {
