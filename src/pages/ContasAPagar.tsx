@@ -15,9 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { logger } from "@/lib/logger";
 import { 
-  Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
+  Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, EyeOff, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare, SlidersHorizontal, BarChart3
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { ContasPagarHeaderKpis } from "@/components/financeiro/ContasPagarHeaderKpis";
