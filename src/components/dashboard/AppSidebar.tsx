@@ -1194,6 +1194,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <ModuleSubmenu icon={Truck} title="Vendas Result Union" colorKey="comercial">
               <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos em andamento" />
               <MenuItemLink to="/dashboard/fornecedor/vendas-result" icon={BarChart3} title="Análise de Vendas (Result)" />
+              <MenuItemLink to="/dashboard/fornecedor/produtos-result" icon={Package} title="Vendas por Produto (Result)" />
             </ModuleSubmenu>
           </>
         );

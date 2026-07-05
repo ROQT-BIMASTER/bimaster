@@ -396,6 +396,7 @@ const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorM
 const FornecedorPedidosPage = lazyWithRetry(() => import("./pages/fornecedor/FornecedorPedidosPage"));
 const PedidosResultPage = lazyWithRetry(() => import("./pages/fornecedor/PedidosResultPage"));
 const VendasResultPage = lazyWithRetry(() => import("./pages/fornecedor/VendasResultPage"));
+const ProdutosVendasResultPage = lazyWithRetry(() => import("./pages/fornecedor/ProdutosVendasResultPage"));
 const ClienteHistoricoPage = lazyWithRetry(() => import("./pages/fornecedor/ClienteHistoricoPage"));
 const ClientesListPage = lazyWithRetry(() => import("./pages/fornecedor/ClientesListPage"));
 const ProdutosVendasPage = lazyWithRetry(() => import("./pages/fornecedor/ProdutosVendasPage"));
@@ -777,6 +778,7 @@ function AppContent() {
             <Route path="/dashboard/fornecedor/pedidos" element={<ModuleRoute moduleCode="fornecedor"><FornecedorPedidosPage /></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/pedidos-result" element={<ModuleRoute moduleCode="fornecedor"><PedidosResultPage /></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/vendas-result" element={<ModuleRoute moduleCode="fornecedor"><VendasResultPage /></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/produtos-result" element={<ModuleRoute moduleCode="fornecedor"><ProdutosVendasResultPage /></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/clientes" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ClientesListPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/clientes/:id" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ClienteHistoricoPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/produtos" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ProdutosVendasPage /></ScreenProtectedRoute></ModuleRoute>} />
