@@ -821,7 +821,15 @@ async function handleSyncContasReceber(req: Request, startMs: number) {
 }
 
 async function handleSyncContasPagar(req: Request, startMs: number) {
-  return handleSyncPaginated(req, startMs, "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar", transformContasPagar, "erp_id");
+  // APOSENTADO: Contas a Pagar migrou para o ELT autoritativo (connector-contas-pagar -> base dbo.ContasPagar).
+  // Neutralizado aqui (não só nas rotas) para cobrir também a chamada interna do handleSyncAll. Vendas/estoque/
+  // receber/composição seguem ativos. Handler original preservado no histórico abaixo (comentado) se precisar reverter.
+  return jsonResponse({
+    success: false,
+    disabled: true,
+    message: "Sync de Contas a Pagar aposentado — fonte agora é o ELT (connector-contas-pagar, tabela-base do Result). Nada foi sincronizado.",
+  }, 200, req, { startMs });
+  // return handleSyncPaginated(req, startMs, "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar", transformContasPagar, "erp_id");
 }
 
 // ─── CP por empresa (segmentado) ───
@@ -1453,14 +1461,19 @@ Deno.serve(secureHandler({
         return await handleSyncContasReceberFull(req, startMs);
       case "sync-contas-receber-incremental":
         return await handleSyncContasReceberIncremental(req, startMs);
+      // APOSENTADO: Contas a Pagar migrou para o ELT autoritativo (connector-contas-pagar -> tabela-base
+      // dbo.ContasPagar). O sync via view lossy ConsultaPowerBIPagar foi desligado para não reescrever a
+      // carga correta (natureza provisão×dívida, centro de custo, plano de contas). Vendas/estoque/receber/
+      // composição seguem ativos. Os handlers ficam no arquivo (não removidos), só as rotas foram guardadas.
       case "sync-contas-pagar":
-        return await handleSyncContasPagar(req, startMs);
       case "sync-contas-pagar-por-empresa":
-        return await handleSyncContasPagarPorEmpresa(req, startMs);
       case "sync-contas-pagar-full":
-        return await handleSyncContasPagarFull(req, startMs);
       case "sync-contas-pagar-incremental":
-        return await handleSyncContasPagarIncremental(req, startMs);
+        return jsonResponse({
+          success: false,
+          disabled: true,
+          message: "Rota de Contas a Pagar aposentada — a fonte agora é o ELT (connector-contas-pagar, tabela-base do Result). Nada foi sincronizado.",
+        }, 200, req, { startMs });
       case "sync-vendas-por-empresa":
         return await handleSyncVendasPorEmpresa(req, startMs);
       case "sync-vendas-full":
