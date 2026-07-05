@@ -171,19 +171,33 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
 
-    // Heartbeat de versão (Fase 2): compara meta tag do index.html remoto
-    // com APP_VERSION do bundle atual. Quebra o deadlock quando o SW está
-    // preso servindo bundle antigo. Falha de rede é silenciosa.
+    // Heartbeat de versão (Fase 2 + cache-busting reforçado): compara meta
+    // tag do index.html remoto (versão + build-id) com o bundle atual.
+    // Quebra o deadlock quando o SW está preso servindo bundle antigo.
+    // Auto-reload é aplicado apenas quando reload-gate está livre.
     let notifiedForVersion: string | null = null;
+    let mismatchStreak = 0;
     const runHeartbeat = async () => {
       try {
         const remote = await getDeployedVersionFromHtml();
-        if (!isVersionMismatch(remote)) return;
-        if (notifiedForVersion === remote) return;
-        notifiedForVersion = remote;
-        logger.log(`[PWA] Heartbeat: divergência detectada ${APP_VERSION} → ${remote}`);
-        if (isPwaHeartbeatEnabled() && mountedRef.current) {
-          setState(prev => ({ ...prev, needRefresh: true }));
+        if (!isVersionMismatch(remote)) {
+          mismatchStreak = 0;
+          return;
+        }
+        mismatchStreak += 1;
+        const key = `${remote.version || '?'}::${remote.buildId || '?'}`;
+        if (notifiedForVersion !== key) {
+          notifiedForVersion = key;
+          logger.log(`[PWA] Heartbeat: divergência detectada ${APP_VERSION} → ${remote.version} (build ${remote.buildId})`);
+        }
+        if (!isPwaHeartbeatEnabled() || !mountedRef.current) return;
+        setState(prev => ({ ...prev, needRefresh: true }));
+        // Auto-recuperação: após 2 checks consecutivos com divergência e sem
+        // UI sensível aberta, força limpeza + reload. Se drawer/dialog estiver
+        // aberto, aguarda o reload-gate liberar.
+        if (mismatchStreak >= 2 && !isReloadGateActive()) {
+          logger.log('[PWA] Heartbeat: aplicando forceCleanReload automático');
+          void forceCleanReload();
         }
       } catch { /* noop */ }
     };
@@ -196,8 +210,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    // Primeiro heartbeat ~10s após mount (deixa boot acomodar)
+    // Primeiro heartbeat ~10s após mount + polling periódico a cada 3 min
+    // (equivale ao intervalo de update do SW; ambos são baratos e resilientes).
     const heartbeatBoot = setTimeout(() => { void runHeartbeat(); }, 10_000);
+    const heartbeatInterval = setInterval(() => { void runHeartbeat(); }, 3 * 60 * 1000);
 
     // Kill switch remoto (Fase 4): pull inicial + push Realtime.
     // Só age se a flag pwa_heartbeat estiver ligada (mesma flag da Fase 2/4
