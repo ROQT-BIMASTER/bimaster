@@ -56,7 +56,7 @@ export function useVendasSerieMensal(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_serie_mensal", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_serie_mensal", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_serie_mensal_rubysp", rpcParams(f));
       if (error) throw error;
       return (data || []).map((r: any) => ({
         mes: r.mes as string,
