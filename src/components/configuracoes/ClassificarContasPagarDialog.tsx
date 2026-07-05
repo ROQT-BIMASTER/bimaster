@@ -215,14 +215,17 @@ export function ClassificarContasPagarDialog({
 
           // PASSO 3: Atualizar contas em batch
           for (const result of data.results) {
-            const contasAfetadas = gruposMap.get(
-              `${result.categoria_nome}|${result.fornecedor_nome}|${result.tipo_documento}`
-            )?.count || 0;
+            // Localizar grupo original para saber centro_custo_id e count
+            const origGrupo = gruposUnicos.find(g =>
+              g.categoria_nome === result.categoria_nome &&
+              (g.fornecedor_nome ?? null) === (result.fornecedor_nome ?? null) &&
+              (g.tipo_documento ?? null) === (result.tipo_documento ?? null)
+            );
+            const contasAfetadas = origGrupo?.count ?? 0;
 
             setCurrentConta(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
 
             if (result.success && result.departamento_id) {
-              // Atualizar todas as contas deste grupo em uma única query (exceto classificações manuais)
               let updateQuery = supabase
                 .from("contas_pagar")
                 .update({
@@ -236,21 +239,33 @@ export function ClassificarContasPagarDialog({
                   classificado_automaticamente: true,
                   classificado_em: new Date().toISOString(),
                 })
-                .eq("categoria_nome", result.categoria_nome)
-                .eq("classificado_automaticamente", false)
-                .or("classificacao_manual.is.null,classificacao_manual.eq.false");
-              
-              // Adicionar filtros para fornecedor e tipo_documento
+                .eq("categoria_nome", result.categoria_nome);
+
+              // Modo normal preserva contas já classificadas / correção manual.
+              // Modo forceReclassifyAll sobrescreve tudo.
+              if (!forceReclassifyAll) {
+                updateQuery = updateQuery
+                  .eq("classificado_automaticamente", false)
+                  .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+              }
+
               if (result.fornecedor_nome) {
                 updateQuery = updateQuery.eq("fornecedor_nome", result.fornecedor_nome);
               } else {
                 updateQuery = updateQuery.is("fornecedor_nome", null);
               }
-              
+
               if (result.tipo_documento) {
                 updateQuery = updateQuery.eq("tipo_documento", result.tipo_documento);
               } else {
                 updateQuery = updateQuery.is("tipo_documento", null);
+              }
+
+              // Escopo por centro de custo para não misturar rotas diferentes
+              if (origGrupo?.centro_custo_id) {
+                updateQuery = updateQuery.eq("centro_custo_id", origGrupo.centro_custo_id);
+              } else {
+                updateQuery = updateQuery.is("centro_custo_id", null);
               }
 
               const { error: updateError } = await updateQuery;
