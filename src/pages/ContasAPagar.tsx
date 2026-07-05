@@ -13,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { logger } from "@/lib/logger";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, EyeOff, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare, SlidersHorizontal, BarChart3
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare, SlidersHorizontal, BarChart3, Search, X, Filter
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { ContasPagarHeaderKpis } from "@/components/financeiro/ContasPagarHeaderKpis";
@@ -781,281 +783,306 @@ export default function ContasAPagar() {
           </div>
         )}
 
-        {/* Filtros Globais */}
-        {showFilters && (
-        <Card data-tour="contas-pagar-filtros">
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
-                <div>
-                  <label htmlFor="filter-ano" className="text-sm font-medium mb-2 block">Ano</label>
-                  <Select value={filterAno} onValueChange={(value) => {
-                    handleFilterChange(setFilterAno)(value);
-                    if (value === 'all') setFilterMes('all');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Ano" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="2024">2024</SelectItem>
-                      <SelectItem value="2025">2025</SelectItem>
-                      <SelectItem value="2026">2026</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Filtros Globais — padrão Central de Trabalho (toolbar compacta + popover avançado) */}
+        {showFilters && (() => {
+          const advancedActiveCount =
+            (filterPortadores.length > 0 ? 1 : 0) +
+            (filterCentroCusto !== 'all' ? 1 : 0) +
+            (filterPlanoContas !== 'all' ? 1 : 0) +
+            (filterDiaVencimento ? 1 : 0) +
+            (filterDiaPagamento ? 1 : 0);
 
-                <div>
-                  <label htmlFor="filter-mes" className="text-sm font-medium mb-2 block">Mês</label>
-                  <Select 
-                    value={filterMes} 
-                    onValueChange={handleFilterChange(setFilterMes)}
-                    disabled={filterAno === 'all'}
+          const hasAnyFilter =
+            searchFornecedor !== '' ||
+            filterAno !== new Date().getFullYear().toString() ||
+            filterMes !== 'all' ||
+            filterEmpresas.length > 0 ||
+            filterDepartamento !== 'all' ||
+            advancedActiveCount > 0;
+
+          const clearAdvanced = () => {
+            setFilterPortadores([]);
+            setFilterCentroCusto('all');
+            setFilterPlanoContas('all');
+            setFilterDiaVencimento('');
+            setFilterDiaPagamento('');
+            setCurrentPage(1);
+          };
+
+          const clearAll = () => {
+            setFilterAno(new Date().getFullYear().toString());
+            setFilterMes('all');
+            setFilterEmpresas([]);
+            setFilterDepartamento('all');
+            setFilterConta('all');
+            setFilterPortadores([]);
+            setFilterDiaVencimento('');
+            setFilterDiaPagamento('');
+            setSearchFornecedor('');
+            setFilterStatus('all');
+            setFilterNatureza('all');
+            setFilterCentroCusto('all');
+            setFilterPlanoContas('all');
+            setCurrentPage(1);
+          };
+
+          return (
+            <div data-tour="contas-pagar-filtros" className="w-full flex flex-wrap items-center gap-2">
+              {/* Busca fornecedor */}
+              <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar fornecedor..."
+                  value={searchFornecedor}
+                  onChange={(e) => { setSearchFornecedor(e.target.value); setCurrentPage(1); }}
+                  className="pl-8 h-9 text-sm"
+                />
+              </div>
+
+              {/* Ano */}
+              <Select
+                value={filterAno}
+                onValueChange={(value) => {
+                  handleFilterChange(setFilterAno)(value);
+                  if (value === 'all') setFilterMes('all');
+                }}
+              >
+                <SelectTrigger className="w-[120px] h-9 text-xs">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os anos</SelectItem>
+                  <SelectItem value="2024">2024</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Mês */}
+              <Select
+                value={filterMes}
+                onValueChange={handleFilterChange(setFilterMes)}
+                disabled={filterAno === 'all'}
+              >
+                <SelectTrigger className="w-[140px] h-9 text-xs">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  <SelectItem value="1">Janeiro</SelectItem>
+                  <SelectItem value="2">Fevereiro</SelectItem>
+                  <SelectItem value="3">Março</SelectItem>
+                  <SelectItem value="4">Abril</SelectItem>
+                  <SelectItem value="5">Maio</SelectItem>
+                  <SelectItem value="6">Junho</SelectItem>
+                  <SelectItem value="7">Julho</SelectItem>
+                  <SelectItem value="8">Agosto</SelectItem>
+                  <SelectItem value="9">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Empresas (multi) */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 min-w-[160px] justify-between font-normal">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Building2 className="h-3.5 w-3.5" />
+                      {filterEmpresas.length === 0
+                        ? "Todas as empresas"
+                        : filterEmpresas.length === 1
+                          ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                          : `${filterEmpresas.length} empresas`}
+                    </span>
+                    <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[250px] p-0" align="start">
+                  <div className="p-2 border-b">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setFilterEmpresas([]); setCurrentPage(1); }}
+                    >
+                      <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                      Todas as empresas
+                    </Button>
+                  </div>
+                  <div className="max-h-[220px] overflow-auto p-2 space-y-1">
+                    {empresas.map(emp => (
+                      <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                        <Checkbox
+                          id={`emp-${emp.id}`}
+                          checked={filterEmpresas.includes(emp.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setFilterEmpresas([...filterEmpresas, emp.id]);
+                            else setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                            setCurrentPage(1);
+                          }}
+                        />
+                        <label htmlFor={`emp-${emp.id}`} className="text-sm cursor-pointer flex-1">{emp.nome}</label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Departamento */}
+              <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
+                <SelectTrigger className="w-[170px] h-9 text-xs">
+                  <Tags className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue placeholder="Departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os departamentos</SelectItem>
+                  {departamentos?.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Filtros avançados */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={advancedActiveCount > 0 ? "default" : "outline"}
+                    className="gap-1.5 h-9 text-xs"
+                    aria-label="Filtros avançados"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Mês" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="1">Janeiro</SelectItem>
-                      <SelectItem value="2">Fevereiro</SelectItem>
-                      <SelectItem value="3">Março</SelectItem>
-                      <SelectItem value="4">Abril</SelectItem>
-                      <SelectItem value="5">Maio</SelectItem>
-                      <SelectItem value="6">Junho</SelectItem>
-                      <SelectItem value="7">Julho</SelectItem>
-                      <SelectItem value="8">Agosto</SelectItem>
-                      <SelectItem value="9">Setembro</SelectItem>
-                      <SelectItem value="10">Outubro</SelectItem>
-                      <SelectItem value="11">Novembro</SelectItem>
-                      <SelectItem value="12">Dezembro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label htmlFor="filter-empresa" className="text-sm font-medium mb-2 block">Empresa</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between">
-                        {filterEmpresas.length === 0 
-                          ? "Todas as empresas" 
-                          : filterEmpresas.length === 1 
-                            ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
-                            : `${filterEmpresas.length} empresas`}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Filtros avançados
+                    {advancedActiveCount > 0 && (
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] ml-0.5">
+                        {advancedActiveCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-[340px] p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Filtros avançados</p>
+                    {advancedActiveCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-muted-foreground"
+                        onClick={clearAdvanced}
+                      >
+                        <X className="h-3 w-3" /> Limpar
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[250px] p-0" align="start">
-                      <div className="p-2 border-b">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setFilterEmpresas([]);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
-                          Todas as empresas
-                        </Button>
-                      </div>
-                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
-                        {empresas.map(emp => (
-                          <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Portador</Label>
+                    <div className="max-h-[160px] overflow-auto rounded-md border p-2 space-y-1">
+                      {isLoadingPortadores ? (
+                        <div className="flex items-center justify-center py-3 text-xs text-muted-foreground">
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                          Carregando portadores...
+                        </div>
+                      ) : portadoresUnicos.length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-1 py-2">Nenhum portador disponível.</p>
+                      ) : portadoresUnicos.map(p => {
+                        const checked = filterPortadores.includes(p);
+                        return (
+                          <label key={p} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer">
                             <Checkbox
-                              id={`emp-${emp.id}`}
-                              checked={filterEmpresas.includes(emp.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setFilterEmpresas([...filterEmpresas, emp.id]);
-                                } else {
-                                  setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
-                                }
+                              checked={checked}
+                              onCheckedChange={(c) => {
+                                if (c) setFilterPortadores([...filterPortadores, p]);
+                                else setFilterPortadores(filterPortadores.filter(id => id !== p));
                                 setCurrentPage(1);
                               }}
+                              className="h-3.5 w-3.5"
                             />
-                            <label htmlFor={`emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
-                              {emp.nome}
-                            </label>
-                          </div>
+                            <span className="text-xs truncate">{p}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Centro de Custo</Label>
+                    <Select value={filterCentroCusto} onValueChange={handleFilterChange(setFilterCentroCusto)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {centrosCusto.map(cc => (
+                          <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
                         ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <label htmlFor="filter-departamento" className="text-sm font-medium mb-2 block">Departamento</label>
-                  <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {departamentos?.map(dept => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label htmlFor="filter-portador" className="text-sm font-medium mb-2 block">Portador</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between">
-                        {isLoadingPortadores ? (
-                          <span className="flex items-center gap-2">
-                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            Carregando...
-                          </span>
-                        ) : filterPortadores.length === 0 
-                          ? "Todos os portadores" 
-                          : filterPortadores.length === 1 
-                            ? filterPortadores[0]
-                            : `${filterPortadores.length} portadores`}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[250px] p-0" align="start">
-                      <div className="p-2 border-b">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setFilterPortadores([]);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <CheckCircle className={`mr-2 h-4 w-4 ${filterPortadores.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
-                          Todos os portadores
-                        </Button>
-                      </div>
-                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
-                        {isLoadingPortadores ? (
-                          <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-                            Carregando portadores...
-                          </div>
-                        ) : portadoresUnicos.map(p => (
-                          <div key={p} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
-                            <Checkbox
-                              id={`port-${p}`}
-                              checked={filterPortadores.includes(p)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setFilterPortadores([...filterPortadores, p]);
-                                } else {
-                                  setFilterPortadores(filterPortadores.filter(id => id !== p));
-                                }
-                                setCurrentPage(1);
-                              }}
-                            />
-                            <label htmlFor={`port-${p}`} className="text-sm cursor-pointer flex-1">
-                              {p}
-                            </label>
-                          </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Plano de Contas</Label>
+                    <Select value={filterPlanoContas} onValueChange={handleFilterChange(setFilterPlanoContas)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {planosContas?.map(pc => (
+                          <SelectItem key={pc.id} value={pc.id}>{pc.code} — {pc.name}</SelectItem>
                         ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <label htmlFor="filter-centro-custo" className="text-sm font-medium mb-2 block">Centro de Custo</label>
-                  <Select value={filterCentroCusto} onValueChange={handleFilterChange(setFilterCentroCusto)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {centrosCusto.map(cc => (
-                        <SelectItem key={cc.id} value={cc.id}>
-                          {cc.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <Separator />
 
-                <div>
-                  <label htmlFor="filter-plano-contas" className="text-sm font-medium mb-2 block">Plano de Contas</label>
-                  <Select value={filterPlanoContas} onValueChange={handleFilterChange(setFilterPlanoContas)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {planosContas?.map(pc => (
-                        <SelectItem key={pc.id} value={pc.id}>
-                          {pc.code} — {pc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Dia Vencimento</Label>
+                      <Input
+                        type="date"
+                        value={filterDiaVencimento}
+                        onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Dia Pagamento</Label>
+                      <Input
+                        type="date"
+                        value={filterDiaPagamento}
+                        onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-                <div>
-                  <label htmlFor="filter-dia-vencimento" className="text-sm font-medium mb-2 block">Dia Vencimento</label>
-                  <Input 
-                    id="filter-dia-vencimento"
-                    name="filter-dia-vencimento"
-                    type="date" 
-                    value={filterDiaVencimento} 
-                    onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="filter-dia-pagamento" className="text-sm font-medium mb-2 block">Dia Pagamento</label>
-                  <Input 
-                    id="filter-dia-pagamento"
-                    name="filter-dia-pagamento"
-                    type="date" 
-                    value={filterDiaPagamento} 
-                    onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-              </div>
-              
-              {/* Botão Limpar Filtros */}
-              <div className="flex justify-end">
-                <Button 
-                  variant="outline" 
+              {/* Limpar tudo */}
+              {hasAnyFilter && (
+                <Button
+                  variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setFilterAno(new Date().getFullYear().toString());
-                    setFilterMes('all');
-                    setFilterEmpresas([]);
-                    setFilterDepartamento('all');
-                    setFilterConta('all');
-                    setFilterPortadores([]);
-                    setFilterDiaVencimento('');
-                    setFilterDiaPagamento('');
-                    setSearchFornecedor('');
-                    setFilterStatus('all');
-                    setFilterNatureza('all');
-                    setFilterCentroCusto('all');
-                    setFilterPlanoContas('all');
-                    setCurrentPage(1);
-                  }}
-                  className="gap-2"
+                  onClick={clearAll}
+                  className="h-9 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  title="Limpar todos os filtros"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Limpar Filtros
+                  <X className="h-3.5 w-3.5" />
+                  Limpar
                 </Button>
-              </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-        )}
+          );
+        })()}
+
 
         {/* Filtro de natureza (Provisão / Dívida firme) — atua sobre header + tabs */}
         <div className="flex items-center gap-2 justify-end">
