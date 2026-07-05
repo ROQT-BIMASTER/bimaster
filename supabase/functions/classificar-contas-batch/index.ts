@@ -141,12 +141,19 @@ DEPARTAMENTOS POR TIPO:
 - Marketing: Publicidade, propaganda
 - Operações: Aluguel, utilidades, manutenção
 - TI: Software, equipamentos
-- Administrativo: Despesas gerais`;
+- Administrativo: Despesas gerais
+
+REGRAS DE PRIORIDADE — CENTRO DE CUSTO:
+1. Quando o Centro de Custo estiver informado, ele é a ÂNCORA PRINCIPAL para escolher o Departamento. Ex.: "DESPESAS DE TRANSPORTE" → Logística/Transportes; "CONSULTORES E SERVIÇOS DE TERCEIROS" → Administrativo ou RH conforme fornecedor; "ALUGUEIS" → Administrativo/Financeiro; "CMV" → Comercial/Operações.
+2. Categoria e Fornecedor orientam o PLANO DE CONTAS dentro do escopo do Centro de Custo.
+3. Se houver divergência forte entre Centro de Custo e Categoria, use confiança < 0.7 e cite o conflito na justificativa.
+4. Se o Centro de Custo não estiver informado, siga apenas Categoria + Fornecedor.`;
 
     const userPrompt = `Classifique esta conta a pagar:
 Categoria: ${group.categoria_nome}
 Fornecedor: ${group.fornecedor_nome || 'N/A'}
-Tipo Documento: ${group.tipo_documento || 'N/A'}`;
+Tipo Documento: ${group.tipo_documento || 'N/A'}
+Centro de Custo: ${group.centro_custo_codigo ? `${group.centro_custo_codigo} - ` : ''}${group.centro_custo_nome || 'N/A'}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
