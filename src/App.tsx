@@ -255,6 +255,7 @@ const ContasAPagar = lazyWithRetry(() => import("./pages/ContasAPagar"));
 const PlanoContas = lazyWithRetry(() => import("./pages/PlanoContas"));
 const Financeiro = lazyWithRetry(() => import("./pages/Financeiro"));
 const VisaoDepartamentos = lazyWithRetry(() => import("./pages/VisaoDepartamentos"));
+const TorreDespesas = lazyWithRetry(() => import("./pages/financeiro/TorreDespesas"));
 const DREAnalitico = lazyWithRetry(() => import("./pages/DREAnalitico"));
 const ClassificarTodoBanco = lazyWithRetry(() => import("./pages/ClassificarTodoBanco"));
 const ContasAReceber = lazyWithRetry(() => import("./pages/ContasAReceber"));
@@ -856,6 +857,7 @@ function AppContent() {
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_index"><Financeiro /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_visao_dept"><VisaoDepartamentos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/torre-despesas" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_torre_despesas"><TorreDespesas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/dre-analitico" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><DREAnalitico /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/trade" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_trade"><TradeFinanceiro /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenProtectedRoute></ModuleRoute>} />
