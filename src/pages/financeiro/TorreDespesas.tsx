@@ -17,6 +17,7 @@ import { TorreHeatmap } from "@/components/financeiro/torre/TorreHeatmap";
 import { TorreSerieChart } from "@/components/financeiro/torre/TorreSerieChart";
 import { TorreDrill } from "@/components/financeiro/torre/TorreDrill";
 import { TorreVariacoes } from "@/components/financeiro/torre/TorreVariacoes";
+import { TorreAlertas } from "@/components/financeiro/torre/TorreAlertas";
 import { useTorreDepartamentos, useTorreVariacoes } from "@/hooks/financeiro/useTorreDespesas";
 import type { TorreFiltros, TorreSelecao, TorreNatureza } from "@/types/financeiro/torre-despesas";
 
@@ -216,6 +217,9 @@ export default function TorreDespesas() {
         selecao={selecao}
         onSelect={setSelecao}
       />
+
+      {/* Fila de alertas forenses (Fase 2) — detecção automática + triagem com trilha */}
+      <TorreAlertas />
 
       {/* Série com bandas + Drill do que estiver selecionado */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
