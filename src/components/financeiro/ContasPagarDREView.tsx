@@ -388,9 +388,11 @@ export function ContasPagarDREView({
       meses.forEach(m => valoresMes[m.key] = 0);
       let total = 0;
       semClassificacao.forEach(l => {
-        const mes = l.data_vencimento.substring(5, 7);
-        valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
-        total += l.valor_original;
+        const dp = l.data_pagamento || l.data_vencimento;
+        const mes = dp.substring(5, 7);
+        const v = Number(l.valor_pago || 0);
+        valoresMes[mes] = (valoresMes[mes] || 0) + v;
+        total += v;
       });
 
       // Group by fornecedor
@@ -405,35 +407,40 @@ export function ContasPagarDREView({
         const fValoresMes: Record<string, number> = {};
         meses.forEach(m => fValoresMes[m.key] = 0);
         lancs.forEach(l => {
-          const mes = l.data_vencimento.substring(5, 7);
-          fValoresMes[mes] = (fValoresMes[mes] || 0) + l.valor_original;
+          const dp = l.data_pagamento || l.data_vencimento;
+          const mes = dp.substring(5, 7);
+          fValoresMes[mes] = (fValoresMes[mes] || 0) + Number(l.valor_pago || 0);
         });
+        const totalForn = lancs.reduce((s, l) => s + Number(l.valor_pago || 0), 0);
         return {
           id: `sem_forn_${nome}`,
           codigo: '',
           nome,
           tipo: 'fornecedor' as const,
           nivel: 1,
-          valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+          valor: totalForn,
           valores_mes: fValoresMes,
-          children: lancs.map(l => ({
-            id: l.id,
-            codigo: '',
-            nome: `${l.categoria_nome || 'Lançamento'} - ${new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-            tipo: 'lancamento' as const,
-            nivel: 2,
-            valor: l.valor_original,
-            valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
-            children: [],
-            lancamentosIds: [l.id],
-            conta: l
-          })),
+          children: lancs.map(l => {
+            const dp = l.data_pagamento || l.data_vencimento;
+            return {
+              id: l.id,
+              codigo: '',
+              nome: `${l.categoria_nome || 'Lançamento'} - pago ${new Date(dp + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+              tipo: 'lancamento' as const,
+              nivel: 2,
+              valor: Number(l.valor_pago || 0),
+              valores_mes: { [dp.substring(5, 7)]: Number(l.valor_pago || 0) },
+              children: [],
+              lancamentosIds: [l.id],
+              conta: l
+            };
+          }),
           lancamentosIds: lancs.map(l => l.id),
           contaOrigem: {
             id: `sem_forn_${nome}`,
             codigo: '',
             nome,
-            valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+            valor: totalForn,
             lancamentosIds: lancs.map(l => l.id),
             tipoDre: 'fornecedor' as const
           }
