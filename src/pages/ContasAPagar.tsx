@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { SolicitarOrcamentoDialog } from "@/components/trade/SolicitarOrcamentoDialog";
 import { AprovarOrcamentoDialog } from "@/components/trade/AprovarOrcamentoDialog";
 import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
+import { ReclassificarContasPagarHistoricoDialog } from "@/components/configuracoes/ReclassificarContasPagarHistoricoDialog";
 import { EditarClassificacaoRapidaDialog } from "@/components/financeiro/EditarClassificacaoRapidaDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
@@ -1277,12 +1278,7 @@ export default function ContasAPagar() {
                     {isAdmin && (
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          const ok = window.confirm(
-                            "Reclassificar TODA a base histórica (inclusive contas classificadas manualmente) usando o Centro de Custo como âncora?\n\nEsta operação pode levar vários minutos e sobrescreve os valores atuais de Departamento e Plano de Contas."
-                          );
-                          if (ok) setReclassificarTudoOpen(true);
-                        }}
+                        onClick={() => setReclassificarTudoOpen(true)}
                         className="gap-2"
                         title="Reclassifica todas as contas usando o Centro de Custo como referência principal"
                       >
@@ -1675,10 +1671,9 @@ export default function ContasAPagar() {
           }}
         />
 
-        <ClassificarContasPagarDialog
+        <ReclassificarContasPagarHistoricoDialog
           open={reclassificarTudoOpen}
           onOpenChange={setReclassificarTudoOpen}
-          forceReclassifyAll
           onComplete={() => {
             invalidateContasQueries();
             setSelectedIdsIA(new Set());
