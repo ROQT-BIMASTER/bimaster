@@ -1084,20 +1084,8 @@ export default function ContasAPagar() {
         })()}
 
 
-        {/* Filtro de natureza (Provisão / Dívida firme) — atua sobre header + tabs */}
-        <div className="flex items-center gap-2 justify-end">
-          <label className="text-xs text-muted-foreground">Natureza:</label>
-          <Select value={filterNatureza} onValueChange={(v) => setFilterNatureza(v as any)}>
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="provisionado">Provisão</SelectItem>
-              <SelectItem value="lancado">Dívida firme</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
+
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" data-tour="contas-pagar-tabs">
