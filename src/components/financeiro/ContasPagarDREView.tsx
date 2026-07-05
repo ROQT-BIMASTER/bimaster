@@ -230,9 +230,11 @@ export function ContasPagarDREView({
       Object.entries(lancamentosPorConta).forEach(([codigo, lancs]) => {
         if (codigo === codigoPrefix || codigo.startsWith(codigoPrefix + '.')) {
           lancs.forEach(l => {
-            const mes = l.data_vencimento.substring(5, 7);
-            valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
-            total += l.valor_original;
+            const dp = l.data_pagamento || l.data_vencimento;
+            const mes = dp.substring(5, 7);
+            const v = Number(l.valor_pago || 0);
+            valoresMes[mes] = (valoresMes[mes] || 0) + v;
+            total += v;
             ids.push(l.id);
           });
         }
