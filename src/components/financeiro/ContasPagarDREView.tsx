@@ -141,9 +141,11 @@ export function ContasPagarDREView({
       while (hasMore) {
         let query = supabase
           .from('contas_pagar')
-          .select('id, fornecedor_nome, categoria_nome, valor_original, data_vencimento, departamento_id, departamento_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome, classificado_automaticamente, classificacao_manual')
-          .gte('data_vencimento', dateRange.start)
-          .lte('data_vencimento', dateRange.end);
+          .select('id, fornecedor_nome, categoria_nome, valor_original, valor_pago, data_vencimento, data_pagamento, departamento_id, departamento_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome, classificado_automaticamente, classificacao_manual')
+          .not('data_pagamento', 'is', null)
+          .gt('valor_pago', 0)
+          .gte('data_pagamento', dateRange.start)
+          .lte('data_pagamento', dateRange.end);
 
         if (filterEmpresas.length > 0) {
           query = query.in('empresa_id', filterEmpresas);
