@@ -1685,7 +1685,6 @@ export default function ContasAPagar() {
             toast.success("Reclassificação concluída! Atualizando lista...");
           }}
         />
-        />
 
         <EditarClassificacaoRapidaDialog
           open={editarClassificacaoOpen}
