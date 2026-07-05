@@ -252,20 +252,21 @@ Centro de Custo: ${group.centro_custo_codigo ? `${group.centro_custo_codigo} - `
     if (!conta) logger.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
     else logger.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
 
-    // Salvar regra aprendida
+    // Salvar regra aprendida (upsert por chave composta incluindo centro_custo_id)
     if (dept && conta) {
       await supabase
         .from("account_classification_rules")
-        .insert({
+        .upsert({
           categoria_nome: group.categoria_nome,
           fornecedor_nome: group.fornecedor_nome || null,
           tipo_documento: group.tipo_documento || null,
+          centro_custo_id: group.centro_custo_id || null,
           departamento_id: dept.id,
           plano_contas_id: conta.id,
           confidence_score: classification.confianca || 0.8,
           times_used: group.count,
           last_used_at: new Date().toISOString()
-        });
+        }, { onConflict: 'categoria_nome,fornecedor_nome,tipo_documento,centro_custo_id', ignoreDuplicates: false });
       logger.log("✓ Regra aprendida salva");
     }
 
