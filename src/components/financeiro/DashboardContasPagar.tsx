@@ -57,33 +57,7 @@ export function DashboardContasPagar({ dashboard, kpis, isLoading }: DashboardCo
   const { t } = useLanguage();
   const [chartViewType, setChartViewType] = useState<'area' | 'bar' | 'line'>('area');
 
-  // KPIs — direto dos payloads do servidor
-  const kpisAvancados = useMemo(() => {
-    const evol = dashboard?.evolucao_mensal || [];
-    // Semântica preservada do client antigo: "Mês Atual" = valor_original com vencimento no mês corrente
-    const ymAtual = format(new Date(), 'yyyy-MM');
-    const ymAnterior = format(subMonths(new Date(), 1), 'yyyy-MM');
-    const totalMesAtual = evol.find(m => m.mes === ymAtual)?.original ?? kpis?.total_mes_atual ?? 0;
-    const totalMesAnterior = evol.find(m => m.mes === ymAnterior)?.original ?? kpis?.total_mes_anterior ?? 0;
-    const variacaoMensal = totalMesAnterior > 0
-      ? Math.round(((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100)
-      : 0;
-
-    return {
-      pmp: kpis?.pmp_dias_aprox ?? 0,
-      indicePontualidade: Math.round(kpis?.pontualidade_pct_aprox ?? 0),
-      aproximado: kpis?.aproximado ?? true,
-      concentracao30dias: kpis?.concentracao_30d ?? 0,
-      totalMesAtual,
-      variacaoMensal,
-      qtdVencendoHoje: dashboard?.vence_hoje?.qtd ?? 0,
-      valorVencendoHoje: dashboard?.vence_hoje?.valor ?? 0,
-      qtdVencendo7dias: dashboard?.vence_7d?.qtd ?? 0,
-      valorVencendo7dias: dashboard?.vence_7d?.valor ?? 0,
-      qtdVencidas30dias: dashboard?.vencido_30_mais?.qtd ?? 0,
-      valorVencidas30dias: dashboard?.vencido_30_mais?.valor ?? 0,
-    };
-  }, [dashboard, kpis]);
+  // KPIs numéricos migraram para o header consolidado (ContasPagarHeaderKpis).
 
   // Evolução mensal — buckets do servidor (pago = valor_pago; pendente = valor_aberto)
   const dadosEvolucaoMensal = useMemo(() => {
