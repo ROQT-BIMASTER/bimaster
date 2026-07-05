@@ -276,7 +276,7 @@ function CategoryPanel({
             })
           )}
         </nav>
-
+        <ScrollBar orientation="vertical" className="opacity-100" />
       </ScrollArea>
 
       <FooterBack
