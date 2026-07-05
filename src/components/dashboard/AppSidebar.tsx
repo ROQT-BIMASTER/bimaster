@@ -783,6 +783,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
       case "fornecedor_vendas": return 6;
+      case "fornecedor_vendas_result": return 3;
       case "cadastros": return cadastrosItems.filter(i => hasPermission(i.screenCode)).length;
       default: return 0;
     }
@@ -1182,21 +1183,23 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "fornecedor_vendas":
         return (
-          <>
-            <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
-              <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
-              <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Resultados de Vendas" />
-              <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
-              <MenuItemLink to="/dashboard/fornecedor/analises" icon={BarChart2} title="Análises" />
-              <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
-              <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
-            </ModuleSubmenu>
-            <ModuleSubmenu icon={Truck} title="Vendas Result Union" colorKey="comercial">
-              <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos em andamento" />
-              <MenuItemLink to="/dashboard/fornecedor/vendas-result" icon={BarChart3} title="Análise de Vendas (Result)" />
-              <MenuItemLink to="/dashboard/fornecedor/produtos-result" icon={Package} title="Vendas por Produto (Result)" />
-            </ModuleSubmenu>
-          </>
+          <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
+            <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
+            <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Resultados de Vendas" />
+            <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
+            <MenuItemLink to="/dashboard/fornecedor/analises" icon={BarChart2} title="Análises" />
+            <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
+            <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
+          </ModuleSubmenu>
+        );
+
+      case "fornecedor_vendas_result":
+        return (
+          <ModuleSubmenu icon={Truck} title="Vendas Result Union" colorKey="comercial">
+            <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos em andamento" />
+            <MenuItemLink to="/dashboard/fornecedor/vendas-result" icon={BarChart3} title="Análise de Vendas (Result)" />
+            <MenuItemLink to="/dashboard/fornecedor/produtos-result" icon={Package} title="Vendas por Produto (Result)" />
+          </ModuleSubmenu>
         );
 
       case "estoque":
