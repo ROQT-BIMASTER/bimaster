@@ -17,13 +17,13 @@ export interface VendasFilters {
 }
 
 function rpcParams(f: VendasFilters) {
+  // RPCs *_rubysp usam apenas de/ate/empresa/vendedor.
+  // Demais filtros (tabelaPreco, uf, cliente) permanecem na UI como no-op até
+  // termos backend equivalente sobre erp_pedidos_rubysp.
   return {
     p_de: f.de,
     p_ate: f.ate,
     p_empresa: f.empresa,
-    p_tabela_preco: f.tabelaPrecoId ?? null,
-    p_uf: f.uf ?? null,
-    p_cliente: f.clienteId ?? null,
     p_vendedor: f.vendedorId ?? null,
   };
 }
@@ -35,7 +35,7 @@ export function useVendasKpis(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_kpis", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_kpis", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_kpis_rubysp", rpcParams(f));
       if (error) throw error;
       const row = (data?.[0] ?? {}) as any;
       return {
@@ -56,7 +56,7 @@ export function useVendasSerieMensal(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_serie_mensal", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_serie_mensal", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_serie_mensal_rubysp", rpcParams(f));
       if (error) throw error;
       return (data || []).map((r: any) => ({
         mes: r.mes as string,
@@ -72,7 +72,9 @@ export function useVendasRankingVendedor(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_ranking_vendedor", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_ranking_vendedor", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_ranking_vendedor_rubysp", {
+        p_de: f.de, p_ate: f.ate, p_empresa: f.empresa,
+      });
       if (error) throw error;
       return (data || []).map((r: any) => ({
         vendedor_id: r.vendedor_id as string | null,

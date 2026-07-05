@@ -19,32 +19,36 @@ export function useVendasRankingCliente(p: {
   uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
+  limite?: number | null;
 }) {
   return useQuery({
     queryKey: [
-      "vendas_ranking_cliente",
+      "vendas_ranking_cliente_rubysp",
       p.de, p.ate, p.empresa ?? null,
       p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
+      p.limite ?? null,
     ],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<VendasClienteRow[]> => {
-      const { data, error } = await sb.rpc("vendas_ranking_cliente", {
+      const { data, error } = await sb.rpc("vendas_ranking_cliente_rubysp", {
         p_de: p.de,
         p_ate: p.ate,
         p_empresa: p.empresa ?? null,
-        p_tabela_preco: p.tabelaPrecoId ?? null,
-        p_uf: p.uf ?? null,
-        p_cliente: p.clienteId ?? null,
         p_vendedor: p.vendedorId ?? null,
+        p_limite: p.limite ?? null,
       });
       if (error) throw error;
-      return ((data ?? []) as any[]).map((r) => ({
-        cliente_id: r.cliente_id ?? null,
-        cliente_nome: r.cliente_nome ?? "—",
-        notas: Number(r.notas ?? 0),
-        faturamento: Number(r.faturamento ?? 0),
-        ticket_medio: Number(r.ticket_medio ?? 0),
-      }));
+      return ((data ?? []) as any[]).map((r) => {
+        const notas = Number(r.notas ?? 0);
+        const fat = Number(r.faturamento ?? 0);
+        return {
+          cliente_id: r.cliente_id ?? null,
+          cliente_nome: r.cliente_nome ?? "—",
+          notas,
+          faturamento: fat,
+          ticket_medio: notas > 0 ? fat / notas : 0,
+        };
+      });
     },
   });
 }
