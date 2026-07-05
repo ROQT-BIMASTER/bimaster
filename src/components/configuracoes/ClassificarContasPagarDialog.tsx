@@ -314,7 +314,7 @@ export function ClassificarContasPagarDialog({
       }
 
       // Resultado final
-      toast.success(`✅ ${gruposClassificados} grupos classificados (${grupos.length} contas atualizadas)`);
+      toast.success(`✅ ${gruposClassificados} grupos classificados (${gruposRaw.length} contas atualizadas)`);
       if (gruposComErro > 0) {
         toast.warning(`⚠️ ${gruposComErro} grupos com erro`);
       }
