@@ -111,6 +111,34 @@ Workflow `.github/workflows/security-rls-e2e.yml`:
 - Job `authenticated-access`: roda `e2e-authenticated-sensitive-columns.sh`
   se os secrets `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` estiverem
   configurados.
+- Job `financeiro-rls-roles`: roda `e2e-financeiro-rls-roles.sh` — smoke
+  test do módulo Financeiro + Torre de Despesas para 4 perfis
+  (admin, supervisor, gerente, vendedor). Cada perfil ausente é
+  silenciosamente pulado. Secrets: `E2E_<ROLE>_EMAIL` / `E2E_<ROLE>_PASSWORD`.
+
+### `e2e-financeiro-rls-roles.sh`
+Verifica, por perfil, o acesso de leitura via PostgREST às tabelas:
+`despesa_alertas`, `despesa_alertas_eventos`, `despesa_regras`,
+`contas_pagar`, `contas_receber`, `fornecedores`, `plano_contas`, `bancos`.
+
+Matriz esperada:
+- admin: todas retornam linhas.
+- supervisor: idem (com escopo por empresa).
+- gerente: Torre de Despesas obrigatoriamente **vazia** (falha
+  `is_admin_or_supervisor`); demais podem retornar linhas dependendo do
+  módulo/empresa.
+- vendedor: Torre e contas a pagar/receber **vazias**; `plano_contas` e
+  `bancos` (leitura pública para authenticated) devem retornar linhas.
+
+Rodar local:
+```bash
+E2E_ADMIN_EMAIL=... E2E_ADMIN_PASSWORD=... \
+E2E_SUPERVISOR_EMAIL=... E2E_SUPERVISOR_PASSWORD=... \
+E2E_GERENTE_EMAIL=... E2E_GERENTE_PASSWORD=... \
+E2E_VENDEDOR_EMAIL=... E2E_VENDEDOR_PASSWORD=... \
+bash scripts/security/e2e-financeiro-rls-roles.sh
+```
+
 
 > O `e2e-clickjacking.sh` ainda **não está no CI** porque depende de
 > `Publish` manual do frontend. Rode-o sob demanda após cada publicação.
