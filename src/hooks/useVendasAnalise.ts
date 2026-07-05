@@ -17,13 +17,13 @@ export interface VendasFilters {
 }
 
 function rpcParams(f: VendasFilters) {
+  // RPCs *_rubysp usam apenas de/ate/empresa/vendedor.
+  // Demais filtros (tabelaPreco, uf, cliente) permanecem na UI como no-op até
+  // termos backend equivalente sobre erp_pedidos_rubysp.
   return {
     p_de: f.de,
     p_ate: f.ate,
     p_empresa: f.empresa,
-    p_tabela_preco: f.tabelaPrecoId ?? null,
-    p_uf: f.uf ?? null,
-    p_cliente: f.clienteId ?? null,
     p_vendedor: f.vendedorId ?? null,
   };
 }
