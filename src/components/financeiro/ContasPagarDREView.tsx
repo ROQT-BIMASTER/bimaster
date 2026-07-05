@@ -787,9 +787,23 @@ export function ContasPagarDREView({
             <div className="flex items-center gap-3">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle className="text-lg">Visão DRE - Despesas</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  DRE Gerencial (Base Caixa)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-normal text-muted-foreground border border-border rounded px-1.5 py-0.5 cursor-help">
+                          só pagas
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Considera apenas contas com pagamento confirmado (valor_pago &gt; 0 e data_pagamento no período do filtro). Bate com o Calendário de Pagos e a coluna Valor Pago da tabela. Para o regime de competência (data de vencimento), utilize os relatórios de Plano de Redução e Auditoria AP.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
+                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
                 </p>
               </div>
             </div>
