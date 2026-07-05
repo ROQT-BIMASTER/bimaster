@@ -395,6 +395,7 @@ const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"
 const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorModule"));
 const FornecedorPedidosPage = lazyWithRetry(() => import("./pages/fornecedor/FornecedorPedidosPage"));
 const PedidosResultPage = lazyWithRetry(() => import("./pages/fornecedor/PedidosResultPage"));
+const VendasResultPage = lazyWithRetry(() => import("./pages/fornecedor/VendasResultPage"));
 const ClienteHistoricoPage = lazyWithRetry(() => import("./pages/fornecedor/ClienteHistoricoPage"));
 const ClientesListPage = lazyWithRetry(() => import("./pages/fornecedor/ClientesListPage"));
 const ProdutosVendasPage = lazyWithRetry(() => import("./pages/fornecedor/ProdutosVendasPage"));
