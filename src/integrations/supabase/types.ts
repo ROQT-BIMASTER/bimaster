@@ -54130,6 +54130,40 @@ export type Database = {
           },
         ]
       }
+      v_vendas_item_rubysp: {
+        Row: {
+          data_venda: string | null
+          descricao: string | null
+          empresa_id: number | null
+          produto_id: number | null
+          quantidade: number | null
+          rubysp_pedido_id: number | null
+          total_item: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "erp_pedidos_rubysp"
+            referencedColumns: ["rubysp_pedido_id"]
+          },
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_rubysp"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_kanban_rubysp"
+            referencedColumns: ["rubysp_pedido_id"]
+          },
+        ]
+      }
       v_vendas_rubysp: {
         Row: {
           cliente_cidade: string | null
@@ -59491,6 +59525,21 @@ export type Database = {
           valor_total: number
         }[]
       }
+      vendas_produto_resumo_rubysp: {
+        Args: { p_desde?: string; p_empresa?: number }
+        Returns: {
+          classe_abc: string
+          classe_xyz: string
+          cv: number
+          descricao: string
+          desvio_mensal: number
+          media_mensal: number
+          meses_ativos: number
+          produto_id: number
+          qtd_total: number
+          valor_total: number
+        }[]
+      }
       vendas_ranking_cliente: {
         Args: {
           p_ate?: string
@@ -59604,6 +59653,14 @@ export type Database = {
           p_data_ini: string
           p_empresa_id?: number
         }
+        Returns: {
+          mes: string
+          quantidade: number
+          valor: number
+        }[]
+      }
+      vendas_serie_mensal_produto_rubysp: {
+        Args: { p_desde?: string; p_produto_id: number }
         Returns: {
           mes: string
           quantidade: number
