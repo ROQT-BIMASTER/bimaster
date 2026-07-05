@@ -310,7 +310,7 @@ async function classifyGroup(group: GroupRow, supabase: Client, departamentos: D
 
   const deptResult = inferDepartment(group, departamentos);
   const accountResult = inferAccount(group, planos);
-  if (deptResult.dept && accountResult.account && Math.min(deptResult.confidence, accountResult.confidence) >= 0.72) {
+  if (deptResult.dept && accountResult.account) {
     return {
       departamento_id: deptResult.dept.id,
       departamento_nome: deptResult.dept.nome,
