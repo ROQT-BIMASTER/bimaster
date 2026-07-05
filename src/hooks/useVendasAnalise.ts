@@ -35,7 +35,7 @@ export function useVendasKpis(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_kpis", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_kpis", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_kpis_rubysp", rpcParams(f));
       if (error) throw error;
       const row = (data?.[0] ?? {}) as any;
       return {
