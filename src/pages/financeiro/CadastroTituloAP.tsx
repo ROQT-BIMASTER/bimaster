@@ -191,6 +191,8 @@ export default function CadastroTituloAP() {
       };
       if (departamento) body.departamento_id = departamento;
       if (projeto) body.projeto_id = projeto;
+      // chave NF-e: grava no título p/ reconciliação fiscal diferida (§10) — não só p/ o process-nfe-xml
+      if (nfeChave) body.chave_nfe = nfeChave;
       if (numeroDocumento) body.numero_documento = numeroDocumento;
       if (observacao) body.observacao = observacao;
       if (numParcelas && Number(numParcelas) > 1) {
@@ -439,7 +441,7 @@ export default function CadastroTituloAP() {
                 <SelectTrigger><SelectValue placeholder="Selecionar departamento" /></SelectTrigger>
                 <SelectContent>
                   {departamentosList.map((d: any) => (
-                    <SelectItem key={d.codigo || d.id} value={String(d.codigo || d.id)}>
+                    <SelectItem key={d.id || d.codigo} value={String(d.id || d.codigo)}>
                       {d.descricao || d.nome}
                     </SelectItem>
                   ))}

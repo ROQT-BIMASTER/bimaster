@@ -287,7 +287,9 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
     'data_vencimento', 'data_pagamento', 'data_emissao', 'data_entrada',
     'portador', 'conta', 'categoria_codigo', 'categoria_nome',
     'status', 'observacao', 'numero_documento', 'tipo_documento',
-    'numero_documento_fiscal', 'chave_nfe', 'codigo_tipo_documento', 'numero_pedido', 'codigo_projeto'
+    'numero_documento_fiscal', 'chave_nfe', 'codigo_tipo_documento', 'numero_pedido', 'codigo_projeto',
+    // Passo 1a: paridade real com IncluirSchema/UpsertSchema — organização orçamentária no /update
+    'departamento_id', 'projeto_id', 'plano_contas_id', 'natureza_lancamento'
   ];
 
   const sanitizedUpdates: Record<string, unknown> = {};
@@ -420,7 +422,14 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     }
   }
 
-  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, data_emissao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
+  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, data_emissao, id_conta_corrente, descricao: _desc, observacao: _obs, plano_contas_id: planoInput, natureza_lancamento: naturezaInput, ...validRest } = parsed.data;
+
+  // Passo 1a: plano de contas (FK). Usa o enviado, ou resolve pelo code da categoria (já validado acima).
+  let plano_contas_id: string | null = planoInput ?? null;
+  if (!plano_contas_id && codigo_categoria) {
+    const { data: tc } = await ctx.supabase.from('trade_chart_of_accounts').select('id').eq('code', String(codigo_categoria)).maybeSingle();
+    plano_contas_id = (tc as { id?: string } | null)?.id ?? null;
+  }
 
   const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
 
@@ -433,6 +442,9 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     data_previsao: parseDate(data_previsao),
     data_emissao: parseDate(data_emissao),
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
+    // Passo 1a: plano de contas resolvido + natureza orçamentária (provisionado por padrão no nascimento)
+    plano_contas_id,
+    natureza_lancamento: naturezaInput ?? 'provisionado',
     ...validRest
   };
   // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do INSERT.

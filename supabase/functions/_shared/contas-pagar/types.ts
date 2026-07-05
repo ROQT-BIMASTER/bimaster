@@ -38,6 +38,13 @@ export const IncluirSchema = z.object({
   chave_nfe: z.string().optional(),
   codigo_tipo_documento: strOrNumOpt,
   numero_pedido: strOrNumOpt,
+  // Passo 1a — nascimento correto: departamento/projeto (UUID), plano de contas (FK) e
+  // natureza orçamentária. Sem isso o .strict() rejeitava o payload da tela.
+  // (parcelamento = quantidade_parcelas/codigo_parcela fica p/ o 1a-ii, com explosão em N Seq.)
+  departamento_id: z.string().uuid().optional(),
+  projeto_id: z.string().uuid().optional(),
+  plano_contas_id: z.string().uuid().optional(),
+  natureza_lancamento: z.enum(['provisionado', 'lancado']).optional(),
 }).strict();
 
 // AlterarSchema removido em v4.0.0 (PR-7) — use UpsertSchema via /upsert.
@@ -71,6 +78,13 @@ export const UpsertSchema = z.object({
   chave_nfe: z.string().optional(),
   codigo_tipo_documento: strOrNumOpt,
   numero_pedido: strOrNumOpt,
+  // Passo 1a — nascimento correto: departamento/projeto (UUID), plano de contas (FK) e
+  // natureza orçamentária. Sem isso o .strict() rejeitava o payload da tela.
+  // (parcelamento = quantidade_parcelas/codigo_parcela fica p/ o 1a-ii, com explosão em N Seq.)
+  departamento_id: z.string().uuid().optional(),
+  projeto_id: z.string().uuid().optional(),
+  plano_contas_id: z.string().uuid().optional(),
+  natureza_lancamento: z.enum(['provisionado', 'lancado']).optional(),
 }).strict();
 
 export const LancarPagamentoSchema = z.object({

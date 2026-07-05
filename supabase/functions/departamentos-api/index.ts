@@ -37,6 +37,9 @@ interface DeptRow {
 
 function mapCadastro(row: DeptRow) {
   return {
+    // id (UUID) exposto p/ o front usar como valor real do FK departamento_id
+    // (o codigo_huggs é só rótulo humano; o vínculo em contas_pagar é por UUID).
+    id: row.id,
     codigo: row.codigo_huggs || "",
     descricao: row.nome || "",
     estrutura: row.estrutura || "",
