@@ -1,0 +1,1 @@
+ALTER VIEW public.v_vendas SET (security_invoker = true);
