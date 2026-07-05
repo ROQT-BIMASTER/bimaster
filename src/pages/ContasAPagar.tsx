@@ -92,6 +92,7 @@ export default function ContasAPagar() {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [budgetFilter, setBudgetFilter] = useState<string>("all");
   const [classificarIAOpen, setClassificarIAOpen] = useState(false);
+  const [reclassificarTudoOpen, setReclassificarTudoOpen] = useState(false);
   const [editarClassificacaoOpen, setEditarClassificacaoOpen] = useState(false);
   const [selectedContaClassificacao, setSelectedContaClassificacao] = useState<ContaPagar | null>(null);
   
@@ -1272,10 +1273,28 @@ export default function ContasAPagar() {
                       Use IA para classificar automaticamente contas sem departamento ou plano de contas
                     </p>
                   </div>
-                  <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
-                    <Bot className="h-4 w-4" />
-                    Classificar Pendentes
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const ok = window.confirm(
+                            "Reclassificar TODA a base histórica (inclusive contas classificadas manualmente) usando o Centro de Custo como âncora?\n\nEsta operação pode levar vários minutos e sobrescreve os valores atuais de Departamento e Plano de Contas."
+                          );
+                          if (ok) setReclassificarTudoOpen(true);
+                        }}
+                        className="gap-2"
+                        title="Reclassifica todas as contas usando o Centro de Custo como referência principal"
+                      >
+                        <Bot className="h-4 w-4" />
+                        Reclassificar TODA a base
+                      </Button>
+                    )}
+                    <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
+                      <Bot className="h-4 w-4" />
+                      Classificar Pendentes
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1650,10 +1669,20 @@ export default function ContasAPagar() {
           open={classificarIAOpen}
           onOpenChange={setClassificarIAOpen}
           onComplete={() => {
-            // Invalida todas as queries de contas a pagar para garantir atualização
             invalidateContasQueries();
             setSelectedIdsIA(new Set());
             toast.success("Classificação concluída! Atualizando lista...");
+          }}
+        />
+
+        <ClassificarContasPagarDialog
+          open={reclassificarTudoOpen}
+          onOpenChange={setReclassificarTudoOpen}
+          forceReclassifyAll
+          onComplete={() => {
+            invalidateContasQueries();
+            setSelectedIdsIA(new Set());
+            toast.success("Reclassificação concluída! Atualizando lista...");
           }}
         />
 

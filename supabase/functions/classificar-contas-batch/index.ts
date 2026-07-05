@@ -8,6 +8,9 @@ const GroupSchema = z.object({
   categoria_nome: z.string().max(255),
   fornecedor_nome: z.string().max(255).nullable().optional(),
   tipo_documento: z.string().max(64).nullable().optional(),
+  centro_custo_id: z.string().uuid().nullable().optional(),
+  centro_custo_codigo: z.string().max(64).nullable().optional(),
+  centro_custo_nome: z.string().max(255).nullable().optional(),
   count: z.number().int().nonnegative().optional(),
 }).strict();
 
@@ -20,6 +23,9 @@ interface GroupToClassify {
   categoria_nome: string;
   fornecedor_nome: string | null;
   tipo_documento: string | null;
+  centro_custo_id: string | null;
+  centro_custo_codigo: string | null;
+  centro_custo_nome: string | null;
   count: number;
 }
 
@@ -46,24 +52,30 @@ async function processGroup(
   lovableApiKey: string
 ): Promise<ClassificationResult> {
   try {
-    // Verificar se existe regra aprendida
+    // Verificar se existe regra aprendida (chave inclui centro_custo)
     let ruleQuery = supabase
       .from("account_classification_rules")
       .select("*")
       .eq("categoria_nome", group.categoria_nome);
-    
+
     if (group.fornecedor_nome) {
       ruleQuery = ruleQuery.eq("fornecedor_nome", group.fornecedor_nome);
     } else {
       ruleQuery = ruleQuery.is("fornecedor_nome", null);
     }
-    
+
     if (group.tipo_documento) {
       ruleQuery = ruleQuery.eq("tipo_documento", group.tipo_documento);
     } else {
       ruleQuery = ruleQuery.is("tipo_documento", null);
     }
-    
+
+    if (group.centro_custo_id) {
+      ruleQuery = ruleQuery.eq("centro_custo_id", group.centro_custo_id);
+    } else {
+      ruleQuery = ruleQuery.is("centro_custo_id", null);
+    }
+
     const { data: existingRule } = await ruleQuery.maybeSingle();
 
     if (existingRule) {
@@ -129,12 +141,19 @@ DEPARTAMENTOS POR TIPO:
 - Marketing: Publicidade, propaganda
 - Operações: Aluguel, utilidades, manutenção
 - TI: Software, equipamentos
-- Administrativo: Despesas gerais`;
+- Administrativo: Despesas gerais
+
+REGRAS DE PRIORIDADE — CENTRO DE CUSTO:
+1. Quando o Centro de Custo estiver informado, ele é a ÂNCORA PRINCIPAL para escolher o Departamento. Ex.: "DESPESAS DE TRANSPORTE" → Logística/Transportes; "CONSULTORES E SERVIÇOS DE TERCEIROS" → Administrativo ou RH conforme fornecedor; "ALUGUEIS" → Administrativo/Financeiro; "CMV" → Comercial/Operações.
+2. Categoria e Fornecedor orientam o PLANO DE CONTAS dentro do escopo do Centro de Custo.
+3. Se houver divergência forte entre Centro de Custo e Categoria, use confiança < 0.7 e cite o conflito na justificativa.
+4. Se o Centro de Custo não estiver informado, siga apenas Categoria + Fornecedor.`;
 
     const userPrompt = `Classifique esta conta a pagar:
 Categoria: ${group.categoria_nome}
 Fornecedor: ${group.fornecedor_nome || 'N/A'}
-Tipo Documento: ${group.tipo_documento || 'N/A'}`;
+Tipo Documento: ${group.tipo_documento || 'N/A'}
+Centro de Custo: ${group.centro_custo_codigo ? `${group.centro_custo_codigo} - ` : ''}${group.centro_custo_nome || 'N/A'}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -233,20 +252,21 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
     if (!conta) logger.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
     else logger.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
 
-    // Salvar regra aprendida
+    // Salvar regra aprendida (upsert por chave composta incluindo centro_custo_id)
     if (dept && conta) {
       await supabase
         .from("account_classification_rules")
-        .insert({
+        .upsert({
           categoria_nome: group.categoria_nome,
           fornecedor_nome: group.fornecedor_nome || null,
           tipo_documento: group.tipo_documento || null,
+          centro_custo_id: group.centro_custo_id || null,
           departamento_id: dept.id,
           plano_contas_id: conta.id,
           confidence_score: classification.confianca || 0.8,
           times_used: group.count,
           last_used_at: new Date().toISOString()
-        });
+        }, { onConflict: 'categoria_nome,fornecedor_nome,tipo_documento,centro_custo_id', ignoreDuplicates: false });
       logger.log("✓ Regra aprendida salva");
     }
 

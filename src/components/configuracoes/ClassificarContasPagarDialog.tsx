@@ -19,6 +19,12 @@ interface ClassificarContasPagarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete?: () => void;
+  /**
+   * Quando true, reclassifica TODA a base histórica, inclusive contas
+   * já classificadas automaticamente ou manualmente, usando o Centro de Custo
+   * como âncora principal para a IA.
+   */
+  forceReclassifyAll?: boolean;
 }
 
 interface ClassificationLog {
@@ -35,6 +41,7 @@ export function ClassificarContasPagarDialog({
   open,
   onOpenChange,
   onComplete,
+  forceReclassifyAll = false,
 }: ClassificarContasPagarDialogProps) {
   const [isClassifying, setIsClassifying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -53,29 +60,64 @@ export function ClassificarContasPagarDialog({
       setContasComErro(0);
       setLogs([]);
 
-      // PASSO 1: Buscar grupos únicos não classificados (excluindo classificações manuais)
-      logger.log("Buscando grupos únicos para classificação...");
-      
-      const { data: grupos, error: gruposError } = await supabase
-        .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, tipo_documento")
-        .eq("classificado_automaticamente", false)
-        .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+      // PASSO 1: Buscar grupos únicos.
+      // Em modo normal: só contas ainda não classificadas automaticamente e sem correção manual.
+      // Em modo forceReclassifyAll: TODA a base, incluindo classificações manuais.
+      logger.log(
+        forceReclassifyAll
+          ? "Buscando TODAS as contas para reclassificação (com Centro de Custo)..."
+          : "Buscando grupos únicos para classificação..."
+      );
 
-      if (gruposError) {
-        throw gruposError;
+      // Paginação (limite padrão do PostgREST é 1000 por request)
+      const PAGE = 1000;
+      const gruposRaw: Array<{
+        categoria_nome: string | null;
+        fornecedor_nome: string | null;
+        tipo_documento: string | null;
+        centro_custo_id: string | null;
+        centros_custo?: { codigo: string | null; nome: string | null } | null;
+      }> = [];
+
+      for (let offset = 0; ; offset += PAGE) {
+        let q = supabase
+          .from("contas_pagar")
+          .select("categoria_nome, fornecedor_nome, tipo_documento, centro_custo_id, centros_custo(codigo, nome)")
+          .order("id")
+          .range(offset, offset + PAGE - 1);
+
+        if (!forceReclassifyAll) {
+          q = q
+            .eq("classificado_automaticamente", false)
+            .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        gruposRaw.push(...(data as any));
+        if (data.length < PAGE) break;
       }
 
-      if (!grupos || grupos.length === 0) {
-        toast.success("Todas as contas já foram classificadas!");
+      if (gruposRaw.length === 0) {
+        toast.success(forceReclassifyAll ? "Nenhuma conta encontrada." : "Todas as contas já foram classificadas!");
         return;
       }
 
-      // Agrupar e contar
-      const gruposMap = new Map<string, { categoria_nome: string; fornecedor_nome: string | null; tipo_documento: string | null; count: number }>();
-      
-      grupos.forEach(g => {
-        const key = `${g.categoria_nome}|${g.fornecedor_nome}|${g.tipo_documento}`;
+      // Agrupar por chave composta incluindo centro_custo_id
+      const gruposMap = new Map<string, {
+        categoria_nome: string;
+        fornecedor_nome: string | null;
+        tipo_documento: string | null;
+        centro_custo_id: string | null;
+        centro_custo_codigo: string | null;
+        centro_custo_nome: string | null;
+        count: number;
+      }>();
+
+      gruposRaw.forEach(g => {
+        if (!g.categoria_nome) return;
+        const key = `${g.categoria_nome}|${g.fornecedor_nome}|${g.tipo_documento}|${g.centro_custo_id ?? ''}`;
         const existing = gruposMap.get(key);
         if (existing) {
           existing.count++;
@@ -84,13 +126,16 @@ export function ClassificarContasPagarDialog({
             categoria_nome: g.categoria_nome,
             fornecedor_nome: g.fornecedor_nome,
             tipo_documento: g.tipo_documento,
+            centro_custo_id: g.centro_custo_id,
+            centro_custo_codigo: g.centros_custo?.codigo ?? null,
+            centro_custo_nome: g.centros_custo?.nome ?? null,
             count: 1
           });
         }
       });
 
       const gruposUnicos = Array.from(gruposMap.values());
-      logger.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${grupos.length} contas`);
+      logger.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${gruposRaw.length} contas`);
 
       setTotalContas(gruposUnicos.length);
       const totalGrupos = gruposUnicos.length;
@@ -170,14 +215,17 @@ export function ClassificarContasPagarDialog({
 
           // PASSO 3: Atualizar contas em batch
           for (const result of data.results) {
-            const contasAfetadas = gruposMap.get(
-              `${result.categoria_nome}|${result.fornecedor_nome}|${result.tipo_documento}`
-            )?.count || 0;
+            // Localizar grupo original para saber centro_custo_id e count
+            const origGrupo = gruposUnicos.find(g =>
+              g.categoria_nome === result.categoria_nome &&
+              (g.fornecedor_nome ?? null) === (result.fornecedor_nome ?? null) &&
+              (g.tipo_documento ?? null) === (result.tipo_documento ?? null)
+            );
+            const contasAfetadas = origGrupo?.count ?? 0;
 
             setCurrentConta(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
 
             if (result.success && result.departamento_id) {
-              // Atualizar todas as contas deste grupo em uma única query (exceto classificações manuais)
               let updateQuery = supabase
                 .from("contas_pagar")
                 .update({
@@ -191,21 +239,33 @@ export function ClassificarContasPagarDialog({
                   classificado_automaticamente: true,
                   classificado_em: new Date().toISOString(),
                 })
-                .eq("categoria_nome", result.categoria_nome)
-                .eq("classificado_automaticamente", false)
-                .or("classificacao_manual.is.null,classificacao_manual.eq.false");
-              
-              // Adicionar filtros para fornecedor e tipo_documento
+                .eq("categoria_nome", result.categoria_nome);
+
+              // Modo normal preserva contas já classificadas / correção manual.
+              // Modo forceReclassifyAll sobrescreve tudo.
+              if (!forceReclassifyAll) {
+                updateQuery = updateQuery
+                  .eq("classificado_automaticamente", false)
+                  .or("classificacao_manual.is.null,classificacao_manual.eq.false");
+              }
+
               if (result.fornecedor_nome) {
                 updateQuery = updateQuery.eq("fornecedor_nome", result.fornecedor_nome);
               } else {
                 updateQuery = updateQuery.is("fornecedor_nome", null);
               }
-              
+
               if (result.tipo_documento) {
                 updateQuery = updateQuery.eq("tipo_documento", result.tipo_documento);
               } else {
                 updateQuery = updateQuery.is("tipo_documento", null);
+              }
+
+              // Escopo por centro de custo para não misturar rotas diferentes
+              if (origGrupo?.centro_custo_id) {
+                updateQuery = updateQuery.eq("centro_custo_id", origGrupo.centro_custo_id);
+              } else {
+                updateQuery = updateQuery.is("centro_custo_id", null);
               }
 
               const { error: updateError } = await updateQuery;
@@ -254,7 +314,7 @@ export function ClassificarContasPagarDialog({
       }
 
       // Resultado final
-      toast.success(`✅ ${gruposClassificados} grupos classificados (${grupos.length} contas atualizadas)`);
+      toast.success(`✅ ${gruposClassificados} grupos classificados (${gruposRaw.length} contas atualizadas)`);
       if (gruposComErro > 0) {
         toast.warning(`⚠️ ${gruposComErro} grupos com erro`);
       }
@@ -278,10 +338,14 @@ export function ClassificarContasPagarDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            Classificação Inteligente com IA
+            {forceReclassifyAll
+              ? "Reclassificação de TODA a base (com Centro de Custo)"
+              : "Classificação Inteligente com IA"}
           </DialogTitle>
           <DialogDescription>
-            A IA analisa cada conta e sugere departamento + plano de contas apropriado
+            {forceReclassifyAll
+              ? "Reprocessa todas as contas — inclusive as já classificadas manualmente — usando o Centro de Custo como âncora principal para o Departamento e o Plano de Contas."
+              : "A IA analisa cada conta e sugere departamento + plano de contas apropriado."}
           </DialogDescription>
         </DialogHeader>
 
@@ -290,8 +354,9 @@ export function ClassificarContasPagarDialog({
             <div className="text-center py-8">
               <Brain className="h-12 w-12 mx-auto mb-4 text-primary/60" />
               <p className="text-sm text-muted-foreground mb-4">
-                Classificação automática de TODAS as contas a pagar usando Inteligência Artificial.
-                O sistema aprende com cada classificação para melhorar a precisão.
+                {forceReclassifyAll
+                  ? "Esta operação irá reclassificar TODAS as contas a pagar (inclusive as corrigidas manualmente). Use quando o novo Centro de Custo do ERP precisar ser propagado."
+                  : "Classificação automática de TODAS as contas a pagar usando Inteligência Artificial. O sistema aprende com cada classificação para melhorar a precisão."}
               </p>
               <div className="flex gap-2 justify-center">
                 <Badge variant="outline" className="gap-1">

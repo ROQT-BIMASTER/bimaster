@@ -264,6 +264,7 @@ export type Database = {
       account_classification_rules: {
         Row: {
           categoria_nome: string
+          centro_custo_id: string | null
           confidence_score: number | null
           created_at: string | null
           created_by: string | null
@@ -277,6 +278,7 @@ export type Database = {
         }
         Insert: {
           categoria_nome: string
+          centro_custo_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -290,6 +292,7 @@ export type Database = {
         }
         Update: {
           categoria_nome?: string
+          centro_custo_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -302,6 +305,13 @@ export type Database = {
           tipo_documento?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "account_classification_rules_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "account_classification_rules_departamento_id_fkey"
             columns: ["departamento_id"]
