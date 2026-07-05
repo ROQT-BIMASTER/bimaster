@@ -4,7 +4,7 @@ import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "social-media-metrics" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "social-media-metrics" }, async (req, ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -24,13 +24,22 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "social-
 
       const { data: account, error: accError } = await supabase
         .from('social_media_accounts')
-        .select('platform, username, access_token_encrypted, app_id, app_secret_encrypted')
+        .select('platform, username, access_token_encrypted, app_id, app_secret_encrypted, user_id')
         .eq('id', accountId)
         .single();
 
       if (accError || !account) {
         throw new Error('Conta não encontrada');
       }
+
+      // Ownership check: service_role bypasses RLS, enforce manually.
+      if (account.user_id !== ctx?.userId) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        );
+      }
+
 
       if (!account.access_token_encrypted) {
         throw new Error('Token não configurado para esta conta');
