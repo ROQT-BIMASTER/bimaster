@@ -14266,6 +14266,236 @@ export type Database = {
         }
         Relationships: []
       }
+      despesa_alertas: {
+        Row: {
+          atribuido_a: string | null
+          centro_custo_id: string | null
+          chave_dedup: string
+          competencia: string | null
+          conta_ids: string[] | null
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          empresa_id: number | null
+          evidencia: Json
+          fornecedor_codigo: string | null
+          fornecedor_nome: string | null
+          id: string
+          ocorrencias: number
+          origem: string
+          plano_contas_id: string | null
+          primeiro_detectado_em: string
+          reaberto_count: number
+          regra_codigo: string
+          resolucao_nota: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          revisao_id: string | null
+          score: number | null
+          severidade: string
+          status: string
+          titulo: string
+          ultimo_detectado_em: string
+          updated_at: string
+          valor_impacto: number | null
+        }
+        Insert: {
+          atribuido_a?: string | null
+          centro_custo_id?: string | null
+          chave_dedup: string
+          competencia?: string | null
+          conta_ids?: string[] | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          evidencia?: Json
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          ocorrencias?: number
+          origem?: string
+          plano_contas_id?: string | null
+          primeiro_detectado_em?: string
+          reaberto_count?: number
+          regra_codigo: string
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          revisao_id?: string | null
+          score?: number | null
+          severidade: string
+          status?: string
+          titulo: string
+          ultimo_detectado_em?: string
+          updated_at?: string
+          valor_impacto?: number | null
+        }
+        Update: {
+          atribuido_a?: string | null
+          centro_custo_id?: string | null
+          chave_dedup?: string
+          competencia?: string | null
+          conta_ids?: string[] | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          evidencia?: Json
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          ocorrencias?: number
+          origem?: string
+          plano_contas_id?: string | null
+          primeiro_detectado_em?: string
+          reaberto_count?: number
+          regra_codigo?: string
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          revisao_id?: string | null
+          score?: number | null
+          severidade?: string
+          status?: string
+          titulo?: string
+          ultimo_detectado_em?: string
+          updated_at?: string
+          valor_impacto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesa_alertas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_alertas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "despesa_alertas_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_alertas_regra_codigo_fkey"
+            columns: ["regra_codigo"]
+            isOneToOne: false
+            referencedRelation: "despesa_regras"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "despesa_alertas_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_revisao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesa_alertas_eventos: {
+        Row: {
+          alerta_id: string
+          created_at: string
+          de_status: string | null
+          id: string
+          nota: string | null
+          para_status: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          alerta_id: string
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          nota?: string | null
+          para_status?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          alerta_id?: string
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          nota?: string | null
+          para_status?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesa_alertas_eventos_alerta_id_fkey"
+            columns: ["alerta_id"]
+            isOneToOne: false
+            referencedRelation: "despesa_alertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesa_cp_snapshot: {
+        Row: {
+          erp_id: string
+          mes_ref: string
+          natureza_lancamento: string | null
+          valor_original: number | null
+          valor_pago: number | null
+        }
+        Insert: {
+          erp_id: string
+          mes_ref: string
+          natureza_lancamento?: string | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Update: {
+          erp_id?: string
+          mes_ref?: string
+          natureza_lancamento?: string | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Relationships: []
+      }
+      despesa_regras: {
+        Row: {
+          ativo: boolean
+          cadencia: string
+          codigo: string
+          descricao: string | null
+          nome: string
+          params: Json
+          severidade_default: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cadencia?: string
+          codigo: string
+          descricao?: string | null
+          nome: string
+          params?: Json
+          severidade_default: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cadencia?: string
+          codigo?: string
+          descricao?: string | null
+          nome?: string
+          params?: Json
+          severidade_default?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       device_fingerprints: {
         Row: {
           fingerprint_hash: string
@@ -56312,6 +56542,60 @@ export type Database = {
             Returns: string
           }
         | { Args: { payload: Json }; Returns: Json }
+      fn_despesa_detectar: {
+        Args: { p_regras?: string[] }
+        Returns: {
+          atualizados: number
+          inseridos: number
+          regra: string
+        }[]
+      }
+      fn_despesas_alerta_transicao: {
+        Args: {
+          p_alerta_id: string
+          p_justificativa?: string
+          p_novo_status: string
+          p_revisao_id?: string
+        }
+        Returns: {
+          atribuido_a: string | null
+          centro_custo_id: string | null
+          chave_dedup: string
+          competencia: string | null
+          conta_ids: string[] | null
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          empresa_id: number | null
+          evidencia: Json
+          fornecedor_codigo: string | null
+          fornecedor_nome: string | null
+          id: string
+          ocorrencias: number
+          origem: string
+          plano_contas_id: string | null
+          primeiro_detectado_em: string
+          reaberto_count: number
+          regra_codigo: string
+          resolucao_nota: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          revisao_id: string | null
+          score: number | null
+          severidade: string
+          status: string
+          titulo: string
+          ultimo_detectado_em: string
+          updated_at: string
+          valor_impacto: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "despesa_alertas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_despesas_departamentos: {
         Args: {
           p_conf_minima?: number
@@ -59044,6 +59328,14 @@ export type Database = {
       rpc_toggle_curtida_tarefa: {
         Args: { p_tarefa_id: string }
         Returns: Json
+      }
+      rpc_torre_reprocessar_deteccao: {
+        Args: { p_regras?: string[] }
+        Returns: {
+          atualizados: number
+          inseridos: number
+          regra: string
+        }[]
       }
       rpc_translation_cache_get_batch: {
         Args: { p_hashes: string[] }
