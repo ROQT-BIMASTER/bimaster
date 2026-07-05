@@ -3,7 +3,7 @@
 // por alerta, a evidência bruta + trilha imutável de transições
 // (public.despesa_alertas_eventos). Toda decisão é registrada via
 // fn_despesas_alerta_transicao (RPC SECURITY DEFINER).
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
