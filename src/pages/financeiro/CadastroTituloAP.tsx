@@ -17,6 +17,7 @@ import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySugge
 import { ChaveAcessoInput, type XmlExtractedData } from "@/components/financeiro/ChaveAcessoInput";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { debounce } from "@/lib/utils/debounce";
 
@@ -105,15 +106,34 @@ export default function CadastroTituloAP() {
     staleTime: 120_000,
   });
 
+  // Departamentos: leitura direta da tabela (RLS por authenticated), como no resto do app.
+  // NÃO usa a departamentos-api (edge externa do ERP, que pode não estar publicada → 404).
+  // Retorna o id (UUID) nativo, que é o valor real do FK departamento_id em contas_pagar.
   const { data: departamentos } = useQuery({
     queryKey: ["ap-departamentos"],
-    queryFn: () => callApi("departamentos-api", { path: "/listar" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departamentos")
+        .select("id, nome, ativo")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
     staleTime: 120_000,
   });
 
+  // Projetos: leitura direta (mesmo motivo). id (UUID) = valor real do FK projeto_id.
   const { data: projetos } = useQuery({
     queryKey: ["ap-projetos"],
-    queryFn: () => callApi("projetos-api", { path: "/listar" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
     staleTime: 120_000,
   });
 
@@ -190,7 +210,11 @@ export default function CadastroTituloAP() {
         id_conta_corrente: Number(contaCorrente),
       };
       if (departamento) body.departamento_id = departamento;
-      if (projeto) body.projeto_id = projeto;
+      // projeto NÃO é enviado ainda: contas_pagar não tem coluna projeto_id (a real é
+      // codigo_projeto INTEGER, incompatível com o UUID do dropdown). Persistência de projeto
+      // fica pendente de decisão de modelo — o dropdown segue visível, mas não grava.
+      // chave NF-e: grava no título p/ reconciliação fiscal diferida (§10) — não só p/ o process-nfe-xml
+      if (nfeChave) body.chave_nfe = nfeChave;
       if (numeroDocumento) body.numero_documento = numeroDocumento;
       if (observacao) body.observacao = observacao;
       if (numParcelas && Number(numParcelas) > 1) {
@@ -250,8 +274,8 @@ export default function CadastroTituloAP() {
 
   const fornecedoresList = fornecedores?.clientes_cadastro || fornecedores?.data || [];
   const categoriasList = categorias?.data || categorias?.categorias || [];
-  const departamentosList = departamentos?.data || departamentos?.departamentos || [];
-  const projetosList = projetos?.data || projetos?.projetos || [];
+  const departamentosList = Array.isArray(departamentos) ? departamentos : [];
+  const projetosList = Array.isArray(projetos) ? projetos : [];
   const contasCCList = contasCC?.data || contasCC?.contas || [];
   const parcelasList = condicoesParcelas?.data || condicoesParcelas?.parcelas || [];
 
@@ -439,7 +463,7 @@ export default function CadastroTituloAP() {
                 <SelectTrigger><SelectValue placeholder="Selecionar departamento" /></SelectTrigger>
                 <SelectContent>
                   {departamentosList.map((d: any) => (
-                    <SelectItem key={d.codigo || d.id} value={String(d.codigo || d.id)}>
+                    <SelectItem key={d.id || d.codigo} value={String(d.id || d.codigo)}>
                       {d.descricao || d.nome}
                     </SelectItem>
                   ))}
@@ -463,7 +487,7 @@ export default function CadastroTituloAP() {
                 <SelectTrigger><SelectValue placeholder="Selecionar projeto" /></SelectTrigger>
                 <SelectContent>
                   {projetosList.map((p: any) => (
-                    <SelectItem key={p.codigo || p.id} value={String(p.codigo || p.id)}>
+                    <SelectItem key={p.id || p.codigo} value={String(p.id || p.codigo)}>
                       {p.descricao || p.nome}
                     </SelectItem>
                   ))}
