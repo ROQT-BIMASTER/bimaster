@@ -366,13 +366,7 @@ export default function ContasAPagar() {
 
   const isLoading = isLoadingIA;
 
-  // KPIs do topo — derivados dos agregados do servidor (mesma fonte da faixa oficial: zero divergência)
-  const kpis = useMemo(() => ({
-    totalAPagar: cpHeadline?.total_aberto ?? 0,
-    vencendoHoje: cpHeadline?.vence_hoje?.valor ?? 0,
-    vencidas: cpHeadline?.vencido_total?.valor ?? 0,
-    pagasNoMes: pagasMesTotal,
-  }), [cpHeadline, pagasMesTotal]);
+  // KPIs consolidados vivem em ContasPagarHeaderKpis (lê cpHeadline/cpKpis direto).
 
   // Empresas para o filtro — cadastro oficial (não depende mais de dataset carregado)
   const { data: empresas = [] } = useQuery({
