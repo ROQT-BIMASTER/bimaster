@@ -345,7 +345,7 @@ export default function TorreAlertasCentral() {
   const [selecionado, setSelecionado] = useState<DespesaAlerta | null>(null);
 
   // debounce simples da busca
-  useMemo(() => {
+  useEffect(() => {
     const t = setTimeout(() => setF((p) => ({ ...p, busca })), 300);
     return () => clearTimeout(t);
   }, [busca]);
