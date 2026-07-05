@@ -19,6 +19,12 @@ interface ClassificarContasPagarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete?: () => void;
+  /**
+   * Quando true, reclassifica TODA a base histórica, inclusive contas
+   * já classificadas automaticamente ou manualmente, usando o Centro de Custo
+   * como âncora principal para a IA.
+   */
+  forceReclassifyAll?: boolean;
 }
 
 interface ClassificationLog {
@@ -35,6 +41,7 @@ export function ClassificarContasPagarDialog({
   open,
   onOpenChange,
   onComplete,
+  forceReclassifyAll = false,
 }: ClassificarContasPagarDialogProps) {
   const [isClassifying, setIsClassifying] = useState(false);
   const [progress, setProgress] = useState(0);
