@@ -1239,6 +1239,158 @@ export type Database = {
           },
         ]
       }
+      ap_reclassification_job_groups: {
+        Row: {
+          account_count: number
+          categoria_nome: string
+          centro_custo_codigo: string | null
+          centro_custo_id: string | null
+          centro_custo_nome: string | null
+          confidence_score: number | null
+          created_at: string
+          departamento_id: string | null
+          departamento_nome: string | null
+          error_message: string | null
+          fornecedor_nome: string | null
+          group_key: string
+          id: string
+          job_id: string
+          justification: string | null
+          plano_contas_codigo: string | null
+          plano_contas_id: string | null
+          plano_contas_nome: string | null
+          processed_at: string | null
+          status: string
+          tipo_documento: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_count?: number
+          categoria_nome: string
+          centro_custo_codigo?: string | null
+          centro_custo_id?: string | null
+          centro_custo_nome?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          departamento_id?: string | null
+          departamento_nome?: string | null
+          error_message?: string | null
+          fornecedor_nome?: string | null
+          group_key: string
+          id?: string
+          job_id: string
+          justification?: string | null
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+          processed_at?: string | null
+          status?: string
+          tipo_documento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_count?: number
+          categoria_nome?: string
+          centro_custo_codigo?: string | null
+          centro_custo_id?: string | null
+          centro_custo_nome?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          departamento_id?: string | null
+          departamento_nome?: string | null
+          error_message?: string | null
+          fornecedor_nome?: string | null
+          group_key?: string
+          id?: string
+          job_id?: string
+          justification?: string | null
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+          processed_at?: string | null
+          status?: string
+          tipo_documento?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ap_reclassification_job_groups_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ap_reclassification_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ap_reclassification_jobs: {
+        Row: {
+          affected_accounts: number
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          current_group: string | null
+          error_groups: number
+          error_message: string | null
+          id: string
+          include_manual: boolean
+          low_confidence_groups: number
+          processed_groups: number
+          scope: string
+          started_at: string | null
+          status: string
+          success_groups: number
+          summary: Json
+          total_accounts: number
+          total_groups: number
+          updated_at: string
+          use_cost_center_anchor: boolean
+        }
+        Insert: {
+          affected_accounts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          current_group?: string | null
+          error_groups?: number
+          error_message?: string | null
+          id?: string
+          include_manual?: boolean
+          low_confidence_groups?: number
+          processed_groups?: number
+          scope?: string
+          started_at?: string | null
+          status?: string
+          success_groups?: number
+          summary?: Json
+          total_accounts?: number
+          total_groups?: number
+          updated_at?: string
+          use_cost_center_anchor?: boolean
+        }
+        Update: {
+          affected_accounts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          current_group?: string | null
+          error_groups?: number
+          error_message?: string | null
+          id?: string
+          include_manual?: boolean
+          low_confidence_groups?: number
+          processed_groups?: number
+          scope?: string
+          started_at?: string | null
+          status?: string
+          success_groups?: number
+          summary?: Json
+          total_accounts?: number
+          total_groups?: number
+          updated_at?: string
+          use_cost_center_anchor?: boolean
+        }
+        Relationships: []
+      }
       api_access_log: {
         Row: {
           created_at: string | null
@@ -55093,6 +55245,61 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      ap_apply_reclassification_group: {
+        Args: {
+          p_confidence: number
+          p_departamento_id: string
+          p_departamento_nome: string
+          p_job_group_id: string
+          p_justification: string
+          p_plano_contas_codigo: string
+          p_plano_contas_id: string
+          p_plano_contas_nome: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      ap_claim_reclassification_groups: {
+        Args: { p_job_id: string; p_limit?: number }
+        Returns: {
+          account_count: number
+          categoria_nome: string
+          centro_custo_codigo: string | null
+          centro_custo_id: string | null
+          centro_custo_nome: string | null
+          confidence_score: number | null
+          created_at: string
+          departamento_id: string | null
+          departamento_nome: string | null
+          error_message: string | null
+          fornecedor_nome: string | null
+          group_key: string
+          id: string
+          job_id: string
+          justification: string | null
+          plano_contas_codigo: string | null
+          plano_contas_id: string | null
+          plano_contas_nome: string | null
+          processed_at: string | null
+          status: string
+          tipo_documento: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ap_reclassification_job_groups"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ap_prepare_reclassification_job: {
+        Args: { p_job_id: string }
+        Returns: Json
+      }
+      ap_refresh_reclassification_job_progress: {
+        Args: { p_job_id: string }
+        Returns: Json
       }
       aplicar_acesso_padrao: { Args: { _user_id: string }; Returns: undefined }
       aplicar_acesso_padrao_em_massa: { Args: never; Returns: Json }
