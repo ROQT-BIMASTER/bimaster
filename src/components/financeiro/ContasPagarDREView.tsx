@@ -837,9 +837,9 @@ export function ContasPagarDREView({
           <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-              Visão DRE - Modo Foco
+              DRE Gerencial (Base Caixa) - Modo Foco
               <Badge variant="secondary" className="ml-2">
-                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos
+                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos
               </Badge>
             </DialogTitle>
             <div className="flex items-center gap-2">
