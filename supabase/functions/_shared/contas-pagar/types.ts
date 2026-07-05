@@ -38,11 +38,11 @@ export const IncluirSchema = z.object({
   chave_nfe: z.string().optional(),
   codigo_tipo_documento: strOrNumOpt,
   numero_pedido: strOrNumOpt,
-  // Passo 1a — nascimento correto: departamento/projeto (UUID), plano de contas (FK) e
+  // Passo 1a — nascimento correto: departamento (UUID), plano de contas (FK) e
   // natureza orçamentária. Sem isso o .strict() rejeitava o payload da tela.
-  // (parcelamento = quantidade_parcelas/codigo_parcela fica p/ o 1a-ii, com explosão em N Seq.)
+  // (projeto = a coluna real em contas_pagar é codigo_projeto INTEGER, não um UUID projeto_id
+  //  → deferido até definir o mapeamento; parcelamento = quantidade_parcelas fica p/ o 1a-ii.)
   departamento_id: z.string().uuid().optional(),
-  projeto_id: z.string().uuid().optional(),
   plano_contas_id: z.string().uuid().optional(),
   natureza_lancamento: z.enum(['provisionado', 'lancado']).optional(),
 }).strict();
@@ -78,11 +78,11 @@ export const UpsertSchema = z.object({
   chave_nfe: z.string().optional(),
   codigo_tipo_documento: strOrNumOpt,
   numero_pedido: strOrNumOpt,
-  // Passo 1a — nascimento correto: departamento/projeto (UUID), plano de contas (FK) e
+  // Passo 1a — nascimento correto: departamento (UUID), plano de contas (FK) e
   // natureza orçamentária. Sem isso o .strict() rejeitava o payload da tela.
-  // (parcelamento = quantidade_parcelas/codigo_parcela fica p/ o 1a-ii, com explosão em N Seq.)
+  // (projeto = a coluna real em contas_pagar é codigo_projeto INTEGER, não um UUID projeto_id
+  //  → deferido até definir o mapeamento; parcelamento = quantidade_parcelas fica p/ o 1a-ii.)
   departamento_id: z.string().uuid().optional(),
-  projeto_id: z.string().uuid().optional(),
   plano_contas_id: z.string().uuid().optional(),
   natureza_lancamento: z.enum(['provisionado', 'lancado']).optional(),
 }).strict();

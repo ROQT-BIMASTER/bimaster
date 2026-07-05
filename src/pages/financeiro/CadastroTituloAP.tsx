@@ -210,7 +210,9 @@ export default function CadastroTituloAP() {
         id_conta_corrente: Number(contaCorrente),
       };
       if (departamento) body.departamento_id = departamento;
-      if (projeto) body.projeto_id = projeto;
+      // projeto NÃO é enviado ainda: contas_pagar não tem coluna projeto_id (a real é
+      // codigo_projeto INTEGER, incompatível com o UUID do dropdown). Persistência de projeto
+      // fica pendente de decisão de modelo — o dropdown segue visível, mas não grava.
       // chave NF-e: grava no título p/ reconciliação fiscal diferida (§10) — não só p/ o process-nfe-xml
       if (nfeChave) body.chave_nfe = nfeChave;
       if (numeroDocumento) body.numero_documento = numeroDocumento;

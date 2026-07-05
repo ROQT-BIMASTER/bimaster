@@ -289,7 +289,8 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
     'status', 'observacao', 'numero_documento', 'tipo_documento',
     'numero_documento_fiscal', 'chave_nfe', 'codigo_tipo_documento', 'numero_pedido', 'codigo_projeto',
     // Passo 1a: paridade real com IncluirSchema/UpsertSchema — organização orçamentária no /update
-    'departamento_id', 'projeto_id', 'plano_contas_id', 'natureza_lancamento'
+    // (projeto_id fora: coluna real é codigo_projeto INTEGER, não existe projeto_id em contas_pagar)
+    'departamento_id', 'plano_contas_id', 'natureza_lancamento'
   ];
 
   const sanitizedUpdates: Record<string, unknown> = {};
@@ -442,9 +443,11 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     data_previsao: parseDate(data_previsao),
     data_emissao: parseDate(data_emissao),
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
-    // Passo 1a: plano de contas resolvido + natureza orçamentária (provisionado por padrão no nascimento)
+    // Passo 1a: plano de contas resolvido. natureza_lancamento respeita o DEFAULT do banco
+    // ('lancado' = dívida firme) quando o caller não informa — registrar um título de AP é bookar
+    // uma obrigação, não uma provisão. Provisão só se o caller mandar natureza explicitamente.
     plano_contas_id,
-    natureza_lancamento: naturezaInput ?? 'provisionado',
+    ...(naturezaInput ? { natureza_lancamento: naturezaInput } : {}),
     ...validRest
   };
   // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do INSERT.
