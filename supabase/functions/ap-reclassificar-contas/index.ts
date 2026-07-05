@@ -6,7 +6,7 @@ import { logger } from "../_shared/logger.ts";
 import { callAIGateway } from "../_shared/ai-gateway-call.ts";
 
 const BodySchema = z.object({
-  action: z.enum(["start", "status", "process", "cancel"]),
+  action: z.enum(["start", "latest", "status", "process", "cancel"]),
   jobId: z.string().uuid().optional(),
   batchSize: z.number().int().min(1).max(20).optional(),
 }).strict();
@@ -385,6 +385,19 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 120, rateLimitPrefix: "ap-rec
     }
 
     const { action, jobId, batchSize = 8 } = parsed.data;
+
+    if (action === "latest") {
+      const { data: latest, error } = await supabase
+        .from("ap_reclassification_jobs")
+        .select("*")
+        .eq("created_by", userId)
+        .in("status", ["pending", "running"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return new Response(JSON.stringify({ job: latest, recent: latest?.id ? await getRecentGroups(supabase, latest.id) : [] }), { headers });
+    }
 
     if (action === "start") {
       const { data: job, error } = await supabase
