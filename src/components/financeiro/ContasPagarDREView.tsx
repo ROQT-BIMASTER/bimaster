@@ -141,9 +141,11 @@ export function ContasPagarDREView({
       while (hasMore) {
         let query = supabase
           .from('contas_pagar')
-          .select('id, fornecedor_nome, categoria_nome, valor_original, data_vencimento, departamento_id, departamento_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome, classificado_automaticamente, classificacao_manual')
-          .gte('data_vencimento', dateRange.start)
-          .lte('data_vencimento', dateRange.end);
+          .select('id, fornecedor_nome, categoria_nome, valor_original, valor_pago, data_vencimento, data_pagamento, departamento_id, departamento_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome, classificado_automaticamente, classificacao_manual')
+          .not('data_pagamento', 'is', null)
+          .gt('valor_pago', 0)
+          .gte('data_pagamento', dateRange.start)
+          .lte('data_pagamento', dateRange.end);
 
         if (filterEmpresas.length > 0) {
           query = query.in('empresa_id', filterEmpresas);
@@ -228,9 +230,11 @@ export function ContasPagarDREView({
       Object.entries(lancamentosPorConta).forEach(([codigo, lancs]) => {
         if (codigo === codigoPrefix || codigo.startsWith(codigoPrefix + '.')) {
           lancs.forEach(l => {
-            const mes = l.data_vencimento.substring(5, 7);
-            valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
-            total += l.valor_original;
+            const dp = l.data_pagamento || l.data_vencimento;
+            const mes = dp.substring(5, 7);
+            const v = Number(l.valor_pago || 0);
+            valoresMes[mes] = (valoresMes[mes] || 0) + v;
+            total += v;
             ids.push(l.id);
           });
         }
@@ -256,36 +260,41 @@ export function ContasPagarDREView({
           const valoresMes: Record<string, number> = {};
           meses.forEach(m => valoresMes[m.key] = 0);
           lancs.forEach(l => {
-            const mes = l.data_vencimento.substring(5, 7);
-            valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
+            const dp = l.data_pagamento || l.data_vencimento;
+            const mes = dp.substring(5, 7);
+            valoresMes[mes] = (valoresMes[mes] || 0) + Number(l.valor_pago || 0);
           });
 
+          const totalForn = lancs.reduce((s, l) => s + Number(l.valor_pago || 0), 0);
           return {
             id: `forn_${codigo}_${nome}`,
             codigo: '',
             nome,
             tipo: 'fornecedor' as const,
             nivel,
-            valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+            valor: totalForn,
             valores_mes: valoresMes,
-            children: lancs.map(l => ({
-              id: l.id,
-              codigo: '',
-              nome: `${l.categoria_nome || 'Lançamento'} - ${new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-              tipo: 'lancamento' as const,
-              nivel: nivel + 1,
-              valor: l.valor_original,
-              valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
-              children: [],
-              lancamentosIds: [l.id],
-              conta: l
-            })),
+            children: lancs.map(l => {
+              const dp = l.data_pagamento || l.data_vencimento;
+              return {
+                id: l.id,
+                codigo: '',
+                nome: `${l.categoria_nome || 'Lançamento'} - pago ${new Date(dp + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+                tipo: 'lancamento' as const,
+                nivel: nivel + 1,
+                valor: Number(l.valor_pago || 0),
+                valores_mes: { [dp.substring(5, 7)]: Number(l.valor_pago || 0) },
+                children: [],
+                lancamentosIds: [l.id],
+                conta: l
+              };
+            }),
             lancamentosIds: lancs.map(l => l.id),
             contaOrigem: {
               id: `forn_${codigo}_${nome}`,
               codigo,
               nome,
-              valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+              valor: totalForn,
               lancamentosIds: lancs.map(l => l.id),
               tipoDre: 'fornecedor' as const
             }
@@ -379,9 +388,11 @@ export function ContasPagarDREView({
       meses.forEach(m => valoresMes[m.key] = 0);
       let total = 0;
       semClassificacao.forEach(l => {
-        const mes = l.data_vencimento.substring(5, 7);
-        valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
-        total += l.valor_original;
+        const dp = l.data_pagamento || l.data_vencimento;
+        const mes = dp.substring(5, 7);
+        const v = Number(l.valor_pago || 0);
+        valoresMes[mes] = (valoresMes[mes] || 0) + v;
+        total += v;
       });
 
       // Group by fornecedor
@@ -396,35 +407,40 @@ export function ContasPagarDREView({
         const fValoresMes: Record<string, number> = {};
         meses.forEach(m => fValoresMes[m.key] = 0);
         lancs.forEach(l => {
-          const mes = l.data_vencimento.substring(5, 7);
-          fValoresMes[mes] = (fValoresMes[mes] || 0) + l.valor_original;
+          const dp = l.data_pagamento || l.data_vencimento;
+          const mes = dp.substring(5, 7);
+          fValoresMes[mes] = (fValoresMes[mes] || 0) + Number(l.valor_pago || 0);
         });
+        const totalForn = lancs.reduce((s, l) => s + Number(l.valor_pago || 0), 0);
         return {
           id: `sem_forn_${nome}`,
           codigo: '',
           nome,
           tipo: 'fornecedor' as const,
           nivel: 1,
-          valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+          valor: totalForn,
           valores_mes: fValoresMes,
-          children: lancs.map(l => ({
-            id: l.id,
-            codigo: '',
-            nome: `${l.categoria_nome || 'Lançamento'} - ${new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-            tipo: 'lancamento' as const,
-            nivel: 2,
-            valor: l.valor_original,
-            valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
-            children: [],
-            lancamentosIds: [l.id],
-            conta: l
-          })),
+          children: lancs.map(l => {
+            const dp = l.data_pagamento || l.data_vencimento;
+            return {
+              id: l.id,
+              codigo: '',
+              nome: `${l.categoria_nome || 'Lançamento'} - pago ${new Date(dp + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+              tipo: 'lancamento' as const,
+              nivel: 2,
+              valor: Number(l.valor_pago || 0),
+              valores_mes: { [dp.substring(5, 7)]: Number(l.valor_pago || 0) },
+              children: [],
+              lancamentosIds: [l.id],
+              conta: l
+            };
+          }),
           lancamentosIds: lancs.map(l => l.id),
           contaOrigem: {
             id: `sem_forn_${nome}`,
             codigo: '',
             nome,
-            valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+            valor: totalForn,
             lancamentosIds: lancs.map(l => l.id),
             tipoDre: 'fornecedor' as const
           }
@@ -771,9 +787,23 @@ export function ContasPagarDREView({
             <div className="flex items-center gap-3">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle className="text-lg">Visão DRE - Despesas</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  DRE Gerencial (Base Caixa)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-normal text-muted-foreground border border-border rounded px-1.5 py-0.5 cursor-help">
+                          só pagas
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Considera apenas contas com pagamento confirmado (valor_pago &gt; 0 e data_pagamento no período do filtro). Bate com o Calendário de Pagos e a coluna Valor Pago da tabela. Para o regime de competência (data de vencimento), utilize os relatórios de Plano de Redução e Auditoria AP.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
+                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
                 </p>
               </div>
             </div>
@@ -807,9 +837,9 @@ export function ContasPagarDREView({
           <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-              Visão DRE - Modo Foco
+              DRE Gerencial (Base Caixa) - Modo Foco
               <Badge variant="secondary" className="ml-2">
-                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos
+                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos
               </Badge>
             </DialogTitle>
             <div className="flex items-center gap-2">
