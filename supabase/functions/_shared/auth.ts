@@ -357,6 +357,35 @@ export async function validateAnyAuth(req: Request): Promise<{
 }
 
 /**
+ * Autorização por módulo para rotas de ESCRITA das APIs do portal financeiro.
+ * Chamador JWT (humano) precisa passar em check_user_access(uid, módulo);
+ * chamador por API-key (máquina) já é escopado por empresa a montante e passa.
+ * Fail-closed: qualquer erro, ausência de userId ou retorno != true nega. Nunca lança.
+ */
+export async function callerHasModuleAccess(
+  source: "jwt" | "api_key" | null | undefined,
+  userId: string | undefined,
+  moduleCode = "financeiro",
+): Promise<boolean> {
+  // Máquina (API-key) já é escopada por empresa — não exige papel.
+  if (source === "api_key") return true;
+  if (source !== "jwt" || !userId) return false;
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data, error } = await supabase.rpc("check_user_access", {
+      _user_id: userId,
+      _module_code: moduleCode,
+    });
+    return !error && data === true;
+  } catch {
+    return false; // fail-closed
+  }
+}
+
+/**
  * Custom error with HTTP status.
  */
 export class AuthError extends Error {

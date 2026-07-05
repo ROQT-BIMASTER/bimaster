@@ -5,6 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 // ─── SQL Server connection via tedious ───
 import { Connection, Request as TdsRequest } from "npm:tedious@19.0.0";
@@ -1357,9 +1358,10 @@ async function handleStatus(req: Request, startMs: number) {
       contas_pagar: lastCP || null,
     },
     connectionInfo: {
-      host: Deno.env.get("ERP_SQL_HOST"),
-      port: Deno.env.get("ERP_SQL_PORT"),
-      database: Deno.env.get("ERP_SQL_DATABASE"),
+      // Redigido: não expor host/porta/database do ERP na resposta (só presença de config).
+      hostConfigured: !!Deno.env.get("ERP_SQL_HOST"),
+      portConfigured: !!Deno.env.get("ERP_SQL_PORT"),
+      databaseConfigured: !!Deno.env.get("ERP_SQL_DATABASE"),
     },
   }, 200, req, { startMs });
 }
@@ -1383,8 +1385,8 @@ Deno.serve(secureHandler({
     ? req.headers.get("Authorization")!.replace("Bearer ", "")
     : "";
   const isCron =
-    (!!cronSecret && !!expectedCronSecret && cronSecret === expectedCronSecret) ||
-    (!!bearer && !!serviceRoleKey && bearer === serviceRoleKey);
+    (!!cronSecret && !!expectedCronSecret && timingSafeEqual(cronSecret, expectedCronSecret)) ||
+    (!!bearer && !!serviceRoleKey && timingSafeEqual(bearer, serviceRoleKey));
 
   let authUserId: string | undefined;
   if (!isCron) {
