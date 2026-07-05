@@ -715,59 +715,17 @@ export default function ContasAPagar() {
           </div>
         </div>
 
-        {/* KPIs Financeiros */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="contas-pagar-kpis">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pagas no Mês</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.pagasNoMes)}
-              </div>
-              <p className="text-xs text-muted-foreground">Pagamentos realizados</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vencendo Hoje</CardTitle>
-              <Clock className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.vencendoHoje)}
-              </div>
-              <p className="text-xs text-muted-foreground">A pagar hoje</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
-              <Receipt className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.totalAPagar)}
-              </div>
-              <p className="text-xs text-muted-foreground">Valor pendente</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vencido</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.vencidas)}
-              </div>
-              <p className="text-xs text-muted-foreground">Atenção necessária</p>
-            </CardContent>
-          </Card>
+        {/* Header consolidado de KPIs (fonte: fn_cp_dashboard v2 + fn_cp_kpis_avancados v2) */}
+        <div data-tour="contas-pagar-kpis">
+          <ContasPagarHeaderKpis
+            dashboard={cpHeadline}
+            kpis={cpKpis}
+            isLoading={isLoadingHeadline || isLoadingKpisAv}
+            onOpenVencidos={() => {
+              setFilterStatus('vencido');
+              setActiveTab('contas');
+            }}
+          />
         </div>
 
         {/* Filtros Globais */}
