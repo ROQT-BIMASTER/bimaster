@@ -1,21 +1,33 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
 // Auth: none — invocado apenas pelo cron `monitor-atrasos-diario` (pg_cron +
-// pg_net). O cron não carrega usuário nem chave de ERP; usar apikey/jwt aqui
-// quebrava a execução (histórico em cron.job_run_details).
+// pg_net). Protegido por `x-cron-secret` (CRON_SHARED_SECRET) para evitar
+// spam de notificações organizacionais por callers não autorizados.
 Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "projeto-monitor-atrasos" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
+  }
+
+  const corsHeaders = getCorsHeaders(req);
+  const provided = req.headers.get("x-cron-secret") ?? "";
+  const expected = Deno.env.get("CRON_SHARED_SECRET") ?? "";
+  if (!expected || !timingSafeEqual(provided, expected)) {
+    return new Response(
+      JSON.stringify({ error: "forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     // Todas as tarefas não concluídas que tenham prazo OU início planejado.
     // A regra `dias_alerta_antes` (default 2) passa a valer para ambos:
