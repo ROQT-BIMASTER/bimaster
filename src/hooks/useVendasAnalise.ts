@@ -72,7 +72,9 @@ export function useVendasRankingVendedor(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_ranking_vendedor", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_ranking_vendedor", rpcParams(f));
+      const { data, error } = await sb.rpc("vendas_ranking_vendedor_rubysp", {
+        p_de: f.de, p_ate: f.ate, p_empresa: f.empresa,
+      });
       if (error) throw error;
       return (data || []).map((r: any) => ({
         vendedor_id: r.vendedor_id as string | null,
