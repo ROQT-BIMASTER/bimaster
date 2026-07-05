@@ -79,3 +79,24 @@ jobs:
         run: |
           chmod +x scripts/security/e2e-china-approval-rls.sh
           bash scripts/security/e2e-china-approval-rls.sh
+
+  financeiro-rls-roles:
+    name: Financeiro + Torre de Despesas RLS por perfil
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run financeiro RLS smoke tests (admin/supervisor/gerente/vendedor)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
+          E2E_SUPERVISOR_PASSWORD: ${{ secrets.E2E_SUPERVISOR_PASSWORD }}
+          E2E_GERENTE_EMAIL: ${{ secrets.E2E_GERENTE_EMAIL }}
+          E2E_GERENTE_PASSWORD: ${{ secrets.E2E_GERENTE_PASSWORD }}
+          E2E_VENDEDOR_EMAIL: ${{ secrets.E2E_VENDEDOR_EMAIL }}
+          E2E_VENDEDOR_PASSWORD: ${{ secrets.E2E_VENDEDOR_PASSWORD }}
+        run: |
+          chmod +x scripts/security/e2e-financeiro-rls-roles.sh
+          bash scripts/security/e2e-financeiro-rls-roles.sh
