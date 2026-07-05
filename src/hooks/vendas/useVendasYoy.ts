@@ -26,19 +26,15 @@ export function useVendasYoy(p: {
 }) {
   return useQuery({
     queryKey: [
-      "vendas_yoy_por_dimensao", p.dim, p.ano, p.empresa ?? null,
+      "vendas_yoy_por_dimensao_rubysp", p.dim, p.ano, p.empresa ?? null,
       p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
     ],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<VendasYoyRow[]> => {
-      const { data, error } = await sb.rpc("vendas_yoy_por_dimensao", {
+      const { data, error } = await sb.rpc("vendas_yoy_por_dimensao_rubysp", {
         p_dim: p.dim,
         p_ano: p.ano,
         p_empresa: p.empresa ?? null,
-        p_tabela_preco: p.tabelaPrecoId ?? null,
-        p_uf: p.uf ?? null,
-        p_cliente: p.clienteId ?? null,
-        p_vendedor: p.vendedorId ?? null,
       });
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => {
@@ -46,8 +42,10 @@ export function useVendasYoy(p: {
         const ant = Number(r.fat_anterior ?? 0);
         const novo = ant === 0;
         const variacao = novo ? null : atual / ant - 1;
+        const chaveRaw = r.chave;
+        const chaveNum = chaveRaw == null || chaveRaw === "" ? null : Number(chaveRaw);
         return {
-          chave: r.chave ?? null,
+          chave: Number.isFinite(chaveNum as number) ? (chaveNum as number) : null,
           nome: r.nome ?? "—",
           fat_atual: atual,
           fat_anterior: ant,
