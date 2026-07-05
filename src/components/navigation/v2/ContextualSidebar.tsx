@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { resolveIcon } from "./icon";
 import { getModuleAccent, accentStyle } from "./launcher/moduleColors";
