@@ -25,7 +25,7 @@ import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencime
 import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
 import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
 import { ContasPagarDREView } from "@/components/financeiro/ContasPagarDREView";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -44,7 +44,6 @@ import { ContasPagarTabContent } from "@/components/financeiro/ContasPagarTabCon
 import type { ContaPagar } from "@/types/financeiro/contas-pagar";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
-type SortColumn = 'empresa_nome' | 'numero_documento' | 'fornecedor_nome' | 'categoria_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
 type SortColumnIA = 'fornecedor_nome' | 'numero_documento' | 'data_vencimento' | 'valor_original' | 'departamento_nome' | 'plano_contas_nome';
 type SortDirection = 'asc' | 'desc';
 
@@ -76,18 +75,15 @@ export default function ContasAPagar() {
   const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
   const [filterDiaPagamento, setFilterDiaPagamento] = useState<string>("");
   const [filterNatureza, setFilterNatureza] = useState<"all" | "provisionado" | "lancado">("all");
-  
+  const [filterCentroCusto, setFilterCentroCusto] = useState<string>("all");
+  const [filterPlanoContas, setFilterPlanoContas] = useState<string>("all");
+
+  // Aba ativa — usada para só buscar o dataset pesado quando a aba Classificação IA abre
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  
-  // Ordenação
-  const [sortColumn, setSortColumn] = useState<SortColumn>('data_vencimento');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  
-  // Seleção em lote
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
+
   // Dialogs
   const [solicitarOrcamentoOpen, setSolicitarOrcamentoOpen] = useState(false);
   const [aprovarOrcamentoOpen, setAprovarOrcamentoOpen] = useState(false);
@@ -119,9 +115,12 @@ export default function ContasAPagar() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'contas_pagar' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-headline'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-kpis-avancados'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-pagas-mes'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-ia'] });
+          queryClient.invalidateQueries({ queryKey: ['cp-calendario-mes'] });
+          queryClient.invalidateQueries({ queryKey: ['cp-tab-contas'] });
           queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
           queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
           queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
@@ -169,59 +168,6 @@ export default function ContasAPagar() {
   const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
   const filterPortadoresKey = filterPortadores.length > 0 ? [...filterPortadores].sort().join(',') : 'all';
 
-  // Função para construir filtros base (reutilizada em ambas queries)
-  const buildBaseFilters = (query: any) => {
-    let q = query;
-    
-    if (filterEmpresas.length > 0) {
-      q = q.in('empresa_id', filterEmpresas);
-    }
-
-    if (filterDepartamento !== 'all') {
-      q = q.eq('departamento_id', filterDepartamento);
-    }
-
-    // Filtro Portador (agora suporta múltiplos)
-    if (filterPortadores.length > 0) {
-      q = q.in('portador', filterPortadores);
-    }
-
-    // Filtro Dia Vencimento (data específica) - tem prioridade sobre ano/mês
-    if (filterDiaVencimento) {
-      q = q.eq('data_vencimento', filterDiaVencimento);
-    }
-
-    // Filtro Dia Pagamento (data específica)
-    if (filterDiaPagamento) {
-      q = q.eq('data_pagamento', filterDiaPagamento);
-    }
-
-    // Ano/Mês - Só aplicar se NÃO houver filtro de dia específico (evita conflito)
-    if (!filterDiaVencimento && !filterDiaPagamento) {
-      if (filterMes !== 'all' && filterAno !== 'all') {
-        // Filtro por mês específico tem prioridade sobre ano genérico
-        const mes = filterMes.padStart(2, '0');
-        const startDate = `${filterAno}-${mes}-01`;
-        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-        const endDate = `${filterAno}-${mes}-${lastDay}`;
-        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      } else if (filterAno !== 'all') {
-        const startDate = `${filterAno}-01-01`;
-        const endDate = `${filterAno}-12-31`;
-        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      } else {
-        // "Todos" - buscar últimos 3 anos até 1 ano no futuro
-        const hoje = new Date();
-        const anoAtual = hoje.getFullYear();
-        const startDate = `${anoAtual - 3}-01-01`;
-        const endDate = `${anoAtual + 1}-12-31`;
-        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
-    }
-    
-    return q;
-  };
-
   // Helper: deriva intervalo de datas para o endpoint /query (server-side)
   const getDateRange = (includeMes: boolean) => {
     if (filterDiaVencimento) {
@@ -237,17 +183,6 @@ export default function ContasAPagar() {
     }
     const anoAtual = new Date().getFullYear();
     return { vencimento_de: `${anoAtual - 3}-01-01`, vencimento_ate: `${anoAtual + 1}-12-31` };
-  };
-
-  // Aplica filtros que não são suportados pelo /query (departamento, portador, multi-empresa, etc.)
-  const applyClientFilters = (rows: ContaPagar[]): ContaPagar[] => {
-    return rows.filter((r) => {
-      if (filterEmpresas.length > 0 && !filterEmpresas.includes(r.empresa_id)) return false;
-      if (filterDepartamento !== 'all' && r.departamento_id !== filterDepartamento) return false;
-      if (filterPortadores.length > 0 && !filterPortadores.includes(r.portador)) return false;
-      if (filterDiaPagamento && r.data_pagamento !== filterDiaPagamento) return false;
-      return true;
-    });
   };
 
   // Helper: pagina via API /query usando offset incremental (v4.4.3).
@@ -279,112 +214,102 @@ export default function ContasAPagar() {
     return all;
   };
 
-  // Query para DASHBOARD - via API /query
-  const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento],
-    queryFn: async () => {
-      const range = getDateRange(true);
-      // Quando exatamente uma empresa estiver selecionada, manda filtro server-side
-      const empresaParam = filterEmpresas.length === 1 ? { empresa_id: String(filterEmpresas[0]) } : {};
-      const all = await fetchAllViaApi({ ...range, ...empresaParam });
-      return applyClientFilters(all);
-    }
-  });
+  // Parâmetros comuns das RPCs agregadas (mesmos filtros globais em tudo → números coerentes)
+  const rpcParams = () => {
+    const range = getDateRange(true);
+    return {
+      p_empresa_ids: filterEmpresas.length > 0 ? filterEmpresas : null,
+      p_data_de: range.vencimento_de || null,
+      p_data_ate: range.vencimento_ate || null,
+      p_departamento: filterDepartamento !== 'all' ? filterDepartamento : null,
+      p_portadores: filterPortadores.length > 0 ? filterPortadores : null,
+    };
+  };
 
-  // Query para CALENDÁRIO - via API /query (ano inteiro)
-  const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
-    queryKey: ['contas-pagar-calendario', filterEmpresasKey, filterAno, filterDepartamento, filterPortadoresKey],
-    queryFn: async () => {
-      const range = filterAno === 'all'
-        ? (() => { const a = new Date().getFullYear(); return { vencimento_de: `${a - 2}-01-01`, vencimento_ate: `${a + 1}-12-31` }; })()
-        : { vencimento_de: `${filterAno}-01-01`, vencimento_ate: `${filterAno}-12-31` };
-      const empresaParam = filterEmpresas.length === 1 ? { empresa_id: String(filterEmpresas[0]) } : {};
-      const all = await fetchAllViaApi({ ...range, ...empresaParam });
-      return all.filter((r) => {
-        if (filterEmpresas.length > 0 && !filterEmpresas.includes(r.empresa_id)) return false;
-        if (filterDepartamento !== 'all' && r.departamento_id !== filterDepartamento) return false;
-        if (filterPortadores.length > 0 && !filterPortadores.includes(r.portador)) return false;
-        return true;
-      });
+  // Chama uma RPC agregada; quando centro/plano estão filtrados, tenta a assinatura estendida (v2)
+  // e cai para a base se a migration ainda não tiver sido aplicada (números ignoram centro/plano até lá).
+  const callAggRpc = async (fn: 'fn_cp_dashboard' | 'fn_cp_kpis_avancados') => {
+    const base = rpcParams();
+    const temCentroPlano = filterCentroCusto !== 'all' || filterPlanoContas !== 'all';
+    if (temCentroPlano) {
+      const { data, error } = await supabase.rpc(fn, {
+        ...base,
+        p_centro_custo_id: filterCentroCusto !== 'all' ? filterCentroCusto : null,
+        p_plano_contas_id: filterPlanoContas !== 'all' ? filterPlanoContas : null,
+      } as any);
+      if (!error) return data as any;
+      logger.warn(`[ContasAPagar] ${fn} v2 indisponível (aplicar prompt RPC v2); usando assinatura base.`, error.message);
     }
-  });
+    const { data, error } = await supabase.rpc(fn, base as any);
+    if (error) throw error;
+    return data as any;
+  };
 
-  // Faixa de KPIs OFICIAIS (banco) — RPC agregada, sempre exata, independente da paginação da tela.
-  // Provisão × Dívida × Total aberto × Vence 7d × Vencido 30+.
+  // Agregados OFICIAIS (banco) — fn_cp_dashboard: exatos, independem de paginação.
   const { data: cpHeadline, isLoading: isLoadingHeadline } = useQuery({
-    queryKey: ['contas-pagar-headline', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterPortadoresKey, filterNatureza],
+    queryKey: ['contas-pagar-headline', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterPortadoresKey, filterDiaVencimento, filterCentroCusto, filterPlanoContas],
+    queryFn: () => callAggRpc('fn_cp_dashboard'),
+    staleTime: 60_000,
+  });
+
+  // KPIs avançados (PMP/pontualidade aproximados até a Fase 2b + concentrações + comparativo mensal)
+  const { data: cpKpis, isLoading: isLoadingKpisAv } = useQuery({
+    queryKey: ['contas-pagar-kpis-avancados', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterPortadoresKey, filterDiaVencimento, filterCentroCusto, filterPlanoContas],
+    queryFn: () => callAggRpc('fn_cp_kpis_avancados'),
+    staleTime: 60_000,
+  });
+
+  // Pagas no mês corrente (card "Pagas no Mês") — busca leve de 1 coluna, só pagamentos do mês.
+  const { data: pagasMesTotal = 0 } = useQuery({
+    queryKey: ['contas-pagar-pagas-mes', filterEmpresasKey, filterDepartamento, filterPortadoresKey],
     queryFn: async () => {
-      const range = getDateRange(true);
-      const { data, error } = await supabase.rpc('fn_cp_dashboard', {
-        p_empresa_ids: filterEmpresas.length > 0 ? filterEmpresas : null,
-        p_data_de: range.vencimento_de || null,
-        p_data_ate: range.vencimento_ate || null,
-        p_departamento: filterDepartamento !== 'all' ? filterDepartamento : null,
-        p_portadores: filterPortadores.length > 0 ? filterPortadores : null,
-      });
-      if (error) throw error;
-      return data as any;
+      const hoje = new Date();
+      const inicio = format(startOfMonth(hoje), 'yyyy-MM-dd');
+      const fim = format(endOfMonth(hoje), 'yyyy-MM-dd');
+      let total = 0;
+      const PAGE = 1000;
+      for (let pageIdx = 0; pageIdx < 10; pageIdx++) {
+        let q = supabase
+          .from('contas_pagar')
+          .select('valor_pago, valor_aberto')
+          .gte('data_pagamento', inicio)
+          .lte('data_pagamento', fim)
+          .neq('status', 'cancelado')
+          .range(pageIdx * PAGE, pageIdx * PAGE + PAGE - 1);
+        if (filterEmpresas.length > 0) q = q.in('empresa_id', filterEmpresas);
+        if (filterDepartamento !== 'all') q = q.eq('departamento_id', filterDepartamento);
+        if (filterPortadores.length > 0) q = q.in('portador', filterPortadores);
+        const { data, error } = await q;
+        if (error) throw error;
+        (data || []).forEach(c => {
+          // Critério contábil preservado: quitado (saldo ~0) com pagamento no mês
+          if ((c.valor_aberto ?? 1) <= 0.005) total += c.valor_pago || 0;
+        });
+        if (!data || data.length < PAGE) break;
+      }
+      return total;
     },
     staleTime: 60_000,
   });
 
-  // Query para TABELA - via API /query
-  // Quando há filtros não suportados pelo /query (multi-empresa, departamento, portador, busca por nome),
-  // buscamos amplo, filtramos client-side, e paginamos client-side.
-  const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
+  // Dataset completo — usado APENAS pela aba Classificação IA (lista/classifica títulos individualmente).
+  // Gateado pela aba ativa: não pesa o carregamento inicial da página.
+  const { data: contasDashboard, isLoading: isLoadingIA } = useQuery({
+    queryKey: ['contas-pagar-ia', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento],
+    enabled: activeTab === 'classificacao',
     queryFn: async () => {
       const range = getDateRange(true);
+      // Filtros agora suportados server-side pelo /query (Fase A): sem pós-filtro client além do dia de pagamento
       const params: Record<string, any> = { ...range };
-      if (filterStatus !== 'all') params.status = filterStatus;
-      if (filterEmpresas.length === 1) params.empresa_id = String(filterEmpresas[0]);
-
-      const needsClientFilter =
-        !!searchFornecedor ||
-        filterEmpresas.length > 1 ||
-        filterDepartamento !== 'all' ||
-        filterPortadores.length > 0 ||
-        !!filterDiaPagamento ||
-        filterConta !== 'all';
-
-      if (!needsClientFilter) {
-        // Server-side pagination + sort
-        const ascending = sortDirection === 'asc';
-        const offset = (currentPage - 1) * pageSize;
-        const res = await callApi("contas-pagar-api", {
-          path: "/query",
-          ...params,
-          limit: pageSize,
-          offset,
-          order_by: sortColumn,
-          order_dir: ascending ? 'asc' : 'desc',
-        });
-        return { data: (res?.data || []) as ContaPagar[], count: res?.pagination?.total || 0 };
-      }
-
-      // Client-side filtering path
+      if (filterEmpresas.length > 0) params.empresa_ids = filterEmpresas.join(',');
+      if (filterDepartamento !== 'all') params.departamento_id = filterDepartamento;
+      if (filterPortadores.length > 0) params.portadores = filterPortadores.join(',');
       const all = await fetchAllViaApi(params);
-      let filtered = applyClientFilters(all);
-      if (searchFornecedor) {
-        const term = searchFornecedor.toLowerCase();
-        filtered = filtered.filter(r => (r.fornecedor_nome || '').toLowerCase().includes(term));
-      }
-      // Sort
-      filtered.sort((a: any, b: any) => {
-        const av = a[sortColumn]; const bv = b[sortColumn];
-        if (av == null) return 1; if (bv == null) return -1;
-        if (av < bv) return sortDirection === 'asc' ? -1 : 1;
-        if (av > bv) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-      const count = filtered.length;
-      const start = (currentPage - 1) * pageSize;
-      return { data: filtered.slice(start, start + pageSize) as ContaPagar[], count };
+      return filterDiaPagamento ? all.filter(r => r.data_pagamento === filterDiaPagamento) : all;
     }
   });
 
-
-  // Dados para compatibilidade (usado em KPIs, exports, etc.)
+  // Dados para compatibilidade (aba Classificação IA)
   const contasBase = contasDashboard;
 
   // Query separada para lista de portadores únicos - SEM filtro de portador para evitar ciclo
@@ -468,60 +393,43 @@ export default function ContasAPagar() {
     return list;
   }, [contasBase, filterStatus, searchFornecedor]);
 
-  const isLoading = isLoadingDashboard || isLoadingTable;
+  const isLoading = isLoadingIA;
 
-  // Dados paginados da tabela
-  const sortedAndPaginatedData = useMemo(() => {
-    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0 };
-    
-    const totalItems = contasTable.count;
-    const totalPages = Math.ceil(totalItems / pageSize);
-    
-    return { data: contasTable.data, totalPages, totalItems };
-  }, [contasTable, pageSize]);
+  // KPIs do topo — derivados dos agregados do servidor (mesma fonte da faixa oficial: zero divergência)
+  const kpis = useMemo(() => ({
+    totalAPagar: cpHeadline?.total_aberto ?? 0,
+    vencendoHoje: cpHeadline?.vence_hoje?.valor ?? 0,
+    vencidas: cpHeadline?.vencido_total?.valor ?? 0,
+    pagasNoMes: pagasMesTotal,
+  }), [cpHeadline, pagasMesTotal]);
 
-  // Calcular KPIs com status do banco como fonte da verdade
-  const kpis = useMemo(() => {
-    if (!contas) return { totalAPagar: 0, vencendoHoje: 0, vencidas: 0, pagasNoMes: 0 };
-    
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const hojeStr = format(hoje, 'yyyy-MM-dd');
-    const hojeKey = format(hoje, 'yyyy-MM');
-    
-    return {
-      totalAPagar: contas.filter(c => {
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
-        return ['pendente', 'vencido', 'parcial'].includes(statusCalc);
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+  // Empresas para o filtro — cadastro oficial (não depende mais de dataset carregado)
+  const { data: empresas = [] } = useQuery({
+    queryKey: ['empresas-filtro-cp'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return (data || []) as { id: number; nome: string }[];
+    },
+    staleTime: 10 * 60_000,
+  });
 
-      vencendoHoje: contas.filter(c => {
-        const vencKey = c.data_vencimento ? c.data_vencimento.substring(0, 10) : '';
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
-        return vencKey === hojeStr && statusCalc !== 'pago';
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-
-      vencidas: contas.filter(c => {
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
-        return statusCalc === 'vencido';
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-
-      pagasNoMes: contas.filter(c => {
-        // Critério contábil: saldo zerado (quitado) + data_pagamento no mês corrente.
-        // Não confiamos em status='pago' textual do ERP — ver useFinancialStatus.
-        if ((c.valor_aberto ?? 1) > 0.005) return false;
-        if (!c.data_pagamento) return false;
-        return c.data_pagamento.substring(0, 7) === hojeKey;
-      }).reduce((sum, c) => sum + (c.valor_pago || 0), 0)
-    };
-  }, [contas]);
-
-  // Empresas únicas para filtro (somente filtros globais: ano/mês/empresa/departamento)
-  const empresas = Array.from(new Set(contasBase?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
-    .reduce((acc, curr) => {
-      if (!acc.find(e => e.id === curr.id)) acc.push(curr);
-      return acc;
-    }, [] as { id: number; nome: string }[]);
+  // Centros de custo para o filtro
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ['centros-custo-filtro-cp'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('centros_custo')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return (data || []) as { id: string; nome: string }[];
+    },
+    staleTime: 10 * 60_000,
+  });
 
   // Query orçamentos
   const { data: budgets, isLoading: isLoadingBudgets, refetch: refetchBudgets } = useQuery({
@@ -557,144 +465,13 @@ export default function ContasAPagar() {
 
   // Função para invalidar todas as queries de contas a pagar
   const invalidateContasQueries = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
-    queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-headline'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-kpis-avancados'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-pagas-mes'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-ia'] });
+    queryClient.invalidateQueries({ queryKey: ['cp-calendario-mes'] });
+    queryClient.invalidateQueries({ queryKey: ['cp-tab-contas'] });
   }, [queryClient]);
-
-  // Funções de ordenação
-  const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-    setCurrentPage(1); // Reset para primeira página ao ordenar
-  };
-
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
-    return sortDirection === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" /> 
-      : <ArrowDown className="h-4 w-4 ml-1" />;
-  };
-
-  // Funções de seleção
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(new Set(sortedAndPaginatedData.data.map(c => c.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    const newSelected = new Set(selectedIds);
-    if (checked) {
-      newSelected.add(id);
-    } else {
-      newSelected.delete(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const isAllSelected = sortedAndPaginatedData.data.length > 0 && 
-    sortedAndPaginatedData.data.every(c => selectedIds.has(c.id));
-  const isSomeSelected = sortedAndPaginatedData.data.some(c => selectedIds.has(c.id)) && !isAllSelected;
-
-  // Ações em lote
-  const handleBatchExport = async () => {
-    const selectedContas = contas?.filter(c => selectedIds.has(c.id));
-    if (!selectedContas || selectedContas.length === 0) {
-      toast.error("Selecione ao menos uma conta para exportar");
-      return;
-    }
-
-    const dataToExport = selectedContas.map(c => ({
-      empresa: c.empresa_nome,
-      documento: `${c.numero_documento}/${c.parcela}`,
-      fornecedor: c.fornecedor_nome,
-      categoria: c.categoria_nome,
-      emissao: formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
-      vencimento: formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
-      valor_original: c.valor_original,
-      valor_aberto: c.valor_aberto,
-      valor_pago: c.valor_pago,
-      status: calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago),
-      departamento: c.departamento_nome || '',
-      plano_contas: c.plano_contas_nome || ''
-    }));
-
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'BiMaster';
-    const worksheet = workbook.addWorksheet('Contas Selecionadas');
-    worksheet.columns = [
-      { header: 'Empresa', key: 'empresa', width: 20 },
-      { header: 'Documento', key: 'documento', width: 15 },
-      { header: 'Fornecedor', key: 'fornecedor', width: 30 },
-      { header: 'Categoria', key: 'categoria', width: 20 },
-      { header: 'Emissão', key: 'emissao', width: 12 },
-      { header: 'Vencimento', key: 'vencimento', width: 12 },
-      { header: 'Valor Original', key: 'valor_original', width: 15 },
-      { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
-      { header: 'Valor Pago', key: 'valor_pago', width: 15 },
-      { header: 'Status (calculado)', key: 'status', width: 18 },
-      { header: 'Departamento', key: 'departamento', width: 20 },
-      { header: 'Plano de Contas', key: 'plano_contas', width: 25 },
-    ];
-    dataToExport.forEach(row => worksheet.addRow(row));
-    const headerRow = worksheet.getRow(1);
-    headerRow.font = { bold: true };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `contas-selecionadas-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-    toast.success(`${selectedContas.length} contas exportadas!`);
-    setSelectedIds(new Set());
-  };
-
-  const handleBatchUpdateDepartamento = async () => {
-    if (!batchDepartamento) {
-      toast.error("Selecione um departamento");
-      return;
-    }
-
-    if (selectedIds.size === 0) {
-      toast.error("Selecione ao menos uma conta");
-      return;
-    }
-
-    try {
-      const dept = departamentos?.find(d => d.id === batchDepartamento);
-      
-      const { error } = await supabase
-        .from('contas_pagar')
-        .update({ 
-          departamento_id: batchDepartamento,
-          departamento_nome: dept?.nome || null 
-        })
-        .in('id', Array.from(selectedIds));
-
-      if (error) throw error;
-
-      toast.success(`${selectedIds.size} contas atualizadas!`);
-      setSelectedIds(new Set());
-      setBatchDepartamento("");
-      invalidateContasQueries();
-    } catch (error) {
-      logger.error('Erro ao atualizar em lote:', error);
-      toast.error('Erro ao atualizar contas');
-    }
-  };
-
-  const handleBatchClassificar = () => {
-    if (selectedIds.size === 0) {
-      toast.error("Selecione ao menos uma conta");
-      return;
-    }
-    setClassificarIAOpen(true);
-  };
 
   // Funções de ordenação IA tab
   const handleSortIA = (column: SortColumnIA) => {
@@ -793,14 +570,27 @@ export default function ContasAPagar() {
     }
   };
 
-  // Exportar para Excel (todas)
+  // Exportar para Excel (todas) — busca sob demanda no servidor com os filtros ativos
   const handleExport = async () => {
-    if (!contas || contas.length === 0) {
+    toast.info("Preparando exportação...");
+    const range = getDateRange(true);
+    const params: Record<string, any> = { ...range };
+    if (filterEmpresas.length > 0) params.empresa_ids = filterEmpresas.join(',');
+    if (filterDepartamento !== 'all') params.departamento_id = filterDepartamento;
+    if (filterPortadores.length > 0) params.portadores = filterPortadores.join(',');
+    if (filterNatureza !== 'all') params.natureza_lancamento = filterNatureza;
+    if (filterCentroCusto !== 'all') params.centro_custo_id = filterCentroCusto;
+    if (filterPlanoContas !== 'all') params.plano_contas_id = filterPlanoContas;
+    if (filterStatus !== 'all') params.status = filterStatus;
+    if (searchFornecedor) params.search = searchFornecedor;
+    let rows = await fetchAllViaApi(params);
+    if (filterDiaPagamento) rows = rows.filter(r => r.data_pagamento === filterDiaPagamento);
+    if (!rows || rows.length === 0) {
       toast.error("Não há dados para exportar");
       return;
     }
 
-    const dataToExport = contas.map(c => ({
+    const dataToExport = rows.map(c => ({
       empresa: c.empresa_nome,
       documento: `${c.numero_documento}/${c.parcela}`,
       fornecedor: c.fornecedor_nome,
@@ -842,24 +632,6 @@ export default function ContasAPagar() {
     toast.success("Exportação concluída!");
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-      pago: { variant: "default", icon: CheckCircle },
-      parcial: { variant: "secondary", icon: Clock },
-      vencido: { variant: "destructive", icon: AlertCircle },
-      pendente: { variant: "outline", icon: Clock }
-    };
-
-    const config = variants[status] || variants.pendente;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {status}
-      </Badge>
-    );
-  };
 
   const handleOpenApproval = (budget: any) => {
     setSelectedBudget(budget);
@@ -917,7 +689,7 @@ export default function ContasAPagar() {
   const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
     setter(value);
     setCurrentPage(1);
-    setSelectedIds(new Set());
+    setSelectedIdsIA(new Set());
   };
 
   return (
@@ -1212,6 +984,40 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
+                  <label htmlFor="filter-centro-custo" className="text-sm font-medium mb-2 block">Centro de Custo</label>
+                  <Select value={filterCentroCusto} onValueChange={handleFilterChange(setFilterCentroCusto)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {centrosCusto.map(cc => (
+                        <SelectItem key={cc.id} value={cc.id}>
+                          {cc.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor="filter-plano-contas" className="text-sm font-medium mb-2 block">Plano de Contas</label>
+                  <Select value={filterPlanoContas} onValueChange={handleFilterChange(setFilterPlanoContas)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {planosContas?.map(pc => (
+                        <SelectItem key={pc.id} value={pc.id}>
+                          {pc.code} — {pc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
                   <label htmlFor="filter-dia-vencimento" className="text-sm font-medium mb-2 block">Dia Vencimento</label>
                   <Input 
                     id="filter-dia-vencimento"
@@ -1252,6 +1058,9 @@ export default function ContasAPagar() {
                     setFilterDiaPagamento('');
                     setSearchFornecedor('');
                     setFilterStatus('all');
+                    setFilterNatureza('all');
+                    setFilterCentroCusto('all');
+                    setFilterPlanoContas('all');
                     setCurrentPage(1);
                   }}
                   className="gap-2"
@@ -1334,7 +1143,7 @@ export default function ContasAPagar() {
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="dashboard" className="space-y-6" data-tour="contas-pagar-tabs">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" data-tour="contas-pagar-tabs">
           <TabsList>
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
@@ -1375,14 +1184,18 @@ export default function ContasAPagar() {
             </Link>
           </TabsList>
 
-          {/* Aba Dashboard Analítico */}
+          {/* Aba Dashboard Analítico — 100% agregados do servidor (mesma fonte da faixa oficial) */}
           <TabsContent value="dashboard" className="space-y-6" data-tour="contas-pagar-dashboard">
-            <DashboardContasPagar contas={contas} isLoading={isLoading} />
+            <DashboardContasPagar dashboard={cpHeadline} kpis={cpKpis} isLoading={isLoadingHeadline || isLoadingKpisAv} />
           </TabsContent>
 
-          {/* Aba Calendário de Vencimentos */}
+          {/* Aba Calendário de Vencimentos — busca só o mês visível (mantém drill-down por título) */}
           <TabsContent value="calendario" className="space-y-6">
-            <CalendarioVencimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
+            <CalendarioVencimentos
+              filterEmpresas={filterEmpresas}
+              filterDepartamento={filterDepartamento}
+              filterPortadores={filterPortadores}
+            />
           </TabsContent>
 
           {/* Aba Ajuste para o DRE */}
@@ -1407,6 +1220,8 @@ export default function ContasAPagar() {
               filterDiaPagamento={filterDiaPagamento}
               filterConta={filterConta}
               filterNatureza={filterNatureza}
+              filterCentroCusto={filterCentroCusto}
+              filterPlanoContas={filterPlanoContas}
             />
           </TabsContent>
 
@@ -1892,7 +1707,6 @@ export default function ContasAPagar() {
           onComplete={() => {
             // Invalida todas as queries de contas a pagar para garantir atualização
             invalidateContasQueries();
-            setSelectedIds(new Set());
             setSelectedIdsIA(new Set());
             toast.success("Classificação concluída! Atualizando lista...");
           }}
