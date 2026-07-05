@@ -7,10 +7,33 @@ import {
   ABAS_STATUS,
   SEVERIDADE_ORDEM,
   type AlertaAba,
+  type AlertaSeveridade,
   type AlertaStatus,
   type DespesaAlerta,
   type DeteccaoResultado,
 } from "@/types/financeiro/torre-alertas";
+
+/** Evento imutável da trilha de transições (public.despesa_alertas_eventos). */
+export interface DespesaAlertaEvento {
+  id: string;
+  alerta_id: string;
+  de_status: AlertaStatus | null;
+  para_status: AlertaStatus | null;
+  usuario_id: string | null;
+  nota: string | null;
+  created_at: string;
+}
+
+/** Filtros da tela central de alertas. */
+export interface AlertaFiltrosCentral {
+  severidades: AlertaSeveridade[];
+  statuses: AlertaStatus[];
+  regras: string[]; // ex: ["R01", "R03"]
+  empresaIds: number[];
+  competenciaDe: string | null; // YYYY-MM-DD
+  competenciaAte: string | null;
+  busca: string; // fornecedor / titulo / descricao
+}
 
 const STALE = 30_000;
 
