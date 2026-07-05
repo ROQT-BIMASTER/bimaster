@@ -338,10 +338,14 @@ export function ClassificarContasPagarDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            Classificação Inteligente com IA
+            {forceReclassifyAll
+              ? "Reclassificação de TODA a base (com Centro de Custo)"
+              : "Classificação Inteligente com IA"}
           </DialogTitle>
           <DialogDescription>
-            A IA analisa cada conta e sugere departamento + plano de contas apropriado
+            {forceReclassifyAll
+              ? "Reprocessa todas as contas — inclusive as já classificadas manualmente — usando o Centro de Custo como âncora principal para o Departamento e o Plano de Contas."
+              : "A IA analisa cada conta e sugere departamento + plano de contas apropriado."}
           </DialogDescription>
         </DialogHeader>
 
@@ -350,8 +354,9 @@ export function ClassificarContasPagarDialog({
             <div className="text-center py-8">
               <Brain className="h-12 w-12 mx-auto mb-4 text-primary/60" />
               <p className="text-sm text-muted-foreground mb-4">
-                Classificação automática de TODAS as contas a pagar usando Inteligência Artificial.
-                O sistema aprende com cada classificação para melhorar a precisão.
+                {forceReclassifyAll
+                  ? "Esta operação irá reclassificar TODAS as contas a pagar (inclusive as corrigidas manualmente). Use quando o novo Centro de Custo do ERP precisar ser propagado."
+                  : "Classificação automática de TODAS as contas a pagar usando Inteligência Artificial. O sistema aprende com cada classificação para melhorar a precisão."}
               </p>
               <div className="flex gap-2 justify-center">
                 <Badge variant="outline" className="gap-1">
