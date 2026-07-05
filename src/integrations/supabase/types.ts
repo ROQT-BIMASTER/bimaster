@@ -55246,6 +55246,20 @@ export type Database = {
         }
         Returns: string
       }
+      ap_apply_reclassification_group: {
+        Args: {
+          p_confidence: number
+          p_departamento_id: string
+          p_departamento_nome: string
+          p_job_group_id: string
+          p_justification: string
+          p_plano_contas_codigo: string
+          p_plano_contas_id: string
+          p_plano_contas_nome: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       ap_claim_reclassification_groups: {
         Args: { p_job_id: string; p_limit?: number }
         Returns: {
