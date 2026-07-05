@@ -42,6 +42,15 @@ const items = [
     iconColor: "text-rose-600 dark:text-rose-400",
   },
   {
+    to: "/dashboard/fornecedor/vendas-result",
+    title: "Análise de Vendas (Result)",
+    desc: "Panorama executivo das vendas faturadas do fornecedor Result (Ruby_SP)",
+    icon: BarChart3,
+    accent: "border-l-fuchsia-500",
+    iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40",
+    iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
+  },
+  {
     to: "/dashboard/fornecedor/depara-ean",
     title: "De-Para EAN",
     desc: "Mapeamento de EAN do fornecedor ao catálogo master",
