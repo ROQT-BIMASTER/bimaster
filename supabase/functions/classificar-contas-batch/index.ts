@@ -8,6 +8,9 @@ const GroupSchema = z.object({
   categoria_nome: z.string().max(255),
   fornecedor_nome: z.string().max(255).nullable().optional(),
   tipo_documento: z.string().max(64).nullable().optional(),
+  centro_custo_id: z.string().uuid().nullable().optional(),
+  centro_custo_codigo: z.string().max(64).nullable().optional(),
+  centro_custo_nome: z.string().max(255).nullable().optional(),
   count: z.number().int().nonnegative().optional(),
 }).strict();
 
@@ -20,6 +23,9 @@ interface GroupToClassify {
   categoria_nome: string;
   fornecedor_nome: string | null;
   tipo_documento: string | null;
+  centro_custo_id: string | null;
+  centro_custo_codigo: string | null;
+  centro_custo_nome: string | null;
   count: number;
 }
 
