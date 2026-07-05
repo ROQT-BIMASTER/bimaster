@@ -256,6 +256,7 @@ const PlanoContas = lazyWithRetry(() => import("./pages/PlanoContas"));
 const Financeiro = lazyWithRetry(() => import("./pages/Financeiro"));
 const VisaoDepartamentos = lazyWithRetry(() => import("./pages/VisaoDepartamentos"));
 const TorreDespesas = lazyWithRetry(() => import("./pages/financeiro/TorreDespesas"));
+const TorreAlertasCentral = lazyWithRetry(() => import("./pages/financeiro/TorreAlertasCentral"));
 const DREAnalitico = lazyWithRetry(() => import("./pages/DREAnalitico"));
 const ClassificarTodoBanco = lazyWithRetry(() => import("./pages/ClassificarTodoBanco"));
 const ContasAReceber = lazyWithRetry(() => import("./pages/ContasAReceber"));
