@@ -1273,10 +1273,28 @@ export default function ContasAPagar() {
                       Use IA para classificar automaticamente contas sem departamento ou plano de contas
                     </p>
                   </div>
-                  <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
-                    <Bot className="h-4 w-4" />
-                    Classificar Pendentes
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const ok = window.confirm(
+                            "Reclassificar TODA a base histórica (inclusive contas classificadas manualmente) usando o Centro de Custo como âncora?\n\nEsta operação pode levar vários minutos e sobrescreve os valores atuais de Departamento e Plano de Contas."
+                          );
+                          if (ok) setReclassificarTudoOpen(true);
+                        }}
+                        className="gap-2"
+                        title="Reclassifica todas as contas usando o Centro de Custo como referência principal"
+                      >
+                        <Bot className="h-4 w-4" />
+                        Reclassificar TODA a base
+                      </Button>
+                    )}
+                    <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
+                      <Bot className="h-4 w-4" />
+                      Classificar Pendentes
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
