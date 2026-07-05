@@ -55946,20 +55946,24 @@ export type Database = {
       }
       fn_cp_dashboard: {
         Args: {
+          p_centro_custo_id?: string
           p_data_ate?: string
           p_data_de?: string
           p_departamento?: string
           p_empresa_ids?: number[]
+          p_plano_contas_id?: string
           p_portadores?: string[]
         }
         Returns: Json
       }
       fn_cp_kpis_avancados: {
         Args: {
+          p_centro_custo_id?: string
           p_data_ate?: string
           p_data_de?: string
           p_departamento?: string
           p_empresa_ids?: number[]
+          p_plano_contas_id?: string
           p_portadores?: string[]
         }
         Returns: Json
