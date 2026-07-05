@@ -259,38 +259,9 @@ export default function ContasAPagar() {
     staleTime: 60_000,
   });
 
-  // Pagas no mês corrente (card "Pagas no Mês") — busca leve de 1 coluna, só pagamentos do mês.
-  const { data: pagasMesTotal = 0 } = useQuery({
-    queryKey: ['contas-pagar-pagas-mes', filterEmpresasKey, filterDepartamento, filterPortadoresKey],
-    queryFn: async () => {
-      const hoje = new Date();
-      const inicio = format(startOfMonth(hoje), 'yyyy-MM-dd');
-      const fim = format(endOfMonth(hoje), 'yyyy-MM-dd');
-      let total = 0;
-      const PAGE = 1000;
-      for (let pageIdx = 0; pageIdx < 10; pageIdx++) {
-        let q = supabase
-          .from('contas_pagar')
-          .select('valor_pago, valor_aberto')
-          .gte('data_pagamento', inicio)
-          .lte('data_pagamento', fim)
-          .neq('status', 'cancelado')
-          .range(pageIdx * PAGE, pageIdx * PAGE + PAGE - 1);
-        if (filterEmpresas.length > 0) q = q.in('empresa_id', filterEmpresas);
-        if (filterDepartamento !== 'all') q = q.eq('departamento_id', filterDepartamento);
-        if (filterPortadores.length > 0) q = q.in('portador', filterPortadores);
-        const { data, error } = await q;
-        if (error) throw error;
-        (data || []).forEach(c => {
-          // Critério contábil preservado: quitado (saldo ~0) com pagamento no mês
-          if ((c.valor_aberto ?? 1) <= 0.005) total += c.valor_pago || 0;
-        });
-        if (!data || data.length < PAGE) break;
-      }
-      return total;
-    },
-    staleTime: 60_000,
-  });
+  // "Pagas no Mês": fonte única = fn_cp_dashboard v2 (campo pago_mes_atual).
+  // Sem varredura client-side — mesma query dos demais cards/gráficos.
+  const pagasMesTotal = cpHeadline?.pago_mes_atual ?? 0;
 
   // Dataset completo — usado APENAS pela aba Classificação IA (lista/classifica títulos individualmente).
   // Gateado pela aba ativa: não pesa o carregamento inicial da página.
