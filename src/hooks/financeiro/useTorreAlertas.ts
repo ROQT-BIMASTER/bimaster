@@ -132,3 +132,58 @@ export function useReprocessarDeteccao() {
     },
   });
 }
+
+/** Lista central com filtros combinados (paginado no cliente até 500). */
+export function useAlertasCentral(f: AlertaFiltrosCentral) {
+  return useQuery({
+    queryKey: ["torre-alertas-central", f],
+    queryFn: async () => {
+      let q = tbl().select("*").order("primeiro_detectado_em", { ascending: false }).limit(500);
+      if (f.severidades.length) q = q.in("severidade", f.severidades as never);
+      if (f.statuses.length) q = q.in("status", f.statuses as never);
+      if (f.empresaIds.length) q = q.in("empresa_id", f.empresaIds as never);
+      if (f.competenciaDe) q = q.gte("competencia", f.competenciaDe);
+      if (f.competenciaAte) q = q.lte("competencia", f.competenciaAte);
+      const { data, error } = await q;
+      if (error) throw error;
+      let rows = (data ?? []) as unknown as DespesaAlerta[];
+      if (f.regras.length) {
+        rows = rows.filter((r) => f.regras.includes(r.regra_codigo.slice(0, 3)));
+      }
+      const t = f.busca.trim().toLowerCase();
+      if (t) {
+        rows = rows.filter(
+          (r) =>
+            r.titulo.toLowerCase().includes(t) ||
+            (r.descricao ?? "").toLowerCase().includes(t) ||
+            (r.fornecedor_nome ?? "").toLowerCase().includes(t) ||
+            (r.fornecedor_codigo ?? "").toLowerCase().includes(t),
+        );
+      }
+      return rows.sort(
+        (a, b) =>
+          (SEVERIDADE_ORDEM[b.severidade] ?? 0) - (SEVERIDADE_ORDEM[a.severidade] ?? 0) ||
+          (b.valor_impacto ?? 0) - (a.valor_impacto ?? 0),
+      );
+    },
+    staleTime: STALE,
+  });
+}
+
+/** Trilha imutável de transições do alerta (public.despesa_alertas_eventos). */
+export function useAlertaHistorico(alertaId: string | null) {
+  return useQuery({
+    queryKey: ["torre-alertas-eventos", alertaId],
+    enabled: !!alertaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("despesa_alertas_eventos" as never)
+        .select("*")
+        .eq("alerta_id", alertaId as string)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as DespesaAlertaEvento[];
+    },
+    staleTime: 10_000,
+  });
+}
