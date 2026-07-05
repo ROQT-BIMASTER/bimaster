@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users,
-  BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
-} from "lucide-react";
-import { format, parse, subMonths } from "date-fns";
+import { Users, BarChart3, PieChart as PieChartIcon } from "lucide-react";
+import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
