@@ -92,6 +92,7 @@ export default function ContasAPagar() {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [budgetFilter, setBudgetFilter] = useState<string>("all");
   const [classificarIAOpen, setClassificarIAOpen] = useState(false);
+  const [reclassificarTudoOpen, setReclassificarTudoOpen] = useState(false);
   const [editarClassificacaoOpen, setEditarClassificacaoOpen] = useState(false);
   const [selectedContaClassificacao, setSelectedContaClassificacao] = useState<ContaPagar | null>(null);
   
