@@ -56312,6 +56312,42 @@ export type Database = {
             Returns: string
           }
         | { Args: { payload: Json }; Returns: Json }
+      fn_despesas_departamentos: {
+        Args: {
+          p_conf_minima?: number
+          p_empresa_ids?: number[]
+          p_incluir_sem_depto?: boolean
+          p_mes_ref?: string
+          p_meses?: number
+          p_natureza?: string
+        }
+        Returns: Json
+      }
+      fn_despesas_drill: {
+        Args: {
+          p_departamento?: string
+          p_empresa_ids?: number[]
+          p_fornecedor_codigo?: string
+          p_limit?: number
+          p_mes: string
+          p_natureza?: string
+          p_nivel: string
+          p_offset?: number
+          p_plano_contas_id?: string
+          p_sem_depto?: boolean
+        }
+        Returns: Json
+      }
+      fn_despesas_variacoes: {
+        Args: {
+          p_empresa_ids?: number[]
+          p_limit?: number
+          p_mes?: string
+          p_min_valor?: number
+          p_natureza?: string
+        }
+        Returns: Json
+      }
       fn_enfileirar_erp:
         | {
             Args: { p_empresa_id: number; p_payload: Json; p_tipo: string }
