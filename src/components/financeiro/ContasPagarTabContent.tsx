@@ -43,6 +43,8 @@ interface Props {
   filterDiaPagamento?: string;
   filterConta?: string;
   filterNatureza?: "all" | "provisionado" | "lancado";
+  filterCentroCusto?: string;
+  filterPlanoContas?: string;
 }
 
 interface FormData {
@@ -95,7 +97,7 @@ function isOverdue(dt: string | null) {
   return new Date(dt + "T00:00:00") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00");
 }
 
-export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all", filterNatureza = "all" }: Props) {
+export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all", filterNatureza = "all", filterCentroCusto = "all", filterPlanoContas = "all" }: Props) {
   const qc = useQueryClient();
   const nav = useNavigate();
 
@@ -119,7 +121,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   // ----- Queries -----
   const { data: contasResult, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page, filterDiaVencimento, filterDiaPagamento, filterConta, filterNatureza],
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page, filterDiaVencimento, filterDiaPagamento, filterConta, filterNatureza, filterCentroCusto, filterPlanoContas],
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
@@ -154,6 +156,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (filterPortadores.length) q = q.in("portador", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (filterNatureza !== "all") q = q.eq("natureza_lancamento", filterNatureza);
+      if (filterCentroCusto !== "all") q = q.eq("centro_custo_id", filterCentroCusto);
+      if (filterPlanoContas !== "all") q = q.eq("plano_contas_id", filterPlanoContas);
       if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
       if (erpFilter === "pendente") q = q.eq("importado_api", false);
       if (search) {

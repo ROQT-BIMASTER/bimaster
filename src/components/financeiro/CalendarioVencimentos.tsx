@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { callApi } from "@/lib/utils/api-helpers";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,20 +24,51 @@ import { parseLocalDate, getDateKey, formatLocalDate } from "@/utils/dateUtils";
 import { type ContaPagarCalendario, StatusTitulo } from "@/types/financeiro/contas-pagar";
 
 interface CalendarioVencimentosProps {
-  contas: ContaPagarCalendario[] | undefined;
-  isLoading: boolean;
+  filterEmpresas: number[];
+  filterDepartamento: string;
+  filterPortadores: string[];
 }
 
-const formatCurrency = (value: number) => 
+const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function CalendarioVencimentos({ contas, isLoading }: CalendarioVencimentosProps) {
+export function CalendarioVencimentos({ filterEmpresas, filterDepartamento, filterPortadores }: CalendarioVencimentosProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Fase B: busca APENAS o mês visível no servidor (com os filtros globais) — em vez do ano inteiro
+  // no client. Mantém o drill-down por título (dialog do dia) porque continua trabalhando com linhas.
+  const mesKey = format(currentDate, 'yyyy-MM');
+  const { data: contas, isLoading } = useQuery({
+    queryKey: ['cp-calendario-mes', mesKey, filterEmpresas.join(','), filterDepartamento, filterPortadores.join(',')],
+    queryFn: async () => {
+      const params: Record<string, any> = {
+        path: "/query",
+        vencimento_de: format(startOfMonth(currentDate), 'yyyy-MM-dd'),
+        vencimento_ate: format(endOfMonth(currentDate), 'yyyy-MM-dd'),
+        limit: 1000,
+      };
+      if (filterEmpresas.length > 0) params.empresa_ids = filterEmpresas.join(',');
+      if (filterDepartamento !== 'all') params.departamento_id = filterDepartamento;
+      if (filterPortadores.length > 0) params.portadores = filterPortadores.join(',');
+
+      const all: ContaPagarCalendario[] = [];
+      let offset = 0;
+      for (let page = 0; page < 5; page++) {
+        const res = await callApi("contas-pagar-api", { ...params, offset });
+        const batch = (res?.data || []) as ContaPagarCalendario[];
+        all.push(...batch);
+        if (!res?.pagination?.has_more || batch.length < 1000) break;
+        offset += 1000;
+      }
+      return all;
+    },
+    staleTime: 60_000,
+  });
 
   // Filtrar contas por status calculado (vencido é derivado de data_vencimento, não vem do DB)
   const contasFiltradas = useMemo(() => {
