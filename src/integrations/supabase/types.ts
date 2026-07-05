@@ -1239,6 +1239,260 @@ export type Database = {
           },
         ]
       }
+      ap_nfe: {
+        Row: {
+          cancelada: boolean
+          chave_acesso: string
+          created_at: string
+          criado_por: string | null
+          danfe_url: string | null
+          data_emissao: string | null
+          data_entrada: string | null
+          emitente_cnpj: string | null
+          emitente_nome: string | null
+          empresa_id: number | null
+          fornecedor_id: string | null
+          id: string
+          manifestacao: string | null
+          manifestacao_data: string | null
+          modelo: string | null
+          natureza_operacao: string | null
+          nsu: string | null
+          numero: number | null
+          origem: string
+          serie: number | null
+          status_processamento: string
+          status_sefaz: string | null
+          updated_at: string
+          valor_desconto: number | null
+          valor_frete: number | null
+          valor_produtos: number | null
+          valor_total: number | null
+          xml_raw: string | null
+          xml_storage_path: string | null
+        }
+        Insert: {
+          cancelada?: boolean
+          chave_acesso: string
+          created_at?: string
+          criado_por?: string | null
+          danfe_url?: string | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          emitente_cnpj?: string | null
+          emitente_nome?: string | null
+          empresa_id?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          manifestacao?: string | null
+          manifestacao_data?: string | null
+          modelo?: string | null
+          natureza_operacao?: string | null
+          nsu?: string | null
+          numero?: number | null
+          origem?: string
+          serie?: number | null
+          status_processamento?: string
+          status_sefaz?: string | null
+          updated_at?: string
+          valor_desconto?: number | null
+          valor_frete?: number | null
+          valor_produtos?: number | null
+          valor_total?: number | null
+          xml_raw?: string | null
+          xml_storage_path?: string | null
+        }
+        Update: {
+          cancelada?: boolean
+          chave_acesso?: string
+          created_at?: string
+          criado_por?: string | null
+          danfe_url?: string | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          emitente_cnpj?: string | null
+          emitente_nome?: string | null
+          empresa_id?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          manifestacao?: string | null
+          manifestacao_data?: string | null
+          modelo?: string | null
+          natureza_operacao?: string | null
+          nsu?: string | null
+          numero?: number | null
+          origem?: string
+          serie?: number | null
+          status_processamento?: string
+          status_sefaz?: string | null
+          updated_at?: string
+          valor_desconto?: number | null
+          valor_frete?: number | null
+          valor_produtos?: number | null
+          valor_total?: number | null
+          xml_raw?: string | null
+          xml_storage_path?: string | null
+        }
+        Relationships: []
+      }
+      ap_nfe_itens: {
+        Row: {
+          aliq_cbs: number | null
+          aliq_cofins: number | null
+          aliq_ibs_mun: number | null
+          aliq_ibs_uf: number | null
+          aliq_icms: number | null
+          aliq_ipi: number | null
+          aliq_pis: number | null
+          ap_nfe_id: string
+          base_cbs: number | null
+          base_cofins: number | null
+          base_ibs_mun: number | null
+          base_ibs_uf: number | null
+          base_icms: number | null
+          base_icms_st: number | null
+          base_ipi: number | null
+          base_pis: number | null
+          cest: string | null
+          cfop: number | null
+          classe_tributaria: string | null
+          codigo_produto: string | null
+          created_at: string
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_pis: string | null
+          descricao: string | null
+          gera_credito: boolean | null
+          id: string
+          item_seq: number
+          ncm: string | null
+          outros: number | null
+          quantidade: number | null
+          red_cbs: number | null
+          red_ibs_mun: number | null
+          red_ibs_uf: number | null
+          unidade: string | null
+          valor_cbs: number | null
+          valor_cofins: number | null
+          valor_contabil: number | null
+          valor_credito: number | null
+          valor_ibs_mun: number | null
+          valor_ibs_uf: number | null
+          valor_icms: number | null
+          valor_icms_st: number | null
+          valor_ipi: number | null
+          valor_pis: number | null
+          valor_produto: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          aliq_cbs?: number | null
+          aliq_cofins?: number | null
+          aliq_ibs_mun?: number | null
+          aliq_ibs_uf?: number | null
+          aliq_icms?: number | null
+          aliq_ipi?: number | null
+          aliq_pis?: number | null
+          ap_nfe_id: string
+          base_cbs?: number | null
+          base_cofins?: number | null
+          base_ibs_mun?: number | null
+          base_ibs_uf?: number | null
+          base_icms?: number | null
+          base_icms_st?: number | null
+          base_ipi?: number | null
+          base_pis?: number | null
+          cest?: string | null
+          cfop?: number | null
+          classe_tributaria?: string | null
+          codigo_produto?: string | null
+          created_at?: string
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          gera_credito?: boolean | null
+          id?: string
+          item_seq: number
+          ncm?: string | null
+          outros?: number | null
+          quantidade?: number | null
+          red_cbs?: number | null
+          red_ibs_mun?: number | null
+          red_ibs_uf?: number | null
+          unidade?: string | null
+          valor_cbs?: number | null
+          valor_cofins?: number | null
+          valor_contabil?: number | null
+          valor_credito?: number | null
+          valor_ibs_mun?: number | null
+          valor_ibs_uf?: number | null
+          valor_icms?: number | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
+          valor_pis?: number | null
+          valor_produto?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          aliq_cbs?: number | null
+          aliq_cofins?: number | null
+          aliq_ibs_mun?: number | null
+          aliq_ibs_uf?: number | null
+          aliq_icms?: number | null
+          aliq_ipi?: number | null
+          aliq_pis?: number | null
+          ap_nfe_id?: string
+          base_cbs?: number | null
+          base_cofins?: number | null
+          base_ibs_mun?: number | null
+          base_ibs_uf?: number | null
+          base_icms?: number | null
+          base_icms_st?: number | null
+          base_ipi?: number | null
+          base_pis?: number | null
+          cest?: string | null
+          cfop?: number | null
+          classe_tributaria?: string | null
+          codigo_produto?: string | null
+          created_at?: string
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          gera_credito?: boolean | null
+          id?: string
+          item_seq?: number
+          ncm?: string | null
+          outros?: number | null
+          quantidade?: number | null
+          red_cbs?: number | null
+          red_ibs_mun?: number | null
+          red_ibs_uf?: number | null
+          unidade?: string | null
+          valor_cbs?: number | null
+          valor_cofins?: number | null
+          valor_contabil?: number | null
+          valor_credito?: number | null
+          valor_ibs_mun?: number | null
+          valor_ibs_uf?: number | null
+          valor_icms?: number | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
+          valor_pis?: number | null
+          valor_produto?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ap_nfe_itens_ap_nfe_id_fkey"
+            columns: ["ap_nfe_id"]
+            isOneToOne: false
+            referencedRelation: "ap_nfe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ap_reclassification_job_groups: {
         Row: {
           account_count: number
@@ -1388,6 +1642,24 @@ export type Database = {
           total_groups?: number
           updated_at?: string
           use_cost_center_anchor?: boolean
+        }
+        Relationships: []
+      }
+      ap_tipo_titulo_result: {
+        Row: {
+          descricao: string | null
+          tipo_result: string
+          usar_para_origem_huggs: boolean
+        }
+        Insert: {
+          descricao?: string | null
+          tipo_result: string
+          usar_para_origem_huggs?: boolean
+        }
+        Update: {
+          descricao?: string | null
+          tipo_result?: string
+          usar_para_origem_huggs?: boolean
         }
         Relationships: []
       }
