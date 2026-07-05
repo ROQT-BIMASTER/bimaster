@@ -659,7 +659,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
         { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
         { title: "Visão Departamental", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
-        { title: "Torre de Despesas", url: "/dashboard/financeiro/torre-despesas", icon: TowerControl, screenCode: "financeiro_torre_despesas" },
+        { title: "Torre de Despesas", url: "/dashboard/financeiro/torre-despesas", icon: TowerControl, screenCode: "financeiro_torre_despesas", badge: <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">Novo</Badge> },
         { title: "Classificação IA", url: "/dashboard/financeiro/classificar-banco", icon: Brain, screenCode: "financeiro_classificar" },
       ],
     },
