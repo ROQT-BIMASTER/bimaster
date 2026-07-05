@@ -168,8 +168,12 @@ export function ReclassificarContasPagarHistoricoDialog({
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored && !job) {
       refreshStatus(stored);
+      return;
     }
-  }, [open, job, refreshStatus]);
+    if (!stored && !job) {
+      invoke({ action: "latest" }).catch(() => undefined);
+    }
+  }, [open, job, refreshStatus, invoke]);
 
   useEffect(() => {
     if (!job || job.status !== "completed" || completedRef.current === job.id) return;
