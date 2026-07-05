@@ -16092,6 +16092,13 @@ export type Database = {
             foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
             columns: ["rubysp_pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_vendas_rubysp"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedidos_kanban_rubysp"
             referencedColumns: ["rubysp_pedido_id"]
           },
@@ -54123,6 +54130,54 @@ export type Database = {
           },
         ]
       }
+      v_vendas_rubysp: {
+        Row: {
+          cliente_cidade: string | null
+          cliente_cnpj: string | null
+          cliente_id: number | null
+          cliente_nome: string | null
+          cliente_uf: string | null
+          data_venda: string | null
+          empresa_id: number | null
+          etapa: string | null
+          nf_numero: number | null
+          total_venda: number | null
+          venda_id: number | null
+          vendedor_id: number | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          data_venda?: never
+          empresa_id?: number | null
+          etapa?: string | null
+          nf_numero?: number | null
+          total_venda?: number | null
+          venda_id?: number | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          data_venda?: never
+          empresa_id?: number | null
+          etapa?: string | null
+          nf_numero?: number | null
+          total_venda?: number | null
+          venda_id?: number | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
+        }
+        Relationships: []
+      }
       vendas_union: {
         Row: {
           cidade: string | null
@@ -59385,6 +59440,21 @@ export type Database = {
           vendedores: number
         }[]
       }
+      vendas_kpis_rubysp: {
+        Args: {
+          p_ate: string
+          p_de: string
+          p_empresa?: number
+          p_vendedor?: number
+        }
+        Returns: {
+          clientes: number
+          faturamento: number
+          notas: number
+          ticket_medio: number
+          vendedores: number
+        }[]
+      }
       vendas_por_tabela: {
         Args: {
           p_ate: string
@@ -59439,6 +59509,21 @@ export type Database = {
           ticket_medio: number
         }[]
       }
+      vendas_ranking_cliente_rubysp: {
+        Args: {
+          p_ate: string
+          p_de: string
+          p_empresa?: number
+          p_limite?: number
+          p_vendedor?: number
+        }
+        Returns: {
+          cliente_id: number
+          cliente_nome: string
+          faturamento: number
+          notas: number
+        }[]
+      }
       vendas_ranking_coordenador: {
         Args: { p_ate?: string; p_de?: string; p_empresa?: number }
         Returns: {
@@ -59469,6 +59554,16 @@ export type Database = {
           qtd_un: number
           ticket_medio: number
           vendedor_id: string
+          vendedor_nome: string
+        }[]
+      }
+      vendas_ranking_vendedor_rubysp: {
+        Args: { p_ate: string; p_de: string; p_empresa?: number }
+        Returns: {
+          faturamento: number
+          notas: number
+          ticket_medio: number
+          vendedor_id: number
           vendedor_nome: string
         }[]
       }
@@ -59513,6 +59608,19 @@ export type Database = {
           mes: string
           quantidade: number
           valor: number
+        }[]
+      }
+      vendas_serie_mensal_rubysp: {
+        Args: {
+          p_ate: string
+          p_de: string
+          p_empresa?: number
+          p_vendedor?: number
+        }
+        Returns: {
+          faturamento: number
+          mes: string
+          notas: number
         }[]
       }
       vendas_share_tabela_preco: {
@@ -59580,6 +59688,18 @@ export type Database = {
         }
         Returns: {
           chave: number
+          fat_anterior: number
+          fat_atual: number
+          nome: string
+          notas_atual: number
+          novo: boolean
+          variacao: number
+        }[]
+      }
+      vendas_yoy_por_dimensao_rubysp: {
+        Args: { p_ano: number; p_dim: string; p_empresa?: number }
+        Returns: {
+          chave: string
           fat_anterior: number
           fat_atual: number
           nome: string
