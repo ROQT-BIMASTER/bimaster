@@ -3,7 +3,7 @@ import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "pollo-generate-video" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "pollo-generate-video" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
