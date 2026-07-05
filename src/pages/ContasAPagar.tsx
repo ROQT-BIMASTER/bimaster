@@ -259,9 +259,9 @@ export default function ContasAPagar() {
     staleTime: 60_000,
   });
 
-  // "Pagas no Mês": fonte única = fn_cp_dashboard v2 (campo pago_mes_atual).
-  // Sem varredura client-side — mesma query dos demais cards/gráficos.
-  const pagasMesTotal = cpHeadline?.pago_mes_atual ?? 0;
+  // "Pagas no Mês", assim como todos os KPIs do header, sai direto de cpHeadline.pago_mes_atual (fn_cp_dashboard v2).
+
+
 
   // Dataset completo — usado APENAS pela aba Classificação IA (lista/classifica títulos individualmente).
   // Gateado pela aba ativa: não pesa o carregamento inicial da página.
