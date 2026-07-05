@@ -75,6 +75,19 @@ Deno.serve(
           return json({ error: "lint_blocked", findings }, 422, cors);
         }
 
+        // Ownership pre-check: prevent hijacking of another user's report.
+        // Service_role bypasses RLS, so we must verify ownership manually.
+        const { data: existing, error: existErr } = await sb
+          .from("report_definitions")
+          .select("owner_user_id")
+          .eq("report_id", report.report_id)
+          .maybeSingle();
+        if (existErr) return json({ error: existErr.message }, 500, cors);
+        if (existing && existing.owner_user_id && existing.owner_user_id !== ctx?.userId) {
+          return json({ error: "forbidden" }, 403, cors);
+        }
+
+
         const row = {
           report_id: report.report_id,
           title: report.title,
