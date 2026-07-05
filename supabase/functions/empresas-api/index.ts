@@ -1,8 +1,9 @@
 // empresas-api — CRUD completo + Zod + audit log
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateAnyAuth } from "../_shared/auth.ts";
+import { validateAnyAuth, callerHasModuleAccess } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
@@ -269,6 +270,13 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "empres
 
     if (req.method !== "POST") {
       return errorResponse(405, "METHOD_NOT_ALLOWED", "Use POST para esta rota", req, startMs);
+    }
+
+    // Autorização de escrita: mutação de cadastro exige papel financeiro (chamador JWT).
+    // Chamadas por API-key já são escopadas por empresa e passam (source === "api_key").
+    if ((path === "/incluir" || path === "/alterar") &&
+        !(await callerHasModuleAccess(auth.source, auth.userId, "financeiro"))) {
+      return errorResponse(403, "FORBIDDEN", "Acesso negado: módulo financeiro necessário", req, startMs);
     }
 
     const supabase: any = createClient(

@@ -4,7 +4,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { getKeyPreview, logApiAccess } from "../_shared/auth.ts";
+import { getKeyPreview, logApiAccess, callerHasModuleAccess } from "../_shared/auth.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
@@ -123,6 +123,16 @@ async function runRouter(req: Request): Promise<Response> {
 
     const segment = path.split('/').pop() || '';
     const method = req.method;
+
+    // Autorização de escrita: métodos que mutam exigem papel financeiro para chamador JWT.
+    // API-key (máquina) já é escopada por empresa e passa. validateAuthFn popula authSource/authUserId.
+    if (method !== 'GET') {
+      const authed = await validateAuthFn();
+      if (!authed) return apiResponse({ error: 'Autenticação necessária', codigo_status: '1' }, 401, corsHeaders, startTime);
+      if (authSource === 'jwt' && !(await callerHasModuleAccess(authSource, authUserId, 'financeiro'))) {
+        return apiResponse({ error: 'Acesso negado: módulo financeiro necessário', codigo_status: '1' }, 403, corsHeaders, startTime);
+      }
+    }
 
     if (segment === 'status' && method === 'GET') return handleStatus(ctx);
 
