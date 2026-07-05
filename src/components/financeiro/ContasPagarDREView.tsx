@@ -260,36 +260,41 @@ export function ContasPagarDREView({
           const valoresMes: Record<string, number> = {};
           meses.forEach(m => valoresMes[m.key] = 0);
           lancs.forEach(l => {
-            const mes = l.data_vencimento.substring(5, 7);
-            valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
+            const dp = l.data_pagamento || l.data_vencimento;
+            const mes = dp.substring(5, 7);
+            valoresMes[mes] = (valoresMes[mes] || 0) + Number(l.valor_pago || 0);
           });
 
+          const totalForn = lancs.reduce((s, l) => s + Number(l.valor_pago || 0), 0);
           return {
             id: `forn_${codigo}_${nome}`,
             codigo: '',
             nome,
             tipo: 'fornecedor' as const,
             nivel,
-            valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+            valor: totalForn,
             valores_mes: valoresMes,
-            children: lancs.map(l => ({
-              id: l.id,
-              codigo: '',
-              nome: `${l.categoria_nome || 'Lançamento'} - ${new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-              tipo: 'lancamento' as const,
-              nivel: nivel + 1,
-              valor: l.valor_original,
-              valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
-              children: [],
-              lancamentosIds: [l.id],
-              conta: l
-            })),
+            children: lancs.map(l => {
+              const dp = l.data_pagamento || l.data_vencimento;
+              return {
+                id: l.id,
+                codigo: '',
+                nome: `${l.categoria_nome || 'Lançamento'} - pago ${new Date(dp + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+                tipo: 'lancamento' as const,
+                nivel: nivel + 1,
+                valor: Number(l.valor_pago || 0),
+                valores_mes: { [dp.substring(5, 7)]: Number(l.valor_pago || 0) },
+                children: [],
+                lancamentosIds: [l.id],
+                conta: l
+              };
+            }),
             lancamentosIds: lancs.map(l => l.id),
             contaOrigem: {
               id: `forn_${codigo}_${nome}`,
               codigo,
               nome,
-              valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+              valor: totalForn,
               lancamentosIds: lancs.map(l => l.id),
               tipoDre: 'fornecedor' as const
             }
