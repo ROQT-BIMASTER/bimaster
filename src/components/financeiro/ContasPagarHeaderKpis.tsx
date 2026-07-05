@@ -16,15 +16,15 @@ interface Props {
 
 const num = (v: number) => formatCurrency(v ?? 0);
 
-function Kpi({ label, value, tone = "muted" }: { label: string; value: string; tone?: "muted" | "emerald" | "amber" | "destructive" }) {
+function Kpi({ label, value, tone = "muted", hint }: { label: string; value: string; tone?: "muted" | "emerald" | "amber" | "destructive"; hint?: string }) {
   const toneCls =
     tone === "emerald" ? "text-success"
     : tone === "amber" ? "text-amber-600 dark:text-amber-400"
     : tone === "destructive" ? "text-destructive"
     : "text-foreground";
   return (
-    <div className="flex flex-col">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+    <div className="flex flex-col" title={hint}>
+      <span className={cn("text-[10px] font-bold uppercase tracking-wider text-muted-foreground", hint && "cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2")}>{label}</span>
       <span className={cn("text-sm font-semibold tabular-nums", toneCls)}>{value}</span>
     </div>
   );
@@ -81,12 +81,13 @@ export function ContasPagarHeaderKpis({ dashboard, kpis, isLoading, onOpenVencid
         <div className="flex items-center gap-6 rounded-xl border border-border bg-card px-5 py-2.5 shadow-sm">
           <Kpi label="Pagas no Mês" value={num(pagasMes)} tone="emerald" />
           <div className="h-8 w-px bg-border" />
-          <Kpi label="PMP" value={`${pmp} dias${aproximado ? " ≈" : ""}`} />
+          <Kpi label="PMP" value={`${pmp} dias${aproximado ? " ≈" : ""}`} hint="Prazo médio dos pagamentos concluídos em até 180 dias (exclui adiantamentos e títulos muito antigos)." />
           <div className="h-8 w-px bg-border" />
           <Kpi
             label="Pontualidade"
             value={`${pontualidade}%${aproximado ? " ≈" : ""}`}
             tone={pontualidade >= 80 ? "emerald" : pontualidade >= 50 ? "amber" : "destructive"}
+            hint="% dos títulos quitados pagos até o vencimento."
           />
         </div>
       </div>
