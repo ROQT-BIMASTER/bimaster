@@ -866,13 +866,15 @@ export function PaymentReviewDialog({
               <Button
                 variant="default"
                 onClick={() => handleAction('accept')}
-                disabled={isProcessing || !canAccept || !categoriaCodigo || isSavingClassificacao}
+                disabled={isProcessing || !canAccept || !categoriaCodigo || (departamentoObrigatorio && !departamentoId) || isSavingClassificacao}
                 title={
                   !canAccept
                     ? "Confirme todos os documentos antes de aprovar"
                     : !categoriaCodigo
                       ? "Selecione o plano de contas para aceitar"
-                      : undefined
+                      : departamentoObrigatorio && !departamentoId
+                        ? "Selecione o departamento para aceitar (origem não informou)"
+                        : undefined
                 }
               >
                 {isProcessing && action === 'accept' ? (
