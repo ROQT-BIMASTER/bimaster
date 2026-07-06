@@ -850,8 +850,14 @@ export function PaymentReviewDialog({
               <Button
                 variant="default"
                 onClick={() => handleAction('accept')}
-                disabled={isProcessing || !canAccept}
-                title={!canAccept ? "Confirme todos os documentos antes de aprovar" : undefined}
+                disabled={isProcessing || !canAccept || !categoriaCodigo || isSavingClassificacao}
+                title={
+                  !canAccept
+                    ? "Confirme todos os documentos antes de aprovar"
+                    : !categoriaCodigo
+                      ? "Selecione o plano de contas para aceitar"
+                      : undefined
+                }
               >
                 {isProcessing && action === 'accept' ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
