@@ -108,6 +108,47 @@ export function PaymentReviewDialog({
   const editUserInfoRef = useRef<{ id: string; email: string; nome: string } | null>(null);
   const editJustificativaRef = useRef<string>("");
 
+  // Fase 1.C — lookups para o seletor de classificação no aceite.
+  // Leitura direta (padrão do projeto — evita edge que pode 404).
+  const { data: planoContasList = [] } = useQuery({
+    queryKey: ["fpq-plano-contas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .select("id, code, name, permite_lancamento, is_active")
+        .eq("is_active", true)
+        .eq("permite_lancamento", true)
+        .order("code");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 120_000,
+  });
+
+  const { data: departamentosList = [] } = useQuery({
+    queryKey: ["fpq-departamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departamentos")
+        .select("id, nome, ativo")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 120_000,
+  });
+
+  // Sync com o item da fila ao abrir. Se a origem já sugeriu, pré-preenche;
+  // caso contrário, financeiro escolhe do zero.
+  useEffect(() => {
+    if (!item) return;
+    setCategoriaCodigo(item.categoria_codigo || "");
+    setPlanoContasId(item.plano_contas_id || "");
+    setDepartamentoId(item.departamento_id || "");
+  }, [item?.id]);
+
+
   const startEdit = () => {
     if (!item) return;
     setEditForm({
