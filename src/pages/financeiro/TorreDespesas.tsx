@@ -177,6 +177,81 @@ export default function TorreDespesas() {
           </PopoverContent>
         </Popover>
 
+        {/* Centros de custo (multi) — só lista os com lançamento no período */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs gap-1.5 min-w-[180px] justify-between font-normal"
+              disabled={centrosCusto.length === 0}
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <Layers className="h-3.5 w-3.5" />
+                {filtros.centroCustoIds.length === 0
+                  ? centrosCusto.length === 0
+                    ? "Sem centros de custo"
+                    : "Todos os centros"
+                  : filtros.centroCustoIds.length === 1
+                    ? centrosCusto.find((c) => c.id === filtros.centroCustoIds[0])?.nome || "1 centro"
+                    : `${filtros.centroCustoIds.length} centros`}
+              </span>
+              <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[320px] p-0" align="start">
+            <div className="p-2 border-b">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => setFiltros((f) => ({ ...f, centroCustoIds: [] }))}
+              >
+                <CheckCircle
+                  className={`mr-2 h-4 w-4 ${filtros.centroCustoIds.length === 0 ? "opacity-100" : "opacity-0"}`}
+                />
+                Todos os centros
+              </Button>
+            </div>
+            <div className="max-h-[280px] overflow-auto p-2 space-y-1">
+              {centrosCusto.map((cc) => (
+                <div key={cc.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                  <Checkbox
+                    id={`torre-cc-${cc.id}`}
+                    checked={filtros.centroCustoIds.includes(cc.id)}
+                    onCheckedChange={(checked) =>
+                      setFiltros((f) => ({
+                        ...f,
+                        centroCustoIds: checked
+                          ? [...f.centroCustoIds, cc.id]
+                          : f.centroCustoIds.filter((id) => id !== cc.id),
+                      }))
+                    }
+                  />
+                  <label
+                    htmlFor={`torre-cc-${cc.id}`}
+                    className="text-sm cursor-pointer flex-1 flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate">
+                      {cc.codigo ? <span className="text-muted-foreground tabular-nums mr-1.5">{cc.codigo}</span> : null}
+                      {cc.nome}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                      {cc.qtd.toLocaleString("pt-BR")}
+                    </span>
+                  </label>
+                </div>
+              ))}
+              {centrosCusto.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  Nenhum centro de custo com lançamento neste período.
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+
         {/* Natureza */}
         <ToggleGroup
           type="single"
