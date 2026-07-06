@@ -45,10 +45,11 @@ export default function OrcamentoCorporativo() {
   const [periodoSelecionado, setPeriodoSelecionado] = useState<string | undefined>(undefined);
   const [criarOpen, setCriarOpen] = useState(false);
 
-  const periodoAtivo = useMemo(
-    () => periodos?.find((p) => p.id === periodoSelecionado) ?? periodos?.[0],
-    [periodos, periodoSelecionado],
-  );
+  const periodoAtivo = useMemo(() => {
+    if (periodoSelecionado) return periodos?.find((p) => p.id === periodoSelecionado);
+    // preferir período com status='ativo'; senão o mais recente
+    return periodos?.find((p) => p.status === "ativo") ?? periodos?.[0];
+  }, [periodos, periodoSelecionado]);
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
