@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, ChevronsUpDown, CheckCircle, TowerControl } from "lucide-react";
+import { ArrowLeft, Building2, ChevronsUpDown, CheckCircle, TowerControl, Layers } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { TorreSerieChart } from "@/components/financeiro/torre/TorreSerieChart";
 import { TorreDrill } from "@/components/financeiro/torre/TorreDrill";
 import { TorreVariacoes } from "@/components/financeiro/torre/TorreVariacoes";
 import { TorreAlertas } from "@/components/financeiro/torre/TorreAlertas";
-import { useTorreDepartamentos, useTorreVariacoes } from "@/hooks/financeiro/useTorreDespesas";
+import { useTorreDepartamentos, useTorreVariacoes, useTorreCentrosCusto } from "@/hooks/financeiro/useTorreDespesas";
 import type { TorreFiltros, TorreSelecao, TorreNatureza } from "@/types/financeiro/torre-despesas";
 
 interface EmpresaOpc {
@@ -48,6 +48,7 @@ export default function TorreDespesas() {
     natureza: null,
     mesRef: null,
     confMinima: null,
+    centroCustoIds: [],
   });
   const [selecao, setSelecao] = useState<TorreSelecao | null>(null);
 
@@ -64,17 +65,25 @@ export default function TorreDespesas() {
 
   const meses = useMemo(() => ultimosMeses(13), []);
 
+  // Centros de custo com lançamento no período (respeitando empresas selecionadas)
+  const { data: centrosCusto = [] } = useTorreCentrosCusto({
+    mesRef: filtros.mesRef,
+    empresaIds: filtros.empresaIds,
+  });
+
   const departamentos = useTorreDepartamentos({
     mesRef: filtros.mesRef,
     empresaIds: filtros.empresaIds,
     natureza: filtros.natureza,
     confMinima: filtros.confMinima,
+    centroCustoIds: filtros.centroCustoIds,
   });
 
   const variacoes = useTorreVariacoes({
     mes: filtros.mesRef,
     empresaIds: filtros.empresaIds,
     natureza: filtros.natureza,
+    centroCustoIds: filtros.centroCustoIds,
   });
 
   // Ao trocar a janela de mês, a seleção anterior pode cair fora do range → limpa.
@@ -168,6 +177,81 @@ export default function TorreDespesas() {
           </PopoverContent>
         </Popover>
 
+        {/* Centros de custo (multi) — só lista os com lançamento no período */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs gap-1.5 min-w-[180px] justify-between font-normal"
+              disabled={centrosCusto.length === 0}
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <Layers className="h-3.5 w-3.5" />
+                {filtros.centroCustoIds.length === 0
+                  ? centrosCusto.length === 0
+                    ? "Sem centros de custo"
+                    : "Todos os centros"
+                  : filtros.centroCustoIds.length === 1
+                    ? centrosCusto.find((c) => c.id === filtros.centroCustoIds[0])?.nome || "1 centro"
+                    : `${filtros.centroCustoIds.length} centros`}
+              </span>
+              <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[320px] p-0" align="start">
+            <div className="p-2 border-b">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => setFiltros((f) => ({ ...f, centroCustoIds: [] }))}
+              >
+                <CheckCircle
+                  className={`mr-2 h-4 w-4 ${filtros.centroCustoIds.length === 0 ? "opacity-100" : "opacity-0"}`}
+                />
+                Todos os centros
+              </Button>
+            </div>
+            <div className="max-h-[280px] overflow-auto p-2 space-y-1">
+              {centrosCusto.map((cc) => (
+                <div key={cc.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                  <Checkbox
+                    id={`torre-cc-${cc.id}`}
+                    checked={filtros.centroCustoIds.includes(cc.id)}
+                    onCheckedChange={(checked) =>
+                      setFiltros((f) => ({
+                        ...f,
+                        centroCustoIds: checked
+                          ? [...f.centroCustoIds, cc.id]
+                          : f.centroCustoIds.filter((id) => id !== cc.id),
+                      }))
+                    }
+                  />
+                  <label
+                    htmlFor={`torre-cc-${cc.id}`}
+                    className="text-sm cursor-pointer flex-1 flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate">
+                      {cc.codigo ? <span className="text-muted-foreground tabular-nums mr-1.5">{cc.codigo}</span> : null}
+                      {cc.nome}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                      {cc.qtd.toLocaleString("pt-BR")}
+                    </span>
+                  </label>
+                </div>
+              ))}
+              {centrosCusto.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  Nenhum centro de custo com lançamento neste período.
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+
         {/* Natureza */}
         <ToggleGroup
           type="single"
@@ -237,7 +321,7 @@ export default function TorreDespesas() {
       {/* Série com bandas + Drill do que estiver selecionado */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <TorreSerieChart payload={departamentos.data} isLoading={departamentos.isLoading} selecao={selecao} />
-        <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} />
+        <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} centroCustoIds={filtros.centroCustoIds} />
       </div>
 
         {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}

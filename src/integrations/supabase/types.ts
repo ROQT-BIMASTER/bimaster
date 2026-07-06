@@ -56925,6 +56925,7 @@ export type Database = {
       }
       fn_despesas_departamentos: {
         Args: {
+          p_centro_custo_ids?: string[]
           p_conf_minima?: number
           p_empresa_ids?: number[]
           p_incluir_sem_depto?: boolean
@@ -56936,6 +56937,7 @@ export type Database = {
       }
       fn_despesas_drill: {
         Args: {
+          p_centro_custo_ids?: string[]
           p_departamento?: string
           p_empresa_ids?: number[]
           p_fornecedor_codigo?: string
@@ -56951,6 +56953,7 @@ export type Database = {
       }
       fn_despesas_variacoes: {
         Args: {
+          p_centro_custo_ids?: string[]
           p_empresa_ids?: number[]
           p_limit?: number
           p_mes?: string
@@ -57159,6 +57162,10 @@ export type Database = {
             Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
             Returns: Json
           }
+      fn_torre_centros_custo_disponiveis: {
+        Args: { p_empresa_ids?: number[]; p_mes_ref?: string; p_meses?: number }
+        Returns: Json
+      }
       fn_transform_ccusto_rubysp: {
         Args: never
         Returns: {
