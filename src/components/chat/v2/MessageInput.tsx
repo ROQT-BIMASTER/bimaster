@@ -434,6 +434,25 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         >
           <AlertOctagon className="h-4 w-4" />
         </Button>
+        {podeNotaInterna && (
+          <Button
+            size="icon"
+            variant={notaInterna ? "default" : "ghost"}
+            className={cn(
+              "h-9 w-9 shrink-0",
+              notaInterna && "bg-amber-500 hover:bg-amber-600 text-white",
+            )}
+            onClick={() => setNotaInterna((v) => !v)}
+            disabled={uploading || sofiaLoading}
+            title={notaInterna
+              ? "Nota interna ativa — o solicitante não verá esta mensagem"
+              : "Enviar como nota interna (só agentes veem)"}
+            aria-label="Alternar nota interna"
+            aria-pressed={notaInterna}
+          >
+            <Lock className="h-4 w-4" />
+          </Button>
+        )}
         <RespostasRapidasPopover
           conversaId={conversaId}
           onPick={(t) => setTxt(txt ? `${txt}\n${t}` : t)}
