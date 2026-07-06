@@ -408,6 +408,11 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         >
           <AlertOctagon className="h-4 w-4" />
         </Button>
+        <RespostasRapidasPopover
+          conversaId={conversaId}
+          onPick={(t) => setTxt(txt ? `${txt}\n${t}` : t)}
+          onGerenciar={() => navigate("/dashboard/suporte/admin/sla?tab=macros")}
+        />
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
