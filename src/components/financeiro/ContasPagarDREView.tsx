@@ -850,7 +850,96 @@ export function ContasPagarDREView({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Seletor interno de Centro de Custo (interseção com filtro global) */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 text-xs gap-1.5 min-w-[200px] justify-between font-normal"
+                    disabled={centrosCusto.length === 0}
+                  >
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Layers className="h-3.5 w-3.5" />
+                      {internalCentroCustoIds.length === 0
+                        ? centrosCusto.length === 0
+                          ? "Sem centros disponíveis"
+                          : "Centro de Custo"
+                        : internalCentroCustoIds.length === 1
+                          ? centrosCusto.find((c) => c.id === internalCentroCustoIds[0])?.nome || "1 centro"
+                          : `${internalCentroCustoIds.length} centros`}
+                    </span>
+                    {internalCentroCustoIds.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                        {internalCentroCustoIds.length}
+                      </Badge>
+                    )}
+                    <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[340px] p-0" align="end">
+                  <div className="p-2 border-b space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar centro..."
+                        value={centrosSearch}
+                        onChange={(e) => setCentrosSearch(e.target.value)}
+                        className="h-8 pl-7 text-xs"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-8 text-xs"
+                      onClick={() => setInternalCentroCustoIds([])}
+                    >
+                      <CheckCircle
+                        className={`mr-2 h-3.5 w-3.5 ${internalCentroCustoIds.length === 0 ? "opacity-100" : "opacity-0"}`}
+                      />
+                      Todos os centros
+                    </Button>
+                  </div>
+                  <div className="max-h-[280px] overflow-auto p-2 space-y-1">
+                    {centrosCustoFiltrados.map((cc) => (
+                      <div key={cc.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                        <Checkbox
+                          id={`dre-cc-${cc.id}`}
+                          checked={internalCentroCustoIds.includes(cc.id)}
+                          onCheckedChange={(checked) =>
+                            setInternalCentroCustoIds((ids) =>
+                              checked ? [...ids, cc.id] : ids.filter((id) => id !== cc.id)
+                            )
+                          }
+                        />
+                        <label
+                          htmlFor={`dre-cc-${cc.id}`}
+                          className="text-xs cursor-pointer flex-1 flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">
+                            {cc.codigo ? (
+                              <span className="text-muted-foreground tabular-nums mr-1.5">{cc.codigo}</span>
+                            ) : null}
+                            {cc.nome}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                            {cc.qtd.toLocaleString("pt-BR")}
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                    {centrosCustoFiltrados.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-6">
+                        {centrosCusto.length === 0
+                          ? "Nenhum centro de custo com lançamento neste período."
+                          : "Nenhum centro corresponde à busca."}
+                      </p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               <Button variant="outline" size="sm" onClick={expandAll}>
                 <ChevronsDown className="h-4 w-4 mr-1" />
                 Expandir
