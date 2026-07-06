@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat } from "lucide-react";
+import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
@@ -22,11 +22,14 @@ import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
 import { MinhasRotinasHojeWidget } from "@/components/suporte/MinhasRotinasHojeWidget";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
 
 export default function SuporteMeusChamados() {
   const { data: chamados = [], isLoading } = useMeusChamados();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [pareceresOpen, setPareceresOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
 
@@ -144,6 +147,20 @@ export default function SuporteMeusChamados() {
           <Card className="min-h-0 overflow-hidden hidden lg:flex lg:flex-col">
             {selecionado?.conversa_id ? (
               <>
+                <div className="flex items-center justify-between gap-2 p-2 border-b">
+                  <div className="text-xs text-muted-foreground truncate">
+                    {selecionado.protocolo} — {selecionado.titulo}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 h-8"
+                    onClick={() => setPareceresOpen(true)}
+                  >
+                    <FileText className="h-4 w-4" />
+                    Pareceres
+                  </Button>
+                </div>
                 {selecionado.status === "resolvido" && (
                   <div className="p-2.5 border-b">
                     <CsatPrompt ticketId={selecionado.id} />
@@ -166,6 +183,26 @@ export default function SuporteMeusChamados() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={pareceresOpen} onOpenChange={setPareceresOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Pareceres — {selecionado?.protocolo}
+            </DialogTitle>
+          </DialogHeader>
+          {selecionado && (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PareceresTab
+                ticketId={selecionado.id}
+                filaAtualId={selecionado.fila_id}
+                canWrite={selecionado.owner_id === user?.id || selecionado.assignee_id === user?.id}
+                onlyExterno={selecionado.requester_id === user?.id && selecionado.owner_id !== user?.id}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <NovoChamadoDialog
         open={dialogOpen}
