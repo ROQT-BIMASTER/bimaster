@@ -64,6 +64,13 @@ export interface PaymentQueueItem {
   // Multi-filial fields
   empresa_id: number | null;
   empresa_nome: string | null;
+  // Fase 1 — classificação/fiscal propagados da origem, consumidos no acceptPayment.
+  departamento_id: string | null;
+  plano_contas_id: string | null;
+  categoria_codigo: string | null;
+  natureza_lancamento: 'provisionado' | 'lancado' | null;
+  chave_acesso_nfe: string | null;
+  numero_documento_fiscal: string | null;
   // Joined data
   requester_name?: string;
   reviewer_name?: string;
