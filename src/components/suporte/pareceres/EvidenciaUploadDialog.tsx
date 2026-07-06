@@ -25,6 +25,10 @@ import {
   CATEGORIA_LABEL,
   type EvidenciaCategoria,
 } from "@/hooks/suporte/useEvidencias";
+import { useTicketPareceres, useTicketTrilhaDepartamentos } from "@/hooks/suporte/usePareceres";
+import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 const Schema = z
@@ -43,6 +47,8 @@ const Schema = z
   })
   .strict();
 
+const NONE = "__none__";
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -57,16 +63,24 @@ export function EvidenciaUploadDialog({
   parecerId = null,
 }: Props) {
   const upload = useUploadEvidencia();
+  const { data: pareceres = [] } = useTicketPareceres(ticketId);
+  const { data: trilha = [] } = useTicketTrilhaDepartamentos(ticketId);
+  const { data: filas = [] } = useSuporteFilas();
+
   const [file, setFile] = useState<File | null>(null);
   const [categoria, setCategoria] = useState<EvidenciaCategoria>("documento");
   const [descricao, setDescricao] = useState("");
   const [marcarProva, setMarcarProva] = useState(false);
+  const [vincularParecer, setVincularParecer] = useState<string>(parecerId ?? NONE);
+  const [vincularTrilha, setVincularTrilha] = useState<string>(NONE);
 
   function reset() {
     setFile(null);
     setCategoria("documento");
     setDescricao("");
     setMarcarProva(false);
+    setVincularParecer(parecerId ?? NONE);
+    setVincularTrilha(NONE);
   }
 
   async function submit() {
@@ -84,7 +98,8 @@ export function EvidenciaUploadDialog({
     }
     await upload.mutateAsync({
       ticket_id: ticketId,
-      parecer_id: parecerId,
+      parecer_id: vincularParecer === NONE ? null : vincularParecer,
+      trilha_id: vincularTrilha === NONE ? null : vincularTrilha,
       categoria,
       descricao: descricao || null,
       file,
@@ -94,6 +109,9 @@ export function EvidenciaUploadDialog({
     onOpenChange(false);
   }
 
+  const nomeFila = (id: string | null) =>
+    id ? filas.find((f) => f.id === id)?.nome ?? "—" : "—";
+
   return (
     <Dialog
       open={open}
@@ -102,7 +120,7 @@ export function EvidenciaUploadDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Enviar documento ao cofre de provas</DialogTitle>
         </DialogHeader>
@@ -153,6 +171,43 @@ export function EvidenciaUploadDialog({
               placeholder="Ex.: contrato assinado antes da ocorrência, print da conversa..."
               className="text-sm"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Vincular a parecer</Label>
+              <Select value={vincularParecer} onValueChange={setVincularParecer}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Nenhum" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhum</SelectItem>
+                  {pareceres.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.tipo}
+                      {p.titulo ? ` — ${p.titulo}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Vincular a etapa da trilha</Label>
+              <Select value={vincularTrilha} onValueChange={setVincularTrilha}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Nenhuma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhuma</SelectItem>
+                  {trilha.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {nomeFila(t.fila_id)} ·{" "}
+                      {format(new Date(t.entrou_em), "dd/MM HH:mm", { locale: ptBR })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
