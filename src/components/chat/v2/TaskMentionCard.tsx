@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+// Sem react-router aqui: montado também pelo ChatDrawer (fora do <Router/>).
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
