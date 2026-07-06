@@ -60,9 +60,9 @@ export function useChatActions() {
         ? {
             ticket_id: suporteTicket.id,
             ticket_owner_id: suporteTicket.requester_id ?? suporteTicket.owner_id,
-            visibilidade: "broadcast",
+            visibilidade: input.interna ? "interna" : "broadcast",
           }
-        : {};
+        : (input.interna ? { visibilidade: "interna" } : {});
 
       const { data: msg, error } = await supabase
         .from("mensagens")
