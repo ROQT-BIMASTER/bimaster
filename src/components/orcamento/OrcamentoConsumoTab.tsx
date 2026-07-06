@@ -49,6 +49,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
   );
 
   return (
+    <div className="space-y-4">
     <Card className="border-border/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div>
