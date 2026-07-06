@@ -127,6 +127,7 @@ export default function SuporteDesk() {
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [novoDeptoOpen, setNovoDeptoOpen] = useState(false);
   const [fluxoOpen, setFluxoOpen] = useState(false);
+  const [excluirDeptoOpen, setExcluirDeptoOpen] = useState(false);
   const [aba, setAba] = useState<"tickets" | "executiva" | "analises">("tickets");
   const [modoVisao, setModoVisao] = useState<"tabela" | "split">(
     () => (localStorage.getItem("suporte:modo-visao") as "tabela" | "split") ?? "tabela",
