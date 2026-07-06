@@ -4,23 +4,30 @@ import { join } from "node:path";
 
 /**
  * Regra de lint: nenhum componente em src/components/chat/** ou src/hooks/chat/**
- * pode importar useLocation/useNavigate/useParams/useRoutes/useMatch de
- * react-router-dom — o ChatDrawer é montado FORA de <Router> via
- * ChatDrawerProvider no shell global, então qualquer hook de Router quebra
- * a tela inteira.
+ * pode importar de react-router-dom — o ChatDrawer é montado FORA de <Router>
+ * via ChatDrawerProvider no shell global (App.tsx envelopa BrowserRouter em
+ * ChatDrawerProvider), então qualquer hook OU componente do react-router
+ * (useNavigate, useLocation, Link, NavLink, Outlet, Navigate, etc.) explode
+ * a tela inteira quando o drawer é aberto.
  *
- * Para navegação programática dentro do chat, use window.location ou o helper
- * useBrowserPathname (escuta popstate + history). Para links, use <a>
- * comum quando estiver fora de Router, ou Link dentro de páginas /chat.
+ * Para navegação programática, use window.location. Para links, use <a>.
  */
 
-const ROUTER_HOOKS = [
+const FORBIDDEN_SYMBOLS = [
+  // hooks
   "useLocation",
   "useNavigate",
   "useParams",
   "useMatch",
   "useRoutes",
   "useSearchParams",
+  // componentes que também exigem contexto do Router
+  "Link",
+  "NavLink",
+  "Outlet",
+  "Navigate",
+  "Routes",
+  "Route",
 ];
 
 const ROOTS = ["src/components/chat", "src/hooks/chat"];
@@ -36,7 +43,7 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-describe("Chat lint: no react-router hooks outside Router", () => {
+describe("Chat lint: no react-router usage outside Router", () => {
   const files = ROOTS.flatMap((r) => walk(r));
 
   it("encontra arquivos para auditar", () => {
@@ -44,15 +51,22 @@ describe("Chat lint: no react-router hooks outside Router", () => {
   });
 
   for (const file of files) {
-    it(`${file} não usa hooks do react-router-dom`, () => {
+    it(`${file} não importa nada de react-router-dom`, () => {
       const src = readFileSync(file, "utf8");
-      // Detecta tanto import nomeado quanto chamada
       const importRe = /from\s+["']react-router-dom["']/;
-      if (!importRe.test(src)) return;
-      for (const hook of ROUTER_HOOKS) {
-        const re = new RegExp(`\\b${hook}\\s*\\(`);
-        expect(re.test(src), `${file} chama ${hook}() — proibido em chat/**`).toBe(false);
+      expect(
+        importRe.test(src),
+        `${file} importa de react-router-dom — proibido em chat/** (drawer fica fora do Router)`,
+      ).toBe(false);
+      // Salvaguarda extra: mesmo sem import explícito, nenhum símbolo do
+      // react-router deve aparecer em uso.
+      for (const sym of FORBIDDEN_SYMBOLS) {
+        const useRe = new RegExp(`\\b${sym}\\s*[\\(<]`);
+        if (useRe.test(src) && importRe.test(src)) {
+          expect.fail(`${file} usa ${sym} do react-router — proibido em chat/**`);
+        }
       }
     });
   }
 });
+
