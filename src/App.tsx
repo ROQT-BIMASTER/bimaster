@@ -648,6 +648,7 @@ function AppContent() {
             {/* Suporte v2 (help desk multi-departamento) — piloto atrás da flag ff_suporte_v2 */}
             <Route path="/dashboard/suporte" element={<ProtectedRoute><SuporteMeusChamados /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
+            <Route path="/dashboard/suporte/admin/sla" element={<ProtectedRoute><SuporteAdminSLA /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin"><Configuracoes /></ScreenRoute>} />
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_importar"><ImportarClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
