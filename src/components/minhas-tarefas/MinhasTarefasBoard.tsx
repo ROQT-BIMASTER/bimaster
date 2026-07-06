@@ -221,6 +221,16 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo,
     for (const t of tarefas) {
       result[tarefaColumn(t)].push(t);
     }
+    // Concluídas: mais recentes primeiro (data_conclusao DESC, fallback updated_at).
+    // A RPC ordena por data_prazo ASC — sem re-ordenar, usuários com histórico grande
+    // veriam apenas concluídas antigas nos 10 slots.
+    result.done.sort((a, b) => {
+      const da = parseLocalDate(a.data_conclusao)?.getTime()
+        ?? (a.updated_at ? new Date(a.updated_at).getTime() : 0);
+      const db = parseLocalDate(b.data_conclusao)?.getTime()
+        ?? (b.updated_at ? new Date(b.updated_at).getTime() : 0);
+      return db - da;
+    });
     result.done = result.done.slice(0, 10);
     return result;
   }, [tarefas]);
