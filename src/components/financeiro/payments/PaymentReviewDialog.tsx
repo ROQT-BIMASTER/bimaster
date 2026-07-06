@@ -315,7 +315,7 @@ export function PaymentReviewDialog({
     setIsSavingClassificacao(false);
     setAction('accept');
     setAcceptConfirmOpen(false);
-    onAccept(item.id, notes);
+    onAccept(item.id, notes, { salvar_padrao_fornecedor: salvarPadraoFornecedor && !!item.supplier_document });
   };
 
   const handleConfirmarRejeicao = (data: RejectionData) => {
