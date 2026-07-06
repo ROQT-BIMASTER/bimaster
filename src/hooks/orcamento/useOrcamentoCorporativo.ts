@@ -228,6 +228,54 @@ export function useBudgetKpis(distributionId: string | undefined) {
 }
 
 // ============================================================
+// Consumo (Fase 2) — chama fn_orcamento_saldos direto
+// ============================================================
+export type OrcamentoConsumoEstagio = "ok" | "alerta_80" | "critico_95" | "estourado_100";
+
+export type OrcamentoConsumoRow = {
+  distribution_id: string | null;
+  period_id: string;
+  department_id: string | null;
+  department_nome: string | null;
+  valor_alocado: number;
+  valor_planejado: number;
+  saldo_reservado: number;
+  valor_comprometido: number;
+  valor_utilizado: number;
+  valor_pago: number;
+  em_fila: number;
+  saldo_livre: number;
+  pct_consumido: number | null;
+  estagio: OrcamentoConsumoEstagio;
+};
+
+export function useOrcamentoConsumo(periodId: string | undefined) {
+  return useQuery({
+    queryKey: ["orcamento_consumo", periodId],
+    enabled: Boolean(periodId),
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_orcamento_saldos" as never, {
+        p_period_id: periodId!,
+      } as never);
+      if (error) throw error;
+      return ((data ?? []) as unknown as OrcamentoConsumoRow[]).map((r) => ({
+        ...r,
+        valor_alocado: Number(r.valor_alocado ?? 0),
+        valor_planejado: Number(r.valor_planejado ?? 0),
+        saldo_reservado: Number(r.saldo_reservado ?? 0),
+        valor_comprometido: Number(r.valor_comprometido ?? 0),
+        valor_utilizado: Number(r.valor_utilizado ?? 0),
+        valor_pago: Number(r.valor_pago ?? 0),
+        em_fila: Number(r.em_fila ?? 0),
+        saldo_livre: Number(r.saldo_livre ?? 0),
+        pct_consumido: r.pct_consumido == null ? null : Number(r.pct_consumido),
+      }));
+    },
+  });
+}
+
+// ============================================================
 // Perfis de departamento
 // ============================================================
 export function useDepartmentMemberRoles(departmentId: string | undefined) {
