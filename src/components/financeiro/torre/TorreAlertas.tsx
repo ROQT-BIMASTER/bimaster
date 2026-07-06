@@ -311,7 +311,12 @@ export function TorreAlertas() {
         )}
 
         {/* Planilha */}
-        <div className="overflow-x-auto">
+        <div
+          className={cn(
+            "overflow-auto",
+            foco ? "flex-1 min-h-0" : "max-h-[560px]",
+          )}
+        >
           {isLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
