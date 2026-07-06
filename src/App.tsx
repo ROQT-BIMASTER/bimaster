@@ -551,9 +551,9 @@ function AppContent() {
     </ProtectedRoute>
   );
 
-  const ScreenRoute = ({ screenCode, children, redirectTo }: { screenCode: string; children: React.ReactNode; redirectTo?: string }) => (
+  const ScreenRoute = ({ screenCode, children, redirectTo, allowRoles }: { screenCode: string; children: React.ReactNode; redirectTo?: string; allowRoles?: string[] }) => (
     <ProtectedRoute>
-      <ScreenProtectedRoute screenCode={screenCode} redirectTo={redirectTo}>
+      <ScreenProtectedRoute screenCode={screenCode} redirectTo={redirectTo} allowRoles={allowRoles}>
         {children}
       </ScreenProtectedRoute>
     </ProtectedRoute>
@@ -649,7 +649,7 @@ function AppContent() {
             <Route path="/dashboard/suporte" element={<ProtectedRoute><SuporteMeusChamados /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/admin/sla" element={<ProtectedRoute><SuporteAdminSLA /></ProtectedRoute>} />
-            <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin"><Configuracoes /></ScreenRoute>} />
+            <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin" allowRoles={["suporte"]}><Configuracoes /></ScreenRoute>} />
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_importar"><ImportarClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
             

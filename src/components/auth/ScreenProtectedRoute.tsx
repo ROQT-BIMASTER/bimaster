@@ -14,6 +14,8 @@ interface ScreenProtectedRouteProps {
   screenCode: string;
   redirectTo?: string;
   showAccessDenied?: boolean;
+  /** Roles adicionais autorizadas a acessar a tela mesmo sem permissão explícita. */
+  allowRoles?: string[];
 }
 
 /**
@@ -25,15 +27,17 @@ export const ScreenProtectedRoute = ({
   children, 
   screenCode,
   redirectTo = "/dashboard",
-  showAccessDenied = true
+  showAccessDenied = true,
+  allowRoles,
 }: ScreenProtectedRouteProps) => {
   const { session } = useAuth();
-  const { loading, permissionsReady } = usePermissions();
+  const { loading, permissionsReady, role } = usePermissions();
   const { hasScreenPermission } = useImpersonation();
   const location = useLocation();
   const loggedRef = useRef<string | null>(null);
 
-  const denied = !!session && permissionsReady && !hasScreenPermission(screenCode);
+  const roleAllowed = !!(allowRoles && role && allowRoles.includes(role));
+  const denied = !!session && permissionsReady && !roleAllowed && !hasScreenPermission(screenCode);
 
   useEffect(() => {
     if (!denied) return;
@@ -67,7 +71,7 @@ export const ScreenProtectedRoute = ({
     );
   }
 
-  if (!hasScreenPermission(screenCode)) {
+  if (!roleAllowed && !hasScreenPermission(screenCode)) {
     logger.log(`[ScreenProtectedRoute] Usuário sem permissão à tela: ${screenCode}`);
     return <AccessDenied message="Você não tem permissão para acessar esta tela." />;
   }

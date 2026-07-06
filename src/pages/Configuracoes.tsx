@@ -84,7 +84,7 @@ const LazyFallback = () => (
 function Configuracoes() {
   const { role: permRole, hasScreenPermission } = usePermissions();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const userRole = permRole;
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("perfil");
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -107,7 +107,6 @@ function Configuracoes() {
 
       if (error) throw error;
       setProfile(data);
-      setUserRole(permRole || null);
     } catch (error) {
       logger.error("Erro ao carregar perfil:", error);
       toast.error("Erro", { description: "Não foi possível carregar o perfil" });
