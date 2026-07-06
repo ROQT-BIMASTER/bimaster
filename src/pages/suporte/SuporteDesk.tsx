@@ -41,6 +41,7 @@ import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
 import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
 import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
+import { ExcluirDepartamentoDialog } from "@/components/suporte/ExcluirDepartamentoDialog";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
