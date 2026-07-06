@@ -46,6 +46,7 @@ export function EditarClassificacaoRapidaDialog({
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [bloquearReclassificacao, setBloquearReclassificacao] = useState(false);
   const [planoOpen, setPlanoOpen] = useState(false);
+  const [planoSearch, setPlanoSearch] = useState("");
 
   // Carregar departamentos
   const { data: departamentos } = useQuery({
