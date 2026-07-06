@@ -4156,13 +4156,6 @@ export type Database = {
             referencedRelation: "budget_distributions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "budget_plan_categories_distribution_id_fkey"
-            columns: ["distribution_id"]
-            isOneToOne: false
-            referencedRelation: "vw_budget_distribution_kpis"
-            referencedColumns: ["distribution_id"]
-          },
         ]
       }
       campaign_briefings: {
@@ -14248,13 +14241,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "department_budgets_distribution_id_fkey"
-            columns: ["distribution_id"]
-            isOneToOne: false
-            referencedRelation: "vw_budget_distribution_kpis"
-            referencedColumns: ["distribution_id"]
-          },
-          {
             foreignKeyName: "department_budgets_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
@@ -14416,13 +14402,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "budget_distributions"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "department_expenses_distribution_id_fkey"
-            columns: ["distribution_id"]
-            isOneToOne: false
-            referencedRelation: "vw_budget_distribution_kpis"
-            referencedColumns: ["distribution_id"]
           },
           {
             foreignKeyName: "department_expenses_empresa_id_fkey"
@@ -55028,29 +55007,7 @@ export type Database = {
           valor_planejado: number | null
           valor_utilizado: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "budget_distributions_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_distributions_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "mv_analise_departamentos"
-            referencedColumns: ["departamento_id"]
-          },
-          {
-            foreignKeyName: "budget_distributions_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "budget_periods"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vw_capacidade_montagem: {
         Row: {
@@ -57165,6 +57122,25 @@ export type Database = {
         }[]
       }
       fn_normalizar_municipios_clientes: { Args: never; Returns: Json }
+      fn_orcamento_saldos: {
+        Args: { p_period_id: string }
+        Returns: {
+          department_id: string
+          department_nome: string
+          distribution_id: string
+          em_fila: number
+          estagio: string
+          pct_consumido: number
+          period_id: string
+          saldo_livre: number
+          saldo_reservado: number
+          valor_alocado: number
+          valor_comprometido: number
+          valor_pago: number
+          valor_planejado: number
+          valor_utilizado: number
+        }[]
+      }
       fn_pesquisar_titulos:
         | {
             Args: {

@@ -12,6 +12,7 @@ import {
   Layers,
   Building2,
   DollarSign,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +29,7 @@ import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { CriarPeriodoDialog } from "@/components/orcamento/CriarPeriodoDialog";
 import { DistribuirVerbaPanel } from "@/components/orcamento/DistribuirVerbaPanel";
 import { PlanoDepartamentoPanel } from "@/components/orcamento/PlanoDepartamentoPanel";
+import { OrcamentoConsumoTab } from "@/components/orcamento/OrcamentoConsumoTab";
 import { useBudgetPeriods } from "@/hooks/orcamento/useOrcamentoCorporativo";
 
 function statusBadgeVariant(status?: string | null): "default" | "outline" | "secondary" {
@@ -165,6 +167,12 @@ export default function OrcamentoCorporativo() {
           >
             <Layers className="h-3.5 w-3.5" /> Plano do Departamento
           </TabsTrigger>
+          <TabsTrigger
+            value="consumo"
+            className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <Wallet className="h-3.5 w-3.5" /> Consumo
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="periodos">
@@ -250,6 +258,16 @@ export default function OrcamentoCorporativo() {
               <PlanoDepartamentoPanel periodId={periodoAtivo.id} />
             ) : (
               <EmptyState message="Selecione um período para montar o plano." />
+            )}
+          </ScreenProtectedRoute>
+        </TabsContent>
+
+        <TabsContent value="consumo">
+          <ScreenProtectedRoute screenCode="orcamento_distribuicao">
+            {periodoAtivo ? (
+              <OrcamentoConsumoTab periodId={periodoAtivo.id} />
+            ) : (
+              <EmptyState message="Selecione um período para ver o consumo." />
             )}
           </ScreenProtectedRoute>
         </TabsContent>
