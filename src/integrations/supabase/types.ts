@@ -48416,6 +48416,7 @@ export type Database = {
           storage_path: string
           tamanho: number | null
           ticket_id: string
+          trilha_id: string | null
           updated_at: string
           uploaded_by: string
         }
@@ -48434,6 +48435,7 @@ export type Database = {
           storage_path: string
           tamanho?: number | null
           ticket_id: string
+          trilha_id?: string | null
           updated_at?: string
           uploaded_by: string
         }
@@ -48452,6 +48454,7 @@ export type Database = {
           storage_path?: string
           tamanho?: number | null
           ticket_id?: string
+          trilha_id?: string | null
           updated_at?: string
           uploaded_by?: string
         }
@@ -48468,6 +48471,13 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_ticket_evidencias_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_ticket_departamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -60295,6 +60305,14 @@ export type Database = {
           p_via_ia?: boolean
         }
         Returns: Json
+      }
+      rpc_suporte_vincular_evidencia: {
+        Args: {
+          p_evidencia_id: string
+          p_parecer_id: string
+          p_trilha_id: string
+        }
+        Returns: undefined
       }
       rpc_sync_conversa_vinculada_participantes: {
         Args: { p_conversa_id: string }
