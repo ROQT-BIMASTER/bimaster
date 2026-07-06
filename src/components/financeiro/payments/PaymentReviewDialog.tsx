@@ -102,6 +102,7 @@ export function PaymentReviewDialog({
   const [categoriaCodigo, setCategoriaCodigo] = useState<string>("");
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [salvarPadraoFornecedor, setSalvarPadraoFornecedor] = useState<boolean>(false);
   const [isSavingClassificacao, setIsSavingClassificacao] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
