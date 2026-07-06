@@ -42,6 +42,7 @@ function ultimosMeses(n: number): { value: string; label: string }[] {
 }
 
 export default function TorreDespesas() {
+  const navigate = useNavigate();
   const [filtros, setFiltros] = useState<TorreFiltros>({
     empresaIds: [],
     natureza: null,
