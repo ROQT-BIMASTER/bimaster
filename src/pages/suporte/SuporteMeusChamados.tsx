@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat } from "lucide-react";
+import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
@@ -22,6 +22,8 @@ import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
 import { MinhasRotinasHojeWidget } from "@/components/suporte/MinhasRotinasHojeWidget";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
 
 export default function SuporteMeusChamados() {
   const { data: chamados = [], isLoading } = useMeusChamados();
