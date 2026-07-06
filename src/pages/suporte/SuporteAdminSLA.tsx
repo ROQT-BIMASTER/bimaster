@@ -210,16 +210,6 @@ export default function SuporteAdminSLA() {
     );
   }
 
-  if (roleLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-4">
@@ -234,22 +224,28 @@ export default function SuporteAdminSLA() {
           </Button>
           <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Clock className="h-6 w-6 text-primary" /> SLA e Calendários
+              <Clock className="h-6 w-6 text-primary" /> Configurações da Central de Suporte
             </h2>
             <p className="text-sm text-muted-foreground">
-              Defina o tempo de primeira resposta e de resolução por departamento e
-              prioridade, e configure calendários de expediente.
+              SLA por departamento, calendários de expediente e biblioteca de respostas rápidas.
             </p>
           </div>
         </div>
 
-        <Tabs defaultValue="matriz">
+        <Tabs defaultValue={abaInicial}>
           <TabsList>
-            <TabsTrigger value="matriz" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Matriz de SLA
-            </TabsTrigger>
-            <TabsTrigger value="calendarios" className="gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5" /> Calendários
+            {isAdmin && (
+              <TabsTrigger value="matriz" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Matriz de SLA
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="calendarios" className="gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> Calendários
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="macros" className="gap-1.5">
+              <Zap className="h-3.5 w-3.5" /> Respostas rápidas
             </TabsTrigger>
           </TabsList>
 
