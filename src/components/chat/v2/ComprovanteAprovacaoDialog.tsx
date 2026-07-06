@@ -177,6 +177,11 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
     doc.line(margin, y, pageW - margin, y);
     y += 5;
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(20);
+    doc.text(`Protocolo: ${ap.protocolo ?? "—"}`, margin, y);
+    y += 5;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(120);
