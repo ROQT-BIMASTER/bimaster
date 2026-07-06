@@ -261,6 +261,16 @@ export default function OrcamentoCorporativo() {
             )}
           </ScreenProtectedRoute>
         </TabsContent>
+
+        <TabsContent value="consumo">
+          <ScreenProtectedRoute screenCode="orcamento_distribuicao">
+            {periodoAtivo ? (
+              <OrcamentoConsumoTab periodId={periodoAtivo.id} />
+            ) : (
+              <EmptyState message="Selecione um período para ver o consumo." />
+            )}
+          </ScreenProtectedRoute>
+        </TabsContent>
       </Tabs>
 
       <CriarPeriodoDialog
