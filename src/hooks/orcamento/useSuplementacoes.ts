@@ -72,14 +72,15 @@ export function useSuplementacoes(periodId: string | undefined) {
           rows.flatMap((r) => [r.solicitante_id, r.decisor_id].filter(Boolean) as string[]),
         ),
       );
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (uids.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("id, full_name, email")
+          .select("id, nome, email")
           .in("id", uids);
         (profs ?? []).forEach((p) => {
-          nameMap[p.id] = (p as { full_name: string | null }).full_name || (p as { email: string | null }).email || p.id;
+          const row = p as { id: string; nome: string | null; email: string | null };
+          nameMap[row.id] = row.nome || row.email || row.id;
         });
       }
 
