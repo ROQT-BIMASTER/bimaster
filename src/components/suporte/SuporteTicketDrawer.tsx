@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserCheck, ArrowRightLeft } from "lucide-react";
+import { UserCheck, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
