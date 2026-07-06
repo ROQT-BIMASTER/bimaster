@@ -77,10 +77,15 @@ export default function SuporteMeusChamados() {
               Abra chamados para os departamentos e acompanhe cada um em uma conversa dedicada.
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo chamado
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/dashboard/suporte/rotinas-fixas"><Repeat className="h-4 w-4" /> Rotinas fixas</Link>
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo chamado
+            </Button>
+          </div>
         </div>
         <MinhasRotinasHojeWidget />
 
