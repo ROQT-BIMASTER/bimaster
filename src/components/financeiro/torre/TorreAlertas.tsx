@@ -495,7 +495,7 @@ export function TorreAlertas() {
 
         {/* Rodapé de contagem */}
         {!isLoading && alertasFiltrados.length > 0 && (
-          <div className="px-4 md:px-6 py-3 border-t border-border text-xs text-muted-foreground bg-muted/30">
+          <div className="px-4 md:px-6 py-3 border-t border-border text-xs text-muted-foreground bg-muted/30 shrink-0">
             Exibindo {alertasFiltrados.length.toLocaleString("pt-BR")} de {alertas.length.toLocaleString("pt-BR")} alertas
             {busca || sevFiltro ? " (filtrado)" : ""}
           </div>
