@@ -147,6 +147,27 @@ export function ContasPagarDREView({
     }));
   }, [filterMes]);
 
+  // Centros de custo disponíveis (só os com lançamento no recorte visível).
+  const centrosCustoMesRef = useMemo(() => {
+    const ano = filterAno === 'all' ? new Date().getFullYear() : parseInt(filterAno);
+    if (filterMes === 'all') return `${ano}-12-01`;
+    return `${ano}-${filterMes.padStart(2, '0')}-01`;
+  }, [filterAno, filterMes]);
+
+  const { data: centrosCusto = [] } = useTorreCentrosCusto({
+    meses: filterMes === 'all' ? 12 : 1,
+    mesRef: centrosCustoMesRef,
+    empresaIds: filterEmpresas,
+  });
+
+  const centrosCustoFiltrados = useMemo(() => {
+    const q = centrosSearch.trim().toLowerCase();
+    if (!q) return centrosCusto;
+    return centrosCusto.filter((c) =>
+      c.nome.toLowerCase().includes(q) || (c.codigo || '').toLowerCase().includes(q)
+    );
+  }, [centrosCusto, centrosSearch]);
+
   // Fetch lancamentos
   const { data: lancamentos, isLoading: isLoadingLancamentos } = useQuery({
     queryKey: ['contas-pagar-dre-view', filterAno, filterMes, filterEmpresas.join(','), filterDepartamento, effectiveCentroCustoIds.join(',')],
