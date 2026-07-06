@@ -163,6 +163,16 @@ export interface TorreFiltros {
   mesRef: string | null;
   /** null = mostrar tudo; 0.7 = ocultar classificação fraca */
   confMinima: number | null;
+  /** [] = todos os centros de custo */
+  centroCustoIds: string[];
+}
+
+export interface TorreCentroCustoDisponivel {
+  id: string;
+  codigo: string | null;
+  nome: string;
+  qtd: number;
+  valor: number;
 }
 
 /** Seleção do heatmap que alimenta série + drill */
