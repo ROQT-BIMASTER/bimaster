@@ -9,7 +9,7 @@ export const MAX_PAYLOAD_SIZE = 200000;
 export const RECOMMENDED_CHUNK_SIZE = 25000;
 export const MAX_RETRIES = 5;
 export const RETRY_DELAY_MS = 500;
-export const API_VERSION = '2.4.0';
+export const API_VERSION = '2.4.1';
 
 export const MAX_CONCURRENT_SYNCS = 2;
 export const SLOT_TIMEOUT_MS = 90000;
