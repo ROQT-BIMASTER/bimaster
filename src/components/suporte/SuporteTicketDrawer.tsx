@@ -42,7 +42,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
       <Sheet open={!!ticket} onOpenChange={(o) => !o && onClose()}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-[720px] p-0 flex flex-col"
+          className="w-full sm:max-w-[960px] lg:max-w-[1100px] xl:max-w-[1240px] p-0 flex flex-col"
         >
           {ticket && (
             <>
