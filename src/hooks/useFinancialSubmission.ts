@@ -63,6 +63,16 @@ export function useFinancialSubmission() {
       }
       const notes = noteParts.join(" | ") || null;
 
+      // Autofill do plano de contas via padrão memorizado do fornecedor,
+      // quando a origem não informou explicitamente. Financeiro ainda pode trocar no aceite.
+      let resolvedCategoriaCodigo = config.categoriaCodigo ?? null;
+      let resolvedPlanoContasId = config.planoContasId ?? null;
+      if (!resolvedCategoriaCodigo && !resolvedPlanoContasId && formData.supplier_document) {
+        const padrao = await lookupFornecedorPadrao(formData.supplier_document);
+        resolvedCategoriaCodigo = padrao.categoria_codigo;
+        resolvedPlanoContasId = padrao.plano_contas_id;
+      }
+
       const queuePayload = {
         source_type: config.sourceType,
         source_id: config.sourceId,
@@ -83,8 +93,8 @@ export function useFinancialSubmission() {
         empresa_nome: config.empresaNome || null,
         // Fase 1.B — sugestões da origem; financeiro confirma no aceite.
         departamento_id: config.departamentoId ?? null,
-        plano_contas_id: config.planoContasId ?? null,
-        categoria_codigo: config.categoriaCodigo ?? null,
+        plano_contas_id: resolvedPlanoContasId,
+        categoria_codigo: resolvedCategoriaCodigo,
         natureza_lancamento: config.naturezaLancamento ?? null,
         chave_acesso_nfe: config.chaveAcessoNfe ?? null,
         numero_documento_fiscal: config.numeroDocumentoFiscal ?? null,
