@@ -284,7 +284,7 @@ export function TorreAlertas() {
 
         {/* Barra de seleção em lote */}
         {alertasSelecionados.length > 0 && (
-          <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between text-xs font-medium text-foreground flex-wrap gap-2">
+          <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between text-xs font-medium text-foreground flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-4">
               <span>{alertasSelecionados.length} item(ns) selecionado(s)</span>
               <button type="button" onClick={limparSelecao} className="text-primary hover:underline">
