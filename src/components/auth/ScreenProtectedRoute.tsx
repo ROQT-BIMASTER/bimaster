@@ -71,7 +71,7 @@ export const ScreenProtectedRoute = ({
     );
   }
 
-  if (!hasScreenPermission(screenCode)) {
+  if (!roleAllowed && !hasScreenPermission(screenCode)) {
     logger.log(`[ScreenProtectedRoute] Usuário sem permissão à tela: ${screenCode}`);
     return <AccessDenied message="Você não tem permissão para acessar esta tela." />;
   }
