@@ -394,6 +394,10 @@ export default function SuporteAdminSLA() {
           <TabsContent value="calendarios" className="mt-4">
             <CalendariosEditor calendarios={calendarios} />
           </TabsContent>
+
+          <TabsContent value="macros" className="mt-4">
+            <MacrosEditor filas={filas} isAdmin={isAdmin} />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
