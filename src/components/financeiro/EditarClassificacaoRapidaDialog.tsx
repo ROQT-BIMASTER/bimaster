@@ -240,8 +240,6 @@ export function EditarClassificacaoRapidaDialog({
                           </div>
                         </CommandItem>
                       ))}
-                        </CommandItem>
-                      ))}
                     </CommandGroup>
                   </CommandList>
                 </Command>
