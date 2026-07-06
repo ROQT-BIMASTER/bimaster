@@ -336,9 +336,8 @@ export function TorreAlertas() {
                   const evid = Object.entries(a.evidencia ?? {}).slice(0, 12);
 
                   return (
-                    <>
+                    <Fragment key={a.id}>
                       <TableRow
-                        key={a.id}
                         className={cn(
                           "group text-sm border-border hover:bg-muted/40 cursor-pointer",
                           marcado && "bg-primary/5",
