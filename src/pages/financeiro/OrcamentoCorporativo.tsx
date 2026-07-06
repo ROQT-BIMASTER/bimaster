@@ -29,6 +29,7 @@ import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { CriarPeriodoDialog } from "@/components/orcamento/CriarPeriodoDialog";
 import { DistribuirVerbaPanel } from "@/components/orcamento/DistribuirVerbaPanel";
 import { PlanoDepartamentoPanel } from "@/components/orcamento/PlanoDepartamentoPanel";
+import { OrcamentoConsumoTab } from "@/components/orcamento/OrcamentoConsumoTab";
 import { useBudgetPeriods } from "@/hooks/orcamento/useOrcamentoCorporativo";
 
 function statusBadgeVariant(status?: string | null): "default" | "outline" | "secondary" {
