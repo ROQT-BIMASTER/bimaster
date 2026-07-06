@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LifeBuoy, Plus, Search, Loader2, MessageSquare } from "lucide-react";
+import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat } from "lucide-react";
+import { Link } from "react-router-dom";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
