@@ -167,6 +167,12 @@ export default function OrcamentoCorporativo() {
           >
             <Layers className="h-3.5 w-3.5" /> Plano do Departamento
           </TabsTrigger>
+          <TabsTrigger
+            value="consumo"
+            className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <Wallet className="h-3.5 w-3.5" /> Consumo
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="periodos">
