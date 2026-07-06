@@ -196,12 +196,23 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
     }
   }
 
+  // Concluídas: ordenar por data_conclusao DESC antes do slice — a RPC ordena
+  // por data_prazo ASC, então sem sort explícito o slice(5) mostra concluídas
+  // antigas para usuários com histórico grande.
+  const concluidasOrdenadas = concluidas.sort((a, b) => {
+    const da = parseLocalDate(a.data_conclusao)?.getTime()
+      ?? (a.updated_at ? new Date(a.updated_at).getTime() : 0);
+    const db = parseLocalDate(b.data_conclusao)?.getTime()
+      ?? (b.updated_at ? new Date(b.updated_at).getTime() : 0);
+    return db - da;
+  });
+
   return [
     { label: "Atrasadas", key: "atrasadas", items: atrasadas },
     { label: "A fazer hoje", key: "hoje", items: hoje },
     { label: "A fazer esta semana", key: "semana", items: estaSemana },
     { label: "A fazer mais tarde", key: "mais_tarde", items: maisAdiante },
     { label: "Sem datas planejadas", key: "sem_data", items: semData },
-    { label: "Concluídas recentemente", key: "concluidas", items: concluidas.slice(0, 5) },
+    { label: "Concluídas recentemente", key: "concluidas", items: concluidasOrdenadas.slice(0, 5) },
   ].filter(g => g.items.length > 0);
 }

@@ -144,12 +144,23 @@ function groupAsanaStyle(tarefas: MinaTarefa[]): SimpleGroup[] {
     maisTarde.push(t);
   }
 
+  // Concluídas: mais recentes primeiro (data_conclusao DESC, fallback updated_at).
+  // Sem esse sort, o slice(10) mostra concluídas antigas quando o usuário tem
+  // histórico grande (a RPC ordena por data_prazo ASC).
+  const concluidasOrdenadas = [...concluidas].sort((a, b) => {
+    const da = parseLocalDate(a.data_conclusao)?.getTime()
+      ?? (a.updated_at ? new Date(a.updated_at).getTime() : 0);
+    const db = parseLocalDate(b.data_conclusao)?.getTime()
+      ?? (b.updated_at ? new Date(b.updated_at).getTime() : 0);
+    return db - da;
+  });
+
   return [
     { key: "recentes", label: "Atribuídas recentemente", items: recentes },
     { key: "hoje", label: "A fazer hoje", items: hoje, tone: "text-primary" },
     { key: "semana", label: "A fazer na próxima semana", items: proxSemana },
     { key: "mais_tarde", label: "A fazer mais tarde", items: maisTarde, tone: "text-muted-foreground" },
-    { key: "concluidas", label: "Concluídas recentemente", items: concluidas.slice(0, 10), defaultCollapsed: true, tone: "text-success" },
+    { key: "concluidas", label: "Concluídas recentemente", items: concluidasOrdenadas.slice(0, 10), defaultCollapsed: true, tone: "text-success" },
   ].filter((g) => g.items.length > 0);
 }
 
