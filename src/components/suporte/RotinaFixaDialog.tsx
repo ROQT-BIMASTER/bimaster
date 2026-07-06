@@ -23,7 +23,7 @@ function useUsuarios() {
     queryKey: ["usuarios-basic"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, nome_completo, email").order("nome_completo");
+      const { data, error } = await supabase.from("profiles").select("id, nome, email").order("nome");
       if (error) throw error;
       return data ?? [];
     },
