@@ -2,8 +2,10 @@
 // Lê SÓ as 3 RPCs agregadas (fn_despesas_departamentos/drill/variacoes) — nunca pagina
 // contas_pagar no cliente. Detecção determinística (motor) e IA vêm nas Fases 2/3.
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronsUpDown, CheckCircle, TowerControl } from "lucide-react";
+import { ArrowLeft, Building2, ChevronsUpDown, CheckCircle, TowerControl } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +42,7 @@ function ultimosMeses(n: number): { value: string; label: string }[] {
 }
 
 export default function TorreDespesas() {
+  const navigate = useNavigate();
   const [filtros, setFiltros] = useState<TorreFiltros>({
     empresaIds: [],
     natureza: null,
@@ -82,19 +85,29 @@ export default function TorreDespesas() {
   const naturezaValue = filtros.natureza ?? "todas";
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-[1600px] mx-auto">
-      {/* Cabeçalho */}
-      <div className="flex items-start gap-3">
-        <div className="rounded-xl bg-primary/10 p-2.5 shrink-0">
-          <TowerControl className="h-6 w-6 text-primary" />
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-4 max-w-[1600px] mx-auto">
+        {/* Cabeçalho */}
+        <div className="flex items-start gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="-ml-2 h-9 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Voltar
+          </Button>
+          <div className="rounded-xl bg-primary/10 p-2.5 shrink-0">
+            <TowerControl className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Torre de Controle de Despesas</h1>
+            <p className="text-sm text-muted-foreground">
+              Despesa por departamento com variação mês a mês e ano a ano, drill até o título e sinais de anomalia para ação imediata.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Torre de Controle de Despesas</h1>
-          <p className="text-sm text-muted-foreground">
-            Despesa por departamento com variação mês a mês e ano a ano, drill até o título e sinais de anomalia para ação imediata.
-          </p>
-        </div>
-      </div>
 
       {/* Filtros globais da página */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
@@ -227,8 +240,9 @@ export default function TorreDespesas() {
         <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} />
       </div>
 
-      {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}
-      <TorreVariacoes payload={variacoes.data} isLoading={variacoes.isLoading} />
-    </div>
+        {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}
+        <TorreVariacoes payload={variacoes.data} isLoading={variacoes.isLoading} />
+      </div>
+    </DashboardLayout>
   );
 }
