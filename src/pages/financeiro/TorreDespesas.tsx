@@ -52,6 +52,16 @@ export default function TorreDespesas() {
     centroCustoIds: [],
   });
   const [selecao, setSelecao] = useState<TorreSelecao | null>(null);
+  const [visao, setVisao] = useState<'heatmap' | 'dre'>('heatmap');
+
+  // Ano/mês para a DRE (base caixa) derivados de filtros.mesRef.
+  const dreFilters = useMemo(() => {
+    if (!filtros.mesRef) {
+      return { ano: String(new Date().getFullYear()), mes: 'all' };
+    }
+    const [ano, mes] = filtros.mesRef.split('-');
+    return { ano, mes: String(parseInt(mes, 10)) };
+  }, [filtros.mesRef]);
 
   // Empresas para o filtro — mesmo padrão da ContasAPagar (cadastro oficial).
   const { data: empresas = [] } = useQuery({
