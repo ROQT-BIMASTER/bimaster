@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { lookupFornecedorPadrao } from "@/lib/utils/fornecedorPadrao";
 import type { FinancialFormData } from "@/components/shared/FinancialSubmissionForm";
 
 export type SourceType = "trade_entry" | "department_expense" | "event_expense";
