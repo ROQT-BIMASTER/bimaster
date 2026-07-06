@@ -95,8 +95,12 @@ export function useProjetoMembros(projetoId: string | undefined) {
   // sessão (aceite de convite, remoção via tela de Equipe, etc.).
   useEffect(() => {
     if (!projetoId) return;
+    const uniqueSuffix =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
     const channel = supabase
-      .channel(`projeto_membros:${projetoId}`)
+      .channel(`projeto_membros:${projetoId}:${uniqueSuffix}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "projeto_membros", filter: `projeto_id=eq.${projetoId}` },
