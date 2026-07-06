@@ -125,6 +125,7 @@ const CentralAprovacoesChat = lazyWithRetry(() => import("./pages/CentralAprovac
 const SuporteMeusChamados = lazyWithRetry(() => import("./pages/suporte/SuporteMeusChamados"));
 const SuporteDesk = lazyWithRetry(() => import("./pages/suporte/SuporteDesk"));
 const SuporteAdminSLA = lazyWithRetry(() => import("./pages/suporte/SuporteAdminSLA"));
+const SuporteRotinasFixas = lazyWithRetry(() => import("./pages/suporte/SuporteRotinasFixas"));
 const AguardandoAprovacao = lazyWithRetry(() => import("./pages/AguardandoAprovacao"));
 const UsuarioBloqueado = lazyWithRetry(() => import("./pages/UsuarioBloqueado"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
