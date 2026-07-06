@@ -65,12 +65,14 @@ interface NavSection {
   items: NavItem[];
   adminOnly?: boolean;
   requiresUnlock?: boolean;
+  suporteAllowed?: boolean;
 }
 
 interface NavItem {
   key: string;
   label: string;
   adminOnly?: boolean;
+  suporteAllowed?: boolean;
 }
 
 const LazyFallback = () => (
