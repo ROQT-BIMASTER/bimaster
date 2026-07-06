@@ -65,12 +65,14 @@ interface NavSection {
   items: NavItem[];
   adminOnly?: boolean;
   requiresUnlock?: boolean;
+  suporteAllowed?: boolean;
 }
 
 interface NavItem {
   key: string;
   label: string;
   adminOnly?: boolean;
+  suporteAllowed?: boolean;
 }
 
 const LazyFallback = () => (
@@ -145,6 +147,7 @@ function Configuracoes() {
   // Acesso administrativo pode vir do papel admin OU de permissão explícita à tela "configuracoes"
   // (usado para usuários de Suporte de TI sem o bypass de admin).
   const isAdminRole = userRole === 'admin';
+  const isSuporteTI = userRole === 'suporte';
   const isAdmin = isAdminRole || hasScreenPermission('configuracoes');
   const isSupervisor = userRole === 'supervisor';
 
@@ -187,8 +190,9 @@ function Configuracoes() {
     {
       label: "Usuários",
       adminOnly: true,
+      suporteAllowed: true,
       items: [
-        { key: "usuarios", label: "Gerenciar Usuários" },
+        { key: "usuarios", label: "Gerenciar Usuários", suporteAllowed: true },
         { key: "hierarquia", label: "Hierarquia" },
         { key: "vendedores", label: "Vendedores / Supervisores" },
         { key: "municipios", label: "Atribuir Municípios" },
@@ -249,11 +253,24 @@ function Configuracoes() {
     },
   ];
 
-  const visibleSections = navSections.filter(section => {
-    if (section.adminOnly && !isAdmin) return false;
-    if (section.requiresUnlock && !outrasOpcoesUnlocked) return false;
-    return true;
-  });
+  const visibleSections = navSections
+    .filter(section => {
+      if (section.adminOnly && !isAdmin) {
+        if (isSuporteTI && section.suporteAllowed) {
+          // Suporte TI vê a seção, mas com itens filtrados abaixo
+        } else {
+          return false;
+        }
+      }
+      if (section.requiresUnlock && !outrasOpcoesUnlocked) return false;
+      return true;
+    })
+    .map(section => {
+      if (isSuporteTI && !isAdmin && section.adminOnly && section.suporteAllowed) {
+        return { ...section, items: section.items.filter(i => i.suporteAllowed) };
+      }
+      return section;
+    });
 
   const handleNavClick = (key: string, section: NavSection) => {
     if (section.requiresUnlock && !outrasOpcoesUnlocked) {
