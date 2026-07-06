@@ -695,7 +695,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   });
 
   const handleBridgeUpdate = useCallback(async (id: string, updates: Partial<ProjetoTarefa>) => {
-    if ((updates as any).status === "concluida") {
+    const isConclusao = (updates as any).status === "concluida";
+    const isReabertura = (updates as any).status === "pendente";
+    if (isConclusao) {
       const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
       const ok = await confirmConclusaoTarefa({});
       if (!ok) return;
@@ -722,17 +724,40 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
     }
+    // Também refletimos no cache da Central para o cartão migrar de coluna
+    // imediatamente quando a alteração for status (conclusão/reabertura).
+    const centralKey = ["minhas-tarefas", user?.id] as const;
+    const prevCentral = queryClient.getQueryData<MinaTarefa[]>(centralKey);
+    if (prevCentral && (isConclusao || isReabertura)) {
+      queryClient.setQueryData<MinaTarefa[]>(centralKey, prevCentral.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              status: (updates as any).status,
+              data_conclusao: isConclusao ? nowSaoPauloISO() : null,
+            }
+          : row,
+      ));
+    }
     const result = await attemptSave("Salvar tarefa", () =>
       supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
     );
     if (!result.ok) {
       // rollback do estado local se a persistência falhou
       if (prevDetail && prevDetail.id === id) setDetailTarefa(prevDetail);
+      if (prevCentral && (isConclusao || isReabertura)) queryClient.setQueryData(centralKey, prevCentral);
       queryClient.invalidateQueries({ queryKey: ["tarefa-planning", id], refetchType: "active" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
-  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
+    // Em mudanças de status, dispara refetch efetivo do quadro para reconciliar
+    // com o backend (ordenação da coluna "Concluídas", data_conclusao canônica).
+    // Nos demais casos mantém o comportamento silencioso original.
+    queryClient.invalidateQueries({
+      queryKey: ["minhas-tarefas"],
+      refetchType: (isConclusao || isReabertura) ? "active" : "none",
+    });
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave, user?.id]);
+
 
   const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
     const done = t.status !== "concluida";
@@ -746,11 +771,32 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? nowSaoPauloISO() : null;
+
+    // Patch otimista no cache da Central (minhas-tarefas) para o cartão migrar
+    // imediatamente entre as colunas do Kanban sem depender do refetch.
+    const centralKey = ["minhas-tarefas", user?.id] as const;
+    const prevCentral = queryClient.getQueryData<MinaTarefa[]>(centralKey);
+    if (prevCentral) {
+      queryClient.setQueryData<MinaTarefa[]>(centralKey, prevCentral.map((row) =>
+        row.id === t.id
+          ? { ...row, status: update.status, data_conclusao: update.data_conclusao }
+          : row,
+      ));
+    }
+
     const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
-    if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
+    if (!result.ok) {
+      if (prevCentral) queryClient.setQueryData(centralKey, prevCentral);
+      return;
+    }
+    // Refetch efetivo do quadro para reconciliar com o backend (data_conclusao
+    // canônica, ordenação da coluna "Concluídas", etc.) sem esperar o usuário
+    // fechar o painel ou dar F5.
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"], refetchType: "none" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
@@ -760,7 +806,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       );
     }
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
-  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave, user?.id]);
+
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
