@@ -391,7 +391,7 @@ export default function SuporteDesk() {
               onOpenChange={setExcluirDeptoOpen}
               filaId={filaAtivaObj.id}
               filaNome={filaAtivaObj.nome}
-              onDeleted={() => setFilaAtiva(TODOS)}
+              onDeleted={() => setDepartamentoSel(TODOS)}
             />
           </>
         )}
