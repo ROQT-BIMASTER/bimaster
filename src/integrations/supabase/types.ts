@@ -60268,6 +60268,10 @@ export type Database = {
         Args: { p_fila_id: string }
         Returns: string
       }
+      rpc_suporte_fila_excluir: {
+        Args: { p_fila_id: string; p_hard?: boolean }
+        Returns: Json
+      }
       rpc_suporte_fila_membro: {
         Args: {
           p_acao: string

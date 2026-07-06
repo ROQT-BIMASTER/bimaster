@@ -29,6 +29,7 @@ import {
   Plus,
   CalendarIcon,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,6 +41,7 @@ import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
 import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
 import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
+import { ExcluirDepartamentoDialog } from "@/components/suporte/ExcluirDepartamentoDialog";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -126,6 +128,7 @@ export default function SuporteDesk() {
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [novoDeptoOpen, setNovoDeptoOpen] = useState(false);
   const [fluxoOpen, setFluxoOpen] = useState(false);
+  const [excluirDeptoOpen, setExcluirDeptoOpen] = useState(false);
   const [aba, setAba] = useState<"tickets" | "executiva" | "analises">("tickets");
   const [modoVisao, setModoVisao] = useState<"tabela" | "split">(
     () => (localStorage.getItem("suporte:modo-visao") as "tabela" | "split") ?? "tabela",
@@ -335,6 +338,17 @@ export default function SuporteDesk() {
                 >
                   <Settings2 className="h-3.5 w-3.5" /> Fluxo
                 </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                    onClick={() => setExcluirDeptoOpen(true)}
+                    title="Excluir departamento"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                )}
               </>
             )}
             {isAdmin && (
@@ -371,6 +385,13 @@ export default function SuporteDesk() {
               open={fluxoOpen}
               onOpenChange={setFluxoOpen}
               fila={filaAtivaObj}
+            />
+            <ExcluirDepartamentoDialog
+              open={excluirDeptoOpen}
+              onOpenChange={setExcluirDeptoOpen}
+              filaId={filaAtivaObj.id}
+              filaNome={filaAtivaObj.nome}
+              onDeleted={() => setDepartamentoSel(TODOS)}
             />
           </>
         )}
