@@ -59634,6 +59634,14 @@ export type Database = {
         Args: { p_status: string; p_ticket_id: string }
         Returns: undefined
       }
+      rpc_suporte_pausar_sla: {
+        Args: { p_motivo?: string; p_ticket_id: string }
+        Returns: undefined
+      }
+      rpc_suporte_retomar_sla: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       rpc_suporte_transferir: {
         Args: {
           p_motivo?: string
