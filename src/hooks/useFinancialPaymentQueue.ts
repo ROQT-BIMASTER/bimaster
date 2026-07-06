@@ -5,6 +5,7 @@ import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { exportPaymentToErp } from "@/hooks/useErpExport";
 import { toast, toast as sonnerToast } from "sonner";
 import { callApi } from "@/lib/utils/api-helpers";
+import { saveFornecedorPadrao } from "@/lib/utils/fornecedorPadrao";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense' | 'department_expense';
