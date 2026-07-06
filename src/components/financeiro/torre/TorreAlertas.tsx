@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import {
   AlertTriangle, RefreshCw, Search, Ban, ClipboardCheck, Eye, ChevronDown, ChevronRight,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -58,6 +59,7 @@ export function TorreAlertas() {
   const [sevFiltro, setSevFiltro] = useState<AlertaSeveridade | null>(null);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [foco, setFoco] = useState(false);
 
   const { data: alertas = [], isLoading } = useTorreAlertas(aba);
   const { data: contagem } = useTorreAlertasContagem();
@@ -174,9 +176,15 @@ export function TorreAlertas() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden">
+      {foco && <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" onClick={() => setFoco(false)} />}
+      <div
+        className={cn(
+          "rounded-2xl border border-border bg-card flex flex-col overflow-hidden",
+          foco && "fixed inset-4 z-50 shadow-2xl",
+        )}
+      >
         {/* Header do bloco */}
-        <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/30">
+        <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/30 shrink-0">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -227,11 +235,23 @@ export function TorreAlertas() {
               <RefreshCw className={cn("h-3.5 w-3.5", reprocessar.isPending && "animate-spin")} />
               {reprocessar.isPending ? "Reprocessando…" : "Reprocessar"}
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon" variant="outline" className="h-9 w-9"
+                  onClick={() => setFoco((v) => !v)}
+                  aria-label={foco ? "Sair do modo foco" : "Modo foco"}
+                >
+                  {foco ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{foco ? "Sair do modo foco" : "Modo foco (tela cheia)"}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
         {/* Filtros por severidade */}
-        <div className="px-4 md:px-6 py-2 border-b border-border flex items-center gap-1.5 flex-wrap bg-card">
+        <div className="px-4 md:px-6 py-2 border-b border-border flex items-center gap-1.5 flex-wrap bg-card shrink-0">
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">
             Severidade
           </span>
@@ -264,7 +284,7 @@ export function TorreAlertas() {
 
         {/* Barra de seleção em lote */}
         {alertasSelecionados.length > 0 && (
-          <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between text-xs font-medium text-foreground flex-wrap gap-2">
+          <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between text-xs font-medium text-foreground flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-4">
               <span>{alertasSelecionados.length} item(ns) selecionado(s)</span>
               <button type="button" onClick={limparSelecao} className="text-primary hover:underline">
@@ -291,7 +311,12 @@ export function TorreAlertas() {
         )}
 
         {/* Planilha */}
-        <div className="overflow-x-auto">
+        <div
+          className={cn(
+            "overflow-auto",
+            foco ? "flex-1 min-h-0" : "max-h-[560px]",
+          )}
+        >
           {isLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -470,7 +495,7 @@ export function TorreAlertas() {
 
         {/* Rodapé de contagem */}
         {!isLoading && alertasFiltrados.length > 0 && (
-          <div className="px-4 md:px-6 py-3 border-t border-border text-xs text-muted-foreground bg-muted/30">
+          <div className="px-4 md:px-6 py-3 border-t border-border text-xs text-muted-foreground bg-muted/30 shrink-0">
             Exibindo {alertasFiltrados.length.toLocaleString("pt-BR")} de {alertas.length.toLocaleString("pt-BR")} alertas
             {busca || sevFiltro ? " (filtrado)" : ""}
           </div>
