@@ -779,7 +779,9 @@ export function PaymentReviewDialog({
                     )}
                   </div>
                   <div>
-                    <Label className="text-muted-foreground text-xs">Departamento</Label>
+                    <Label className="text-muted-foreground text-xs">
+                      Departamento {departamentoObrigatorio && <span className="text-destructive">*</span>}
+                    </Label>
                     <Select
                       value={departamentoId || "__none__"}
                       onValueChange={(v) => setDepartamentoId(v === "__none__" ? "" : v)}
@@ -788,12 +790,19 @@ export function PaymentReviewDialog({
                         <SelectValue placeholder="Selecione o departamento" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">Sem departamento</SelectItem>
+                        {!departamentoObrigatorio && (
+                          <SelectItem value="__none__">Sem departamento</SelectItem>
+                        )}
                         {departamentosList.map((d: any) => (
                           <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {departamentoObrigatorio && !departamentoId && (
+                      <p className="text-xs text-destructive mt-1">
+                        Origem ({item.source_type}) não informou departamento — selecione um.
+                      </p>
+                    )}
                     {item.department_name && !departamentoId && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Origem informou: {item.department_name}
