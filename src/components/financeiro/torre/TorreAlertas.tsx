@@ -3,7 +3,7 @@
 // decisão assinada (justificativa obrigatória → trilha imutável) ou cria uma
 // revisão operacional. Toda transição passa por fn_despesas_alerta_transicao.
 // RLS restringe esta lista a admin/supervisor — usuário comum não vê alertas.
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import {
