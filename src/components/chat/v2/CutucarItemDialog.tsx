@@ -60,6 +60,7 @@ export function CutucarItemDialog({
   itemId,
   itemTipo = "comentario",
   docNome,
+  itemAutorId,
   onSent,
 }: Props) {
   const [motivo, setMotivo] = useState("");
