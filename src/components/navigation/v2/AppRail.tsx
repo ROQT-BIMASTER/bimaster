@@ -380,11 +380,11 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 {user?.email ?? "Perfil"}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate("/dashboard/meu-perfil")}>
+              <DropdownMenuItem onSelect={() => navigate("/meu-perfil")}>
                 <UserCircle className="h-4 w-4 mr-2" />
                 Meu Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/dashboard/meu-perfil#senha")}>
+              <DropdownMenuItem onSelect={() => navigate("/meu-perfil#senha")}>
                 <KeyRound className="h-4 w-4 mr-2" />
                 Alterar Senha
               </DropdownMenuItem>
