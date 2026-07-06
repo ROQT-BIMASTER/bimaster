@@ -1,19 +1,25 @@
-// Fila de alertas forenses da Torre (Fase 2).
+// Fila de alertas forenses da Torre (Fase 2) — layout planilha densa.
 // Detecção é determinística (motor SQL); aqui o humano TRIA: analisa, encerra com
 // decisão assinada (justificativa obrigatória → trilha imutável) ou cria uma
 // revisão operacional. Toda transição passa por fn_despesas_alerta_transicao.
 // RLS restringe esta lista a admin/supervisor — usuário comum não vê alertas.
-import { useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import { AlertTriangle, RefreshCw, Search, Ban, ClipboardCheck, ChevronDown } from "lucide-react";
+import {
+  AlertTriangle, RefreshCw, Search, Ban, ClipboardCheck, Eye, ChevronDown, ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -32,114 +38,67 @@ const REGRA_LABEL: Record<string, string> = {
 const regraLabel = (cod: string) => REGRA_LABEL[cod.slice(0, 3)] ?? cod;
 
 const sevCls: Record<AlertaSeveridade, string> = {
-  critica: "bg-destructive text-destructive-foreground",
-  alta: "bg-destructive/15 text-destructive border border-destructive/30",
-  media: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30",
-  baixa: "bg-muted text-muted-foreground",
+  critica: "bg-destructive/10 text-destructive border border-destructive/20",
+  alta: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20",
+  media: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20",
+  baixa: "bg-muted text-muted-foreground border border-border",
 };
 const sevLabel: Record<AlertaSeveridade, string> = {
   critica: "Crítica", alta: "Alta", media: "Média", baixa: "Baixa",
 };
 
+const SEV_ORDEM: AlertaSeveridade[] = ["critica", "alta", "media", "baixa"];
+
 const money = (v: number | null) => (v == null ? "—" : formatCurrency(v));
 const fmtData = (v: string | null) => (v ? format(parseISO(v), "dd/MM/yyyy") : "—");
 
-function AlertaCard({
-  alerta, onAnalisar, onEncerrar, onRevisar, pendingId,
-}: {
-  alerta: DespesaAlerta;
-  onAnalisar: (a: DespesaAlerta) => void;
-  onEncerrar: (a: DespesaAlerta) => void;
-  onRevisar: (a: DespesaAlerta) => void;
-  pendingId: string | null;
-}) {
-  const [aberto, setAberto] = useState(false);
-  const encerrado = alerta.status === "resolvido" || alerta.status === "descartado";
-  const busy = pendingId === alerta.id;
-  const evid = Object.entries(alerta.evidencia ?? {}).slice(0, 8);
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full", sevCls[alerta.severidade])}>
-              {sevLabel[alerta.severidade]}
-            </span>
-            <Badge variant="outline" className="text-[10px] font-medium">{regraLabel(alerta.regra_codigo)}</Badge>
-            {alerta.ocorrencias > 1 && (
-              <span className="text-[10px] text-muted-foreground">{alerta.ocorrencias}× detectado</span>
-            )}
-          </div>
-          <p className="text-sm font-semibold text-foreground mt-1.5 leading-snug">{alerta.titulo}</p>
-          {alerta.descricao && <p className="text-xs text-muted-foreground mt-0.5">{alerta.descricao}</p>}
-          <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground flex-wrap">
-            {alerta.fornecedor_nome && <span className="truncate max-w-[240px]">🏢 {alerta.fornecedor_nome}</span>}
-            {alerta.competencia && <span>📅 {fmtData(alerta.competencia)}</span>}
-            {alerta.conta_ids && alerta.conta_ids.length > 0 && <span>{alerta.conta_ids.length} título(s)</span>}
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Em risco</div>
-          <div className="text-lg font-bold text-foreground tabular-nums font-mono">{money(alerta.valor_impacto)}</div>
-        </div>
-      </div>
-
-      {evid.length > 0 && (
-        <div className="mt-2">
-          <button type="button" onClick={() => setAberto((v) => !v)}
-            className="text-[11px] text-muted-foreground inline-flex items-center gap-1 hover:text-foreground">
-            <ChevronDown className={cn("h-3 w-3 transition-transform", aberto && "rotate-180")} /> Evidência
-          </button>
-          {aberto && (
-            <div className="mt-1 rounded-lg bg-muted/40 p-2 text-[11px] font-mono text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 overflow-x-auto">
-              {evid.map(([k, v]) => (
-                <div key={k} className="truncate"><span className="text-foreground/70">{k}:</span> {String(v)}</div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {encerrado ? (
-        <div className="mt-3 pt-3 border-t border-border/60 text-[11px] text-muted-foreground">
-          {alerta.status === "descartado" ? "Encerrado" : "Resolvido"}
-          {alerta.resolucao_nota ? ` — "${alerta.resolucao_nota}"` : ""}
-          {alerta.resolvido_em ? ` · ${fmtData(alerta.resolvido_em)}` : ""}
-        </div>
-      ) : (
-        <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap">
-          {alerta.status === "novo" && (
-            <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={busy} onClick={() => onAnalisar(alerta)}>
-              <Search className="h-3.5 w-3.5" /> Analisar
-            </Button>
-          )}
-          {alerta.status === "em_analise" && (
-            <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={busy} onClick={() => onRevisar(alerta)}>
-              <ClipboardCheck className="h-3.5 w-3.5" /> Marcar p/ revisão
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-destructive hover:text-destructive"
-            disabled={busy} onClick={() => onEncerrar(alerta)}>
-            <Ban className="h-3.5 w-3.5" /> Encerrar
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function TorreAlertas() {
   const [aba, setAba] = useState<AlertaAba>("novo");
+  const [busca, setBusca] = useState("");
+  const [sevFiltro, setSevFiltro] = useState<AlertaSeveridade | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [expandido, setExpandido] = useState<string | null>(null);
+
   const { data: alertas = [], isLoading } = useTorreAlertas(aba);
   const { data: contagem } = useTorreAlertasContagem();
   const transicao = useAlertaTransicao();
   const reprocessar = useReprocessarDeteccao();
 
   const [encerrarAlvo, setEncerrarAlvo] = useState<DespesaAlerta | null>(null);
+  const [encerrarLote, setEncerrarLote] = useState<DespesaAlerta[] | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [revisarAlvo, setRevisarAlvo] = useState<DespesaAlerta | null>(null);
   const [revisaoAberta, setRevisaoAberta] = useState(false);
+
+  // Filtro client-side (busca + severidade)
+  const alertasFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return alertas.filter((a) => {
+      if (sevFiltro && a.severidade !== sevFiltro) return false;
+      if (!q) return true;
+      const hay = `${a.titulo} ${a.descricao ?? ""} ${a.fornecedor_nome ?? ""} ${a.regra_codigo} ${regraLabel(a.regra_codigo)}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [alertas, busca, sevFiltro]);
+
+  const idsVisiveis = alertasFiltrados.map((a) => a.id);
+  const todosMarcados = idsVisiveis.length > 0 && idsVisiveis.every((id) => selecionados.has(id));
+  const algunsMarcados = idsVisiveis.some((id) => selecionados.has(id)) && !todosMarcados;
+
+  const toggleTodos = (checked: boolean) => {
+    const next = new Set(selecionados);
+    if (checked) idsVisiveis.forEach((id) => next.add(id));
+    else idsVisiveis.forEach((id) => next.delete(id));
+    setSelecionados(next);
+  };
+  const toggleUm = (id: string, checked: boolean) => {
+    const next = new Set(selecionados);
+    if (checked) next.add(id); else next.delete(id);
+    setSelecionados(next);
+  };
+  const limparSelecao = () => setSelecionados(new Set());
+
+  const alertasSelecionados = alertasFiltrados.filter((a) => selecionados.has(a.id));
 
   const analisar = (a: DespesaAlerta) =>
     transicao.mutate(
@@ -147,10 +106,38 @@ export function TorreAlertas() {
       { onSuccess: () => toast.success("Alerta em análise"), onError: (e) => toast.error(e.message ?? "Falha") },
     );
 
+  const analisarLote = () => {
+    const alvos = alertasSelecionados.filter((a) => a.status === "novo");
+    if (alvos.length === 0) { toast.info("Nenhum alerta novo selecionado."); return; }
+    Promise.all(
+      alvos.map((a) =>
+        transicao.mutateAsync({ alertaId: a.id, novoStatus: "em_analise" }).catch(() => null),
+      ),
+    ).then(() => {
+      toast.success(`${alvos.length} alerta(s) movido(s) para análise`);
+      limparSelecao();
+    });
+  };
+
   const confirmarEncerrar = () => {
-    if (!encerrarAlvo) return;
     const texto = justificativa.trim();
     if (!texto) { toast.error("A justificativa é obrigatória — ela fica registrada na trilha."); return; }
+
+    if (encerrarLote) {
+      Promise.all(
+        encerrarLote.map((a) =>
+          transicao.mutateAsync({ alertaId: a.id, novoStatus: "descartado", justificativa: texto }).catch(() => null),
+        ),
+      ).then(() => {
+        toast.success(`${encerrarLote.length} alerta(s) encerrado(s) — decisão registrada na trilha`);
+        setEncerrarLote(null);
+        setJustificativa("");
+        limparSelecao();
+      });
+      return;
+    }
+
+    if (!encerrarAlvo) return;
     transicao.mutate(
       { alertaId: encerrarAlvo.id, novoStatus: "descartado", justificativa: texto },
       {
@@ -173,64 +160,360 @@ export function TorreAlertas() {
     });
 
   const c = contagem ?? { novo: 0, em_analise: 0, acionado: 0, encerrado: 0 };
+  const dialogEncerrarAberto = !!encerrarAlvo || !!encerrarLote;
+  const dialogTitulo = encerrarLote ? `Encerrar ${encerrarLote.length} alertas` : "Encerrar alerta";
+  const dialogSubtitulo = encerrarLote
+    ? `A mesma justificativa será registrada na trilha imutável para todos os ${encerrarLote.length} alertas selecionados.`
+    : encerrarAlvo?.titulo;
+
+  const tabs: { id: AlertaAba; label: string; count: number }[] = [
+    { id: "novo", label: "Novos", count: c.novo },
+    { id: "em_analise", label: "Em análise", count: c.em_analise },
+    { id: "encerrado", label: "Encerrados", count: c.encerrado },
+  ];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 md:p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h2 className="text-lg font-bold text-foreground">Alertas de risco</h2>
-          <span className="text-xs text-muted-foreground">detecção automática · toda decisão fica na trilha</span>
+    <TooltipProvider delayDuration={200}>
+      <div className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden">
+        {/* Header do bloco */}
+        <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/30">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <h2 className="text-lg font-semibold text-foreground">Alertas de risco</h2>
+            </div>
+            <nav className="flex gap-1">
+              {tabs.map((t) => {
+                const active = aba === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { setAba(t.id); limparSelecao(); setExpandido(null); }}
+                    className={cn(
+                      "relative px-3 py-2 text-sm font-medium transition-colors",
+                      active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t.label}
+                    {t.count > 0 && (
+                      <span className={cn(
+                        "ml-1.5 text-[11px] tabular-nums",
+                        active ? "text-primary font-semibold" : "text-muted-foreground",
+                      )}>
+                        ({t.count.toLocaleString("pt-BR")})
+                      </span>
+                    )}
+                    {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar fornecedor ou regra…"
+                className="pl-8 h-9 w-64 text-sm"
+              />
+            </div>
+            <Button
+              size="sm" variant="outline" className="h-9 gap-1.5"
+              disabled={reprocessar.isPending} onClick={doReprocessar}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", reprocessar.isPending && "animate-spin")} />
+              {reprocessar.isPending ? "Reprocessando…" : "Reprocessar"}
+            </Button>
+          </div>
         </div>
-        <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={reprocessar.isPending} onClick={doReprocessar}>
-          <RefreshCw className={cn("h-3.5 w-3.5", reprocessar.isPending && "animate-spin")} />
-          {reprocessar.isPending ? "Reprocessando… (pode levar 1-2 min)" : "Reprocessar"}
-        </Button>
-      </div>
 
-      <Tabs value={aba} onValueChange={(v) => setAba(v as AlertaAba)}>
-        <TabsList>
-          <TabsTrigger value="novo">Novos {c.novo > 0 && <span className="ml-1.5 text-[10px] font-bold text-destructive">{c.novo}</span>}</TabsTrigger>
-          <TabsTrigger value="em_analise">Em análise {c.em_analise > 0 && <span className="ml-1.5 text-[10px] font-bold">{c.em_analise}</span>}</TabsTrigger>
-          <TabsTrigger value="encerrado">Encerrados {c.encerrado > 0 && <span className="ml-1.5 text-[10px] text-muted-foreground">{c.encerrado}</span>}</TabsTrigger>
-        </TabsList>
+        {/* Filtros por severidade */}
+        <div className="px-4 md:px-6 py-2 border-b border-border flex items-center gap-1.5 flex-wrap bg-card">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+            Severidade
+          </span>
+          <button
+            type="button"
+            onClick={() => setSevFiltro(null)}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+              sevFiltro === null
+                ? "bg-foreground text-background border-foreground"
+                : "bg-transparent text-muted-foreground border-border hover:text-foreground",
+            )}
+          >
+            Todas
+          </button>
+          {SEV_ORDEM.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSevFiltro(sevFiltro === s ? null : s)}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+                sevFiltro === s ? sevCls[s] : "text-muted-foreground border border-border hover:text-foreground",
+              )}
+            >
+              {sevLabel[s]}
+            </button>
+          ))}
+        </div>
 
-        <TabsContent value={aba} className="mt-3 space-y-2">
+        {/* Barra de seleção em lote */}
+        {alertasSelecionados.length > 0 && (
+          <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between text-xs font-medium text-foreground flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <span>{alertasSelecionados.length} item(ns) selecionado(s)</span>
+              <button type="button" onClick={limparSelecao} className="text-primary hover:underline">
+                Limpar seleção
+              </button>
+            </div>
+            <div className="flex gap-2">
+              {aba === "novo" && (
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={analisarLote}>
+                  Mover para análise
+                </Button>
+              )}
+              {aba !== "encerrado" && (
+                <Button
+                  size="sm" variant="outline"
+                  className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setEncerrarLote(alertasSelecionados)}
+                >
+                  Encerrar em lote
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Planilha */}
+        <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}</div>
-          ) : alertas.length === 0 ? (
-            <div className="text-center py-10 text-sm text-muted-foreground">
-              {aba === "novo" ? "Nenhum alerta novo. Rode a detecção (Reprocessar) ou aguarde o ciclo diário." : "Nada aqui."}
+            <div className="p-4 space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full rounded" />
+              ))}
+            </div>
+          ) : alertasFiltrados.length === 0 ? (
+            <div className="text-center py-14 text-sm text-muted-foreground">
+              {alertas.length === 0
+                ? (aba === "novo"
+                    ? "Nenhum alerta novo. Rode a detecção (Reprocessar) ou aguarde o ciclo diário."
+                    : "Nada aqui.")
+                : "Nenhum alerta corresponde aos filtros atuais."}
             </div>
           ) : (
-            alertas.map((a) => (
-              <AlertaCard key={a.id} alerta={a} pendingId={transicao.isPending ? transicao.variables?.alertaId ?? null : null}
-                onAnalisar={analisar} onEncerrar={setEncerrarAlvo} onRevisar={abrirRevisao} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="w-10 pl-4">
+                    <Checkbox
+                      checked={todosMarcados || (algunsMarcados ? "indeterminate" : false)}
+                      onCheckedChange={(v) => toggleTodos(!!v)}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                  <TableHead className="w-6 p-0"></TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Severidade</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Regra</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Fornecedor</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Competência</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Títulos</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Valor em risco</TableHead>
+                  <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center w-24 pr-4">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {alertasFiltrados.map((a) => {
+                  const encerrado = a.status === "resolvido" || a.status === "descartado";
+                  const busy = transicao.isPending && transicao.variables?.alertaId === a.id;
+                  const marcado = selecionados.has(a.id);
+                  const aberto = expandido === a.id;
+                  const evid = Object.entries(a.evidencia ?? {}).slice(0, 12);
 
-      {/* Encerrar com decisão assinada (→ descartado, justificativa obrigatória) */}
-      <Dialog open={!!encerrarAlvo} onOpenChange={(o) => { if (!o) { setEncerrarAlvo(null); setJustificativa(""); } }}>
+                  return (
+                    <Fragment key={a.id}>
+                      <TableRow
+                        className={cn(
+                          "group text-sm border-border hover:bg-muted/40 cursor-pointer",
+                          marcado && "bg-primary/5",
+                        )}
+                        onClick={() => setExpandido(aberto ? null : a.id)}
+                      >
+                        <TableCell className="pl-4 py-2" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={marcado}
+                            onCheckedChange={(v) => toggleUm(a.id, !!v)}
+                            aria-label="Selecionar alerta"
+                          />
+                        </TableCell>
+                        <TableCell className="p-0 text-muted-foreground">
+                          {aberto ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                            sevCls[a.severidade],
+                          )}>
+                            {sevLabel[a.severidade]}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="max-w-[280px]">
+                                <div className="font-medium text-foreground truncate">{regraLabel(a.regra_codigo)}</div>
+                                <div className="text-[11px] text-muted-foreground truncate">{a.titulo}</div>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-sm">
+                              <div className="font-mono text-[10px] text-muted-foreground">{a.regra_codigo}</div>
+                              <div className="text-xs">{a.titulo}</div>
+                              {a.descricao && <div className="text-[11px] text-muted-foreground mt-1">{a.descricao}</div>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell className="py-2 text-muted-foreground max-w-[240px] truncate">
+                          {a.fornecedor_nome ?? "—"}
+                        </TableCell>
+                        <TableCell className="py-2 text-muted-foreground tabular-nums">
+                          {fmtData(a.competencia)}
+                        </TableCell>
+                        <TableCell className="py-2 text-right text-muted-foreground tabular-nums">
+                          {a.conta_ids?.length ?? 0}
+                        </TableCell>
+                        <TableCell className="py-2 text-right font-semibold text-foreground tabular-nums font-mono">
+                          {money(a.valor_impacto)}
+                        </TableCell>
+                        <TableCell className="py-2 pr-4" onClick={(e) => e.stopPropagation()}>
+                          {encerrado ? (
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block text-center">
+                              {a.status === "descartado" ? "Encerrado" : "Resolvido"}
+                            </span>
+                          ) : (
+                            <div className="flex justify-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                              {a.status === "novo" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" disabled={busy} onClick={() => analisar(a)}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Analisar</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {a.status === "em_analise" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" disabled={busy} onClick={() => abrirRevisao(a)}>
+                                      <ClipboardCheck className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Marcar para revisão</TooltipContent>
+                                </Tooltip>
+                              )}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon" variant="ghost"
+                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    disabled={busy} onClick={() => setEncerrarAlvo(a)}
+                                  >
+                                    <Ban className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Encerrar</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {aberto && (
+                        <TableRow key={`${a.id}-exp`} className="bg-muted/20 hover:bg-muted/20 border-border">
+                          <TableCell colSpan={9} className="py-3 px-4 md:px-6">
+                            <div className="space-y-2">
+                              {a.descricao && (
+                                <p className="text-xs text-muted-foreground">{a.descricao}</p>
+                              )}
+                              <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                                {a.ocorrencias > 1 && <span>{a.ocorrencias}× detectado</span>}
+                                {a.score !== null && <span>Score {a.score.toFixed(1)}</span>}
+                                <span>Detectado em {fmtData(a.primeiro_detectado_em?.slice(0, 10))}</span>
+                                {encerrado && a.resolucao_nota && (
+                                  <span className="italic">“{a.resolucao_nota}”</span>
+                                )}
+                              </div>
+                              {evid.length > 0 && (
+                                <div className="rounded-lg bg-muted/40 p-2 text-[11px] font-mono text-muted-foreground grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-0.5">
+                                  {evid.map(([k, v]) => (
+                                    <div key={k} className="truncate">
+                                      <span className="text-foreground/70">{k}:</span> {String(v)}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        {/* Rodapé de contagem */}
+        {!isLoading && alertasFiltrados.length > 0 && (
+          <div className="px-4 md:px-6 py-3 border-t border-border text-xs text-muted-foreground bg-muted/30">
+            Exibindo {alertasFiltrados.length.toLocaleString("pt-BR")} de {alertas.length.toLocaleString("pt-BR")} alertas
+            {busca || sevFiltro ? " (filtrado)" : ""}
+          </div>
+        )}
+      </div>
+
+      {/* Encerrar (individual ou lote) — justificativa obrigatória */}
+      <Dialog
+        open={dialogEncerrarAberto}
+        onOpenChange={(o) => {
+          if (!o) { setEncerrarAlvo(null); setEncerrarLote(null); setJustificativa(""); }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Encerrar alerta</DialogTitle>
+            <DialogTitle>{dialogTitulo}</DialogTitle>
             <DialogDescription>
               A justificativa fica registrada na trilha de auditoria imutável (quem, quando, por quê). Descreva a decisão: falso positivo, aceito como legítimo, ou providência tomada.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-xs text-muted-foreground rounded-lg bg-muted/40 p-2">{encerrarAlvo?.titulo}</div>
-          <Textarea value={justificativa} onChange={(e) => setJustificativa(e.target.value)} rows={4}
-            placeholder="Ex.: Recorrência legítima do contrato X; ou enviado à auditoria; ou negociado redução com o fornecedor." />
+          {dialogSubtitulo && (
+            <div className="text-xs text-muted-foreground rounded-lg bg-muted/40 p-2">{dialogSubtitulo}</div>
+          )}
+          <Textarea
+            value={justificativa}
+            onChange={(e) => setJustificativa(e.target.value)}
+            rows={4}
+            placeholder="Ex.: Recorrência legítima do contrato X; ou enviado à auditoria; ou negociado redução com o fornecedor."
+          />
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setEncerrarAlvo(null); setJustificativa(""); }}>Cancelar</Button>
-            <Button variant="destructive" disabled={transicao.isPending} onClick={confirmarEncerrar}>Encerrar e registrar</Button>
+            <Button
+              variant="ghost"
+              onClick={() => { setEncerrarAlvo(null); setEncerrarLote(null); setJustificativa(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button variant="destructive" disabled={transicao.isPending} onClick={confirmarEncerrar}>
+              Encerrar e registrar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Criar revisão operacional a partir do alerta (fila contas_pagar_revisao) */}
       {revisarAlvo && (
         <MarcarRevisaoDialog
           open={revisaoAberta}
@@ -245,6 +528,6 @@ export function TorreAlertas() {
           onSuccess={() => toast.success("Revisão criada na fila operacional")}
         />
       )}
-    </div>
+    </TooltipProvider>
   );
 }

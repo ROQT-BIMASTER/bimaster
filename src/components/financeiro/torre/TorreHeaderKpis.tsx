@@ -1,6 +1,6 @@
-// Header de KPIs da Torre de Despesas — segue o padrão visual de ContasPagarHeaderKpis
-// (hero col-span-4 text-4xl tabular-nums font-mono; cards rounded-xl; tons success/amber/destructive).
-import { AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+// Header de KPIs da Torre de Despesas — 4 tiles uniformes (modelo v1 aprovado).
+// Total | MoM | YoY | Maior anomalia |z|. Tokens semânticos, sem cores literais.
+import { AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -19,25 +19,56 @@ const fmtPct = (v: number | null) =>
     ? "—"
     : `${v > 0 ? "+" : ""}${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
-function pctTone(v: number | null): "muted" | "emerald" | "destructive" {
+/** Formato compacto R$ 172k / R$ 1,2M para chip de delta. */
+function fmtDeltaAbs(v: number): string {
+  const sinal = v > 0 ? "+ " : v < 0 ? "− " : "";
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000) return `${sinal}R$ ${(abs / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
+  if (abs >= 1_000) return `${sinal}R$ ${Math.round(abs / 1_000).toLocaleString("pt-BR")}k`;
+  return `${sinal}${formatCurrency(abs)}`;
+}
+
+type Tone = "muted" | "success" | "destructive";
+
+function pctTone(v: number | null): Tone {
   // Despesa: subir é ruim (destructive), cair é bom (success)
   if (v === null || v === undefined) return "muted";
   if (v > 0) return "destructive";
-  if (v < 0) return "emerald";
+  if (v < 0) return "success";
   return "muted";
 }
+
+const toneText = (t: Tone) =>
+  t === "success" ? "text-success" : t === "destructive" ? "text-destructive" : "text-foreground";
+
+const toneChip = (t: Tone) =>
+  t === "success"
+    ? "bg-success/10 text-success"
+    : t === "destructive"
+      ? "bg-destructive/10 text-destructive"
+      : "bg-muted text-muted-foreground";
 
 export function TorreHeaderKpis({ payload, isLoading }: Props) {
   if (isLoading || !payload) {
     return (
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-4 h-36 rounded-2xl border border-border bg-card animate-pulse" />
-        <div className="col-span-12 lg:col-span-8 h-36 rounded-2xl border border-border bg-card animate-pulse" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+        ))}
       </div>
     );
   }
 
   const { totais, qualidade, meta, departamentos } = payload;
+
+  // Delta absoluto MoM: total_mes_ref − valor do mês imediatamente anterior na série
+  const serie = totais.serie ?? [];
+  const prevMoM = serie.length >= 2 ? serie[serie.length - 2].valor : null;
+  const deltaMoM = prevMoM !== null ? totais.total_mes_ref - prevMoM : null;
+
+  // Delta absoluto YoY: total_mes_ref − valor 12 meses atrás na série (se existir)
+  const prevYoY = serie.length >= 13 ? serie[serie.length - 13].valor : null;
+  const deltaYoY = prevYoY !== null ? totais.total_mes_ref - prevYoY : null;
 
   // Maior anomalia do mês de referência (|z| máximo entre departamentos)
   const anomalia = departamentos.reduce<{ nome: string; z: number } | null>((acc, d) => {
@@ -49,21 +80,19 @@ export function TorreHeaderKpis({ payload, isLoading }: Props) {
   }, null);
 
   const absZ = anomalia ? Math.abs(anomalia.z) : 0;
-  const anomaliaTone =
-    absZ >= 3 ? "text-destructive" : absZ >= 2 ? "text-amber-600 dark:text-amber-400" : "text-foreground";
+  const anomaliaTone: Tone = absZ >= 3 ? "destructive" : absZ >= 2 ? "muted" : "muted";
+  const anomaliaCritico = absZ >= 3;
 
   const mesRefLabel = format(parseISO(meta.mes_ref), "MMMM 'de' yyyy", { locale: ptBR });
+  const mesRefCap = mesRefLabel.charAt(0).toUpperCase() + mesRefLabel.slice(1);
 
   const momTone = pctTone(totais.mom_pct);
   const yoyTone = pctTone(totais.yoy_pct);
-  const toneCls = (t: "muted" | "emerald" | "destructive") =>
-    t === "emerald" ? "text-success" : t === "destructive" ? "text-destructive" : "text-foreground";
 
   const mostrarBanner = qualidade.pct_valor_sem_depto > 1;
 
   return (
     <div className="space-y-3">
-      {/* Banner fino de qualidade */}
       {mostrarBanner && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-2">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -81,93 +110,72 @@ export function TorreHeaderKpis({ payload, isLoading }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-4">
-        {/* Hero — Total do mês de referência */}
-        <div className="col-span-12 lg:col-span-4 bg-card p-6 rounded-2xl border border-border shadow-sm flex flex-col justify-between">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Total de despesas
-            </span>
-            <div className="mt-1 text-4xl font-bold text-foreground tracking-tight tabular-nums font-mono">
-              {num(totais.total_mes_ref)}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1 capitalize">{mesRefLabel}</p>
-          </div>
-          <div className="mt-6 pt-6 border-t border-border/60 grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase tracking-wide">
-                Departamentos
-              </span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">
-                {departamentos.filter((d) => d.departamento_id !== null).length}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase tracking-wide">
-                Janela
-              </span>
-              <span className="text-sm font-semibold text-muted-foreground tabular-nums">{meta.meses} meses</span>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total de Despesas */}
+        <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+          <p className="text-[11px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+            Total de despesas
+          </p>
+          <h3 className="text-2xl font-bold text-foreground tabular-nums font-mono">
+            {num(totais.total_mes_ref)}
+          </h3>
+          <p className="text-[11px] text-muted-foreground mt-1 capitalize">{mesRefCap}</p>
         </div>
 
-        {/* MoM / YoY / Maior anomalia */}
-        <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                vs. mês anterior (MoM)
+        {/* MoM */}
+        <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+          <p className="text-[11px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+            Variação MoM
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={cn("text-2xl font-bold tabular-nums font-mono", toneText(momTone))}>
+              {fmtPct(totais.mom_pct)}
+            </h3>
+            {deltaMoM !== null && (
+              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums", toneChip(momTone))}>
+                {fmtDeltaAbs(deltaMoM)}
               </span>
-              <div className={cn("text-xl font-bold mt-1 tabular-nums font-mono", toneCls(momTone))}>
-                {fmtPct(totais.mom_pct)}
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium mt-2">
-              {momTone === "destructive" ? (
-                <TrendingUp className="h-3 w-3 text-destructive" />
-              ) : momTone === "emerald" ? (
-                <TrendingDown className="h-3 w-3 text-success" />
-              ) : null}
-              variação do total mensal
-            </div>
-          </div>
-
-          <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                vs. ano anterior (YoY)
-              </span>
-              <div className={cn("text-xl font-bold mt-1 tabular-nums font-mono", toneCls(yoyTone))}>
-                {fmtPct(totais.yoy_pct)}
-              </div>
-            </div>
-            <div className="text-[10px] text-muted-foreground font-medium mt-2">mesmo mês do ano passado</div>
-          </div>
-
-          <div
-            className={cn(
-              "p-4 rounded-xl border flex flex-col justify-between",
-              absZ >= 3
-                ? "bg-destructive/5 border-destructive/20"
-                : absZ >= 2
-                  ? "bg-amber-500/5 border-amber-500/30"
-                  : "bg-card border-border",
             )}
-          >
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Maior anomalia |z|
-              </span>
-              <div className={cn("text-xl font-bold mt-1 tabular-nums font-mono", anomaliaTone)}>
-                {anomalia
-                  ? anomalia.z.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-                  : "—"}
-              </div>
-            </div>
-            <div className="text-[10px] text-muted-foreground font-medium mt-2 truncate">
-              {anomalia ? anomalia.nome : "sem histórico suficiente"}
-            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-1">vs. mês anterior</p>
+        </div>
+
+        {/* YoY */}
+        <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+          <p className="text-[11px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+            Variação YoY
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={cn("text-2xl font-bold tabular-nums font-mono", toneText(yoyTone))}>
+              {fmtPct(totais.yoy_pct)}
+            </h3>
+            {deltaYoY !== null && (
+              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums", toneChip(yoyTone))}>
+                {fmtDeltaAbs(deltaYoY)}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">mesmo mês do ano passado</p>
+        </div>
+
+        {/* Maior Anomalia |z| */}
+        <div
+          className={cn(
+            "bg-card p-4 rounded-xl border border-border shadow-sm",
+            anomaliaCritico && "border-l-4 border-l-destructive",
+          )}
+        >
+          <p className="text-[11px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+            Maior anomalia |z|
+          </p>
+          <h3 className={cn("text-2xl font-bold tabular-nums font-mono", toneText(anomaliaTone))}>
+            {anomalia
+              ? `${anomalia.z > 0 ? "+" : ""}${anomalia.z.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : "—"}
+          </h3>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">
+            {anomalia ? anomalia.nome : `janela de ${meta.meses} meses`}
+          </p>
         </div>
       </div>
     </div>
