@@ -87,11 +87,16 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium text-right">Em fila</TableHead>
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium text-right">Saldo</TableHead>
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium w-[220px]">Consumo</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium w-[160px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {distribuidos.map((r) => (
-                  <ConsumoRow key={r.distribution_id ?? r.department_id ?? "row"} r={r} />
+                  <ConsumoRow
+                    key={r.distribution_id ?? r.department_id ?? "row"}
+                    r={r}
+                    onSolicitar={() => setSupTarget(r)}
+                  />
                 ))}
                 {sintetica && (
                   <TableRow className="bg-amber-500/5 border-t-2 border-amber-500/40">
