@@ -49,7 +49,7 @@ export function useMeusChamados() {
       const { data, error } = await supabase
         .from("suporte_tickets" as any)
         .select("*")
-        .or(`requester_id.eq.${user!.id},owner_id.eq.${user!.id}`)
+        .eq("requester_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
