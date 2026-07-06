@@ -80,6 +80,13 @@ export function useFinancialSubmission() {
         attachments: config.attachments || null,
         empresa_id: config.empresaId || null,
         empresa_nome: config.empresaNome || null,
+        // Fase 1.B — sugestões da origem; financeiro confirma no aceite.
+        departamento_id: config.departamentoId ?? null,
+        plano_contas_id: config.planoContasId ?? null,
+        categoria_codigo: config.categoriaCodigo ?? null,
+        natureza_lancamento: config.naturezaLancamento ?? null,
+        chave_acesso_nfe: config.chaveAcessoNfe ?? null,
+        numero_documento_fiscal: config.numeroDocumentoFiscal ?? null,
       };
 
       let finalQueueId = config.existingQueueId;
