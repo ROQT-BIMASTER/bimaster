@@ -40,7 +40,7 @@ interface Props {
 
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const navigate = (to: string) => { window.location.href = to; };
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
   // no meio de uma mensagem longa não perde o texto digitado.
