@@ -420,14 +420,14 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
           </div>
         )}
         {tarefaVinculada && (
-          <Link
-            to={`/dashboard/projetos/${tarefaProjetoId}?tarefa=${tarefaVinculada}`}
+          <a
+            href={`/dashboard/projetos/${tarefaProjetoId}?tarefa=${tarefaVinculada}`}
             className="mt-1 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
           >
             <ListPlus className="h-3 w-3" />
             Tarefa vinculada{tarefaTitulo ? `: ${tarefaTitulo.slice(0, 40)}` : ""}
             <ExternalLink className="h-3 w-3 ml-0.5" />
-          </Link>
+          </a>
         )}
       </div>
       <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
