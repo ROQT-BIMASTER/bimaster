@@ -59,6 +59,7 @@ export function TorreAlertas() {
   const [sevFiltro, setSevFiltro] = useState<AlertaSeveridade | null>(null);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [foco, setFoco] = useState(false);
 
   const { data: alertas = [], isLoading } = useTorreAlertas(aba);
   const { data: contagem } = useTorreAlertasContagem();
