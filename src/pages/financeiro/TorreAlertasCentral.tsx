@@ -4,11 +4,13 @@
 // (public.despesa_alertas_eventos). Toda decisão é registrada via
 // fn_despesas_alerta_transicao (RPC SECURITY DEFINER).
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import {
   AlertTriangle,
+  ArrowLeft,
   Search,
   X,
   Filter,
@@ -17,6 +19,7 @@ import {
   History,
   ExternalLink,
 } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
