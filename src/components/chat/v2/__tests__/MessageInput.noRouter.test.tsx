@@ -41,13 +41,40 @@ vi.mock("@/hooks/chat/useChatDraft", () => ({
   useChatDraft: () => ({ draft: "", setDraft: vi.fn(), clearDraft: vi.fn() }),
 }));
 vi.mock("@/hooks/chat/useChatAprovacao", () => ({
-  useChatAprovacao: () => ({ solicitar: vi.fn() }),
+  useChatAprovacao: () => ({ data: null, isLoading: false }),
+  useCriarAprovacao: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock("@/hooks/chat/useChatPresence", () => ({
   useChatPresence: () => ({ typingNow: vi.fn(), online: [], typing: [] }),
 }));
 vi.mock("@/hooks/chat/usePresenceStatus", () => ({
   usePresenceStatus: () => ({ status: "online", setStatus: vi.fn() }),
+}));
+// Mocks para dialogs/popover que MessageInput monta como filhos —
+// substituímos por stubs para evitar arrastar hooks pesados.
+vi.mock("@/components/chat/v2/NovaAprovacaoDialog", () => ({
+  NovaAprovacaoDialog: () => null,
+}));
+vi.mock("@/components/chat/v2/UrgentSendDialog", () => ({
+  UrgentSendDialog: () => null,
+}));
+vi.mock("@/components/chat/v2/SofiaCommandPopover", () => ({
+  SofiaCommandPopover: () => null,
+}));
+vi.mock("@/components/chat/v2/MentionAutocomplete", () => ({
+  MentionAutocomplete: () => null,
+}));
+vi.mock("@/components/chat/v2/TaskMentionAutocomplete", () => ({
+  TaskMentionAutocomplete: () => null,
+}));
+vi.mock("@/components/chat/v2/CameraCaptureButton", () => ({
+  CameraCaptureButton: () => null,
+}));
+vi.mock("@/components/chat/v2/ChatComposerActionsBar", () => ({
+  ChatComposerActionsBar: () => null,
+}));
+vi.mock("@/components/suporte/RespostasRapidasPopover", () => ({
+  RespostasRapidasPopover: () => null,
 }));
 
 import { ChatDrawerProvider } from "@/components/chat/v2/ChatDrawer";
