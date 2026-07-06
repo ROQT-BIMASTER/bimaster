@@ -25189,10 +25189,12 @@ export type Database = {
           amount: number
           attachment_url: string | null
           attachments: Json | null
+          categoria_codigo: string | null
           chave_acesso_nfe: string | null
           code: string
           contas_pagar_id: string | null
           created_at: string
+          departamento_id: string | null
           department_name: string | null
           description: string | null
           document_number: string | null
@@ -25207,10 +25209,13 @@ export type Database = {
           financial_notes: string | null
           financial_status: string
           id: string
+          natureza_lancamento: string | null
           notes: string | null
+          numero_documento_fiscal: string | null
           paid_at: string | null
           payment_details: Json | null
           payment_method: string | null
+          plano_contas_id: string | null
           portador: string | null
           receipt_sent_at: string | null
           receipt_url: string | null
@@ -25232,10 +25237,12 @@ export type Database = {
           amount: number
           attachment_url?: string | null
           attachments?: Json | null
+          categoria_codigo?: string | null
           chave_acesso_nfe?: string | null
           code: string
           contas_pagar_id?: string | null
           created_at?: string
+          departamento_id?: string | null
           department_name?: string | null
           description?: string | null
           document_number?: string | null
@@ -25250,10 +25257,13 @@ export type Database = {
           financial_notes?: string | null
           financial_status?: string
           id?: string
+          natureza_lancamento?: string | null
           notes?: string | null
+          numero_documento_fiscal?: string | null
           paid_at?: string | null
           payment_details?: Json | null
           payment_method?: string | null
+          plano_contas_id?: string | null
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
@@ -25275,10 +25285,12 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           attachments?: Json | null
+          categoria_codigo?: string | null
           chave_acesso_nfe?: string | null
           code?: string
           contas_pagar_id?: string | null
           created_at?: string
+          departamento_id?: string | null
           department_name?: string | null
           description?: string | null
           document_number?: string | null
@@ -25293,10 +25305,13 @@ export type Database = {
           financial_notes?: string | null
           financial_status?: string
           id?: string
+          natureza_lancamento?: string | null
           notes?: string | null
+          numero_documento_fiscal?: string | null
           paid_at?: string | null
           payment_details?: Json | null
           payment_method?: string | null
+          plano_contas_id?: string | null
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
@@ -25323,10 +25338,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "financial_payment_queue_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_payment_queue_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
             foreignKeyName: "financial_payment_queue_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_payment_queue_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]
