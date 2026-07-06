@@ -109,6 +109,6 @@ export function TaskMentionCard({ tarefaId, mine }: { tarefaId: string; mine: bo
           mine ? "text-white/80" : "text-muted-foreground",
         )} />
       </div>
-    </Link>
+    </a>
   );
 }
