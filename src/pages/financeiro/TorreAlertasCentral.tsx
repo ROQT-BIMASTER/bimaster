@@ -559,7 +559,8 @@ export default function TorreAlertasCentral() {
         )}
       </div>
 
-      <DetalheAlerta alerta={selecionado} onClose={() => setSelecionado(null)} />
-    </div>
+        <DetalheAlerta alerta={selecionado} onClose={() => setSelecionado(null)} />
+      </div>
+    </DashboardLayout>
   );
 }
