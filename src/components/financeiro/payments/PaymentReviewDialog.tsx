@@ -730,6 +730,74 @@ export function PaymentReviewDialog({
             </Card>
           )}
 
+          {/* Fase 1.C — Classificação contábil confirmada pelo financeiro no aceite.
+              Antes: o título nascia com categoria_nome inventada (`${source_type} - ${source_code}`)
+              e sem departamento/plano. Agora o financeiro escolhe aqui e a fila carrega para o /incluir. */}
+          {isPending && (
+            <Card className="border-primary/40">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <Label className="font-medium">Classificação Contábil</Label>
+                  <span className="text-xs text-muted-foreground">Obrigatório para aceitar</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">
+                      Plano de Contas <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={categoriaCodigo}
+                      onValueChange={(code) => {
+                        setCategoriaCodigo(code);
+                        const found = planoContasList.find((p: any) => p.code === code);
+                        setPlanoContasId(found?.id || "");
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione o plano de contas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planoContasList.map((p: any) => (
+                          <SelectItem key={p.id} value={p.code}>
+                            {p.code} — {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.categoria_codigo && item.categoria_codigo !== categoriaCodigo && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Sugestão da origem: {item.categoria_codigo}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Departamento</Label>
+                    <Select
+                      value={departamentoId || "__none__"}
+                      onValueChange={(v) => setDepartamentoId(v === "__none__" ? "" : v)}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione o departamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem departamento</SelectItem>
+                        {departamentosList.map((d: any) => (
+                          <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.department_name && !departamentoId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Origem informou: {item.department_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action Notes - Only for pending items */}
           {(isPending || isAccepted) && (
             <div className="space-y-2">
