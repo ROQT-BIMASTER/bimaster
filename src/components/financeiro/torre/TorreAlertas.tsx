@@ -235,6 +235,18 @@ export function TorreAlertas() {
               <RefreshCw className={cn("h-3.5 w-3.5", reprocessar.isPending && "animate-spin")} />
               {reprocessar.isPending ? "Reprocessando…" : "Reprocessar"}
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon" variant="outline" className="h-9 w-9"
+                  onClick={() => setFoco((v) => !v)}
+                  aria-label={foco ? "Sair do modo foco" : "Modo foco"}
+                >
+                  {foco ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{foco ? "Sair do modo foco" : "Modo foco (tela cheia)"}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
