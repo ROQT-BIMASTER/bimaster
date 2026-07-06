@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useChatDraft } from "@/hooks/chat/useChatDraft";
 import { RespostasRapidasPopover } from "@/components/suporte/RespostasRapidasPopover";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 interface Props {
   conversaId: string;
