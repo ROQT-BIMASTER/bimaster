@@ -336,6 +336,17 @@ export default function SuporteDesk() {
                 >
                   <Settings2 className="h-3.5 w-3.5" /> Fluxo
                 </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                    onClick={() => setExcluirDeptoOpen(true)}
+                    title="Excluir departamento"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                )}
               </>
             )}
             {isAdmin && (
