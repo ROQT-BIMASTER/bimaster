@@ -338,13 +338,23 @@ export default function SuporteDesk() {
               </>
             )}
             {isAdmin && (
-              <Button
-                size="sm"
-                className="h-9 gap-1.5"
-                onClick={() => setNovoDeptoOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" /> Novo departamento
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => navigate("/dashboard/suporte/admin/sla")}
+                >
+                  <Clock className="h-3.5 w-3.5" /> SLA
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5"
+                  onClick={() => setNovoDeptoOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Novo departamento
+                </Button>
+              </>
             )}
           </div>
         </div>
