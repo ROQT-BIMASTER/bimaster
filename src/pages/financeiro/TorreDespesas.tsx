@@ -48,6 +48,7 @@ export default function TorreDespesas() {
     natureza: null,
     mesRef: null,
     confMinima: null,
+    centroCustoIds: [],
   });
   const [selecao, setSelecao] = useState<TorreSelecao | null>(null);
 
@@ -64,17 +65,25 @@ export default function TorreDespesas() {
 
   const meses = useMemo(() => ultimosMeses(13), []);
 
+  // Centros de custo com lançamento no período (respeitando empresas selecionadas)
+  const { data: centrosCusto = [] } = useTorreCentrosCusto({
+    mesRef: filtros.mesRef,
+    empresaIds: filtros.empresaIds,
+  });
+
   const departamentos = useTorreDepartamentos({
     mesRef: filtros.mesRef,
     empresaIds: filtros.empresaIds,
     natureza: filtros.natureza,
     confMinima: filtros.confMinima,
+    centroCustoIds: filtros.centroCustoIds,
   });
 
   const variacoes = useTorreVariacoes({
     mes: filtros.mesRef,
     empresaIds: filtros.empresaIds,
     natureza: filtros.natureza,
+    centroCustoIds: filtros.centroCustoIds,
   });
 
   // Ao trocar a janela de mês, a seleção anterior pode cair fora do range → limpa.
