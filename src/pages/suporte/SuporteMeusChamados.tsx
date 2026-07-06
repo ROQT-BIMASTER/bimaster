@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LifeBuoy, Plus, Search, Loader2, MessageSquare } from "lucide-react";
+import { LifeBuoy, Plus, Search, Loader2, MessageSquare, Repeat } from "lucide-react";
+import { Link } from "react-router-dom";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
@@ -20,6 +21,7 @@ import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
+import { MinhasRotinasHojeWidget } from "@/components/suporte/MinhasRotinasHojeWidget";
 
 export default function SuporteMeusChamados() {
   const { data: chamados = [], isLoading } = useMeusChamados();
@@ -75,11 +77,17 @@ export default function SuporteMeusChamados() {
               Abra chamados para os departamentos e acompanhe cada um em uma conversa dedicada.
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo chamado
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/dashboard/suporte/rotinas-fixas"><Repeat className="h-4 w-4" /> Rotinas fixas</Link>
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo chamado
+            </Button>
+          </div>
         </div>
+        <MinhasRotinasHojeWidget />
 
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
           {/* Lista */}
