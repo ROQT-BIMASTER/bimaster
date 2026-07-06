@@ -20,6 +20,14 @@ export interface FinancialSubmissionConfig {
   installmentNumber?: number | null;
   installmentTotal?: number | null;
   boletoBarcode?: string | null;
+  // Fase 1.B — propagação de classificação/fiscal para a fila.
+  // Todos opcionais: o financeiro confirma/completa no aceite.
+  departamentoId?: string | null;
+  planoContasId?: string | null;
+  categoriaCodigo?: string | null;
+  naturezaLancamento?: 'provisionado' | 'lancado' | null;
+  chaveAcessoNfe?: string | null;
+  numeroDocumentoFiscal?: string | null;
   /** Callback to update the source table after queue insert/update */
   onUpdateSource?: (queueId: string, formData: FinancialFormData, notes: string | null) => Promise<void>;
 }
@@ -72,6 +80,13 @@ export function useFinancialSubmission() {
         attachments: config.attachments || null,
         empresa_id: config.empresaId || null,
         empresa_nome: config.empresaNome || null,
+        // Fase 1.B — sugestões da origem; financeiro confirma no aceite.
+        departamento_id: config.departamentoId ?? null,
+        plano_contas_id: config.planoContasId ?? null,
+        categoria_codigo: config.categoriaCodigo ?? null,
+        natureza_lancamento: config.naturezaLancamento ?? null,
+        chave_acesso_nfe: config.chaveAcessoNfe ?? null,
+        numero_documento_fiscal: config.numeroDocumentoFiscal ?? null,
       };
 
       let finalQueueId = config.existingQueueId;

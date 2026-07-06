@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -94,11 +95,59 @@ export function PaymentReviewDialog({
     description: "",
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // Fase 1.C — classificação confirmada no aceite (categoria/plano/departamento).
+  // Categoria_codigo é o code do plano contábil; /incluir resolve plano_contas_id a partir dele.
+  // Passamos os dois na fila por consistência, mas categoria_codigo é o obrigatório.
+  const [categoriaCodigo, setCategoriaCodigo] = useState<string>("");
+  const [planoContasId, setPlanoContasId] = useState<string>("");
+  const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [isSavingClassificacao, setIsSavingClassificacao] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
   // Item 1: Replace window globals with useRef
   const editUserInfoRef = useRef<{ id: string; email: string; nome: string } | null>(null);
   const editJustificativaRef = useRef<string>("");
+
+  // Fase 1.C — lookups para o seletor de classificação no aceite.
+  // Leitura direta (padrão do projeto — evita edge que pode 404).
+  const { data: planoContasList = [] } = useQuery({
+    queryKey: ["fpq-plano-contas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .select("id, code, name, permite_lancamento, is_active")
+        .eq("is_active", true)
+        .eq("permite_lancamento", true)
+        .order("code");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 120_000,
+  });
+
+  const { data: departamentosList = [] } = useQuery({
+    queryKey: ["fpq-departamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departamentos")
+        .select("id, nome, ativo")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 120_000,
+  });
+
+  // Sync com o item da fila ao abrir. Se a origem já sugeriu, pré-preenche;
+  // caso contrário, financeiro escolhe do zero.
+  useEffect(() => {
+    if (!item) return;
+    setCategoriaCodigo(item.categoria_codigo || "");
+    setPlanoContasId(item.plano_contas_id || "");
+    setDepartamentoId(item.departamento_id || "");
+  }, [item?.id]);
+
 
   const startEdit = () => {
     if (!item) return;
@@ -205,8 +254,33 @@ export function PaymentReviewDialog({
     setAction(actionType);
   };
 
-  const handleConfirmAccept = () => {
+  const handleConfirmAccept = async () => {
     if (!item) return;
+    if (!categoriaCodigo) {
+      toast.error("Selecione o plano de contas antes de aceitar.");
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    setIsSavingClassificacao(true);
+    try {
+      // Persiste a classificação confirmada pelo financeiro na própria fila.
+      // O acceptPayment lê essas colunas de item.* e propaga para contas_pagar.
+      const { error } = await supabase
+        .from("financial_payment_queue")
+        .update({
+          categoria_codigo: categoriaCodigo,
+          plano_contas_id: planoContasId || null,
+          departamento_id: departamentoId || null,
+        } as any)
+        .eq("id", item.id);
+      if (error) throw error;
+    } catch (err: any) {
+      toast.error("Erro ao salvar classificação: " + (err.message || ""));
+      setIsSavingClassificacao(false);
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    setIsSavingClassificacao(false);
     setAction('accept');
     setAcceptConfirmOpen(false);
     onAccept(item.id, notes);
@@ -656,6 +730,74 @@ export function PaymentReviewDialog({
             </Card>
           )}
 
+          {/* Fase 1.C — Classificação contábil confirmada pelo financeiro no aceite.
+              Antes: o título nascia com categoria_nome inventada (`${source_type} - ${source_code}`)
+              e sem departamento/plano. Agora o financeiro escolhe aqui e a fila carrega para o /incluir. */}
+          {isPending && (
+            <Card className="border-primary/40">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <Label className="font-medium">Classificação Contábil</Label>
+                  <span className="text-xs text-muted-foreground">Obrigatório para aceitar</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">
+                      Plano de Contas <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={categoriaCodigo}
+                      onValueChange={(code) => {
+                        setCategoriaCodigo(code);
+                        const found = planoContasList.find((p: any) => p.code === code);
+                        setPlanoContasId(found?.id || "");
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione o plano de contas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planoContasList.map((p: any) => (
+                          <SelectItem key={p.id} value={p.code}>
+                            {p.code} — {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.categoria_codigo && item.categoria_codigo !== categoriaCodigo && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Sugestão da origem: {item.categoria_codigo}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Departamento</Label>
+                    <Select
+                      value={departamentoId || "__none__"}
+                      onValueChange={(v) => setDepartamentoId(v === "__none__" ? "" : v)}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione o departamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem departamento</SelectItem>
+                        {departamentosList.map((d: any) => (
+                          <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.department_name && !departamentoId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Origem informou: {item.department_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action Notes - Only for pending items */}
           {(isPending || isAccepted) && (
             <div className="space-y-2">
@@ -708,8 +850,14 @@ export function PaymentReviewDialog({
               <Button
                 variant="default"
                 onClick={() => handleAction('accept')}
-                disabled={isProcessing || !canAccept}
-                title={!canAccept ? "Confirme todos os documentos antes de aprovar" : undefined}
+                disabled={isProcessing || !canAccept || !categoriaCodigo || isSavingClassificacao}
+                title={
+                  !canAccept
+                    ? "Confirme todos os documentos antes de aprovar"
+                    : !categoriaCodigo
+                      ? "Selecione o plano de contas para aceitar"
+                      : undefined
+                }
               >
                 {isProcessing && action === 'accept' ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
