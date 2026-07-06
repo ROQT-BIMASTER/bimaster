@@ -23,6 +23,8 @@ import { useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
 
 interface Props {
   ticket: SuporteChamado | null;
