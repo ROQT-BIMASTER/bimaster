@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
  * Module codes desconhecidos são silenciosamente ignorados.
  */
 export const MODULE_LOADERS: Record<string, () => Promise<unknown>> = {
-  financeiro: () => import("@/pages/Financeiro"),
+  financeiro: () => import("@/pages/FinanceiroConsolidadoDashboard"),
   contas_pagar: () => import("@/pages/ContasAPagar"),
   contas_receber: () => import("@/pages/ContasAReceber"),
   fluxo_caixa: () => import("@/pages/FluxoDeCaixa"),
