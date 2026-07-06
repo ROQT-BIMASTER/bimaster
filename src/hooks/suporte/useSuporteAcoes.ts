@@ -107,5 +107,28 @@ export function useSuporteAcoes() {
     },
   });
 
-  return { abrirChamado, assumir, mudarStatus, transferir };
+  const escalonar = useMutation({
+    mutationFn: async (input: {
+      ticketId: string;
+      motivo: string;
+      novaPrioridade?: SuportePrioridade;
+    }): Promise<{ ok: boolean; prioridade: string }> => {
+      const { data, error } = await (supabase.rpc as any)("rpc_suporte_escalonar", {
+        p_ticket_id: input.ticketId,
+        p_motivo: input.motivo,
+        p_nova_prioridade: input.novaPrioridade ?? null,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; prioridade: string };
+    },
+    onSuccess: (res) => {
+      invalidate();
+      toast.success("Chamado escalonado", { description: `Prioridade: ${res.prioridade}` });
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao escalonar", { description: err.message });
+    },
+  });
+
+  return { abrirChamado, assumir, mudarStatus, transferir, escalonar };
 }

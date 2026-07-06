@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserCheck, ArrowRightLeft } from "lucide-react";
+import { UserCheck, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
@@ -21,6 +21,7 @@ import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
+import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
 
 interface Props {
@@ -32,6 +33,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
   const { user } = useAuth();
   const { assumir, mudarStatus } = useSuporteAcoes();
   const [transferOpen, setTransferOpen] = useState(false);
+  const [escalonarOpen, setEscalonarOpen] = useState(false);
 
   return (
     <>
@@ -77,6 +79,17 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                     >
                       <ArrowRightLeft className="h-3.5 w-3.5" />
                       Transferir
+                    </Button>
+                  )}
+                  {ticket.status !== "resolvido" && ticket.status !== "escalado" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-400"
+                      onClick={() => setEscalonarOpen(true)}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Escalonar
                     </Button>
                   )}
                   <Select
@@ -128,6 +141,15 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
           ticketId={ticket.id}
           filaAtualId={ticket.fila_id}
           onTransferido={onClose}
+        />
+      )}
+
+      {ticket && (
+        <EscalonarChamadoDialog
+          open={escalonarOpen}
+          onOpenChange={setEscalonarOpen}
+          ticketId={ticket.id}
+          prioridadeAtual={ticket.prioridade}
         />
       )}
     </>

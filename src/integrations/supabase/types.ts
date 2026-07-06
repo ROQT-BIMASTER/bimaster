@@ -59656,6 +59656,14 @@ export type Database = {
         Args: { p_patch: Json; p_ticket_ids: string[] }
         Returns: Json
       }
+      rpc_suporte_escalonar: {
+        Args: {
+          p_motivo: string
+          p_nova_prioridade?: string
+          p_ticket_id: string
+        }
+        Returns: Json
+      }
       rpc_suporte_fila_criar: {
         Args: {
           p_cor?: string
