@@ -30,6 +30,7 @@ function estagioMeta(estagio: OrcamentoConsumoEstagio) {
 
 export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
   const { data, isLoading, error } = useOrcamentoConsumo(periodId);
+  const [supTarget, setSupTarget] = useState<OrcamentoConsumoRow | null>(null);
 
   const rows = data ?? [];
   const distribuidos = rows.filter((r) => r.distribution_id !== null);
