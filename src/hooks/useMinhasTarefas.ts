@@ -52,12 +52,33 @@ export function useMinhasTarefas() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      const startedAt = performance.now();
       const { data, error } = await (supabase as any)
         .rpc("get_minhas_tarefas_central");
 
       if (error) throw error;
 
-      return ((data || []) as any[]).map((t): MinaTarefa => ({
+      // Diagnóstico: quantas linhas o RPC devolveu por status. Comparar com o
+      // resultado de `useMinhasTarefasStats` (contagem autoritativa do banco)
+      // permite detectar corte de paginação do PostgREST (default 1000 rows).
+      const rows = (data || []) as any[];
+      const byStatus = rows.reduce<Record<string, number>>((acc, r) => {
+        const k = String(r.status ?? "desconhecido");
+        acc[k] = (acc[k] ?? 0) + 1;
+        return acc;
+      }, {});
+      logger.info("[minhas-tarefas] payload recebido do RPC", {
+        userId: user.id,
+        total: rows.length,
+        ativas: rows.length - (byStatus["concluida"] ?? 0),
+        concluidas: byStatus["concluida"] ?? 0,
+        porStatus: byStatus,
+        durationMs: Math.round(performance.now() - startedAt),
+        proximoDoLimite1000: rows.length >= 950,
+      });
+
+
+      return rows.map((t): MinaTarefa => ({
         id: t.id,
         titulo: t.titulo,
         descricao: t.descricao || null,

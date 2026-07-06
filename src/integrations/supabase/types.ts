@@ -59507,6 +59507,16 @@ export type Database = {
         Args: { p_empresa_id: number; p_marca: string; p_tipo: string }
         Returns: Json
       }
+      rpc_minhas_tarefas_stats: {
+        Args: never
+        Returns: {
+          ativas: number
+          concluidas: number
+          concluidas_30d: number
+          concluidas_hoje: number
+          total: number
+        }[]
+      }
       rpc_mover_item_coluna: {
         Args: { p_coluna: string; p_comentario?: string; p_item_id: string }
         Returns: undefined
