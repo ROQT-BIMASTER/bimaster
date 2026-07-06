@@ -318,13 +318,46 @@ export default function TorreDespesas() {
       {/* KPIs do mês de referência + banner de qualidade */}
       <TorreHeaderKpis payload={departamentos.data} isLoading={departamentos.isLoading} />
 
-      {/* Heatmap departamento × mês (clique alimenta série + drill) */}
-      <TorreHeatmap
-        payload={departamentos.data}
-        isLoading={departamentos.isLoading}
-        selecao={selecao}
-        onSelect={setSelecao}
-      />
+      {/* Alternador de visão: Mapa de calor ↔ DRE Gerencial (Base Caixa) */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <ToggleGroup
+          type="single"
+          value={visao}
+          onValueChange={(v) => v && setVisao(v as 'heatmap' | 'dre')}
+          className="border rounded-md"
+        >
+          <ToggleGroupItem value="heatmap" className="gap-2 text-xs h-9 px-3">
+            <LayoutGrid className="h-4 w-4" />
+            Mapa de calor
+          </ToggleGroupItem>
+          <ToggleGroupItem value="dre" className="gap-2 text-xs h-9 px-3">
+            <FileSpreadsheet className="h-4 w-4" />
+            DRE Gerencial
+          </ToggleGroupItem>
+        </ToggleGroup>
+        {visao === 'dre' && (
+          <span className="text-xs text-muted-foreground">
+            Base caixa · filtrada por Centro de Custo selecionado
+          </span>
+        )}
+      </div>
+
+      {visao === 'heatmap' ? (
+        <TorreHeatmap
+          payload={departamentos.data}
+          isLoading={departamentos.isLoading}
+          selecao={selecao}
+          onSelect={setSelecao}
+        />
+      ) : (
+        <ContasPagarDREView
+          filterAno={dreFilters.ano}
+          filterMes={dreFilters.mes}
+          filterEmpresas={filtros.empresaIds}
+          filterDepartamento="all"
+          filterCentroCustoIds={filtros.centroCustoIds}
+        />
+      )}
 
       {/* Fila de alertas forenses (Fase 2) — detecção automática + triagem com trilha */}
       <TorreAlertas />
