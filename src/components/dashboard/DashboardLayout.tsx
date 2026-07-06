@@ -35,6 +35,7 @@ import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import { useChatSoundNotifications } from "@/hooks/chat/useChatSoundNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { UrgentMessageBanner } from "@/components/chat/v2/UrgentMessageBanner";
+import { GlobalBackButton } from "@/components/layout/GlobalBackButton";
 
 function ChatGlobalNotifiers() {
   useChatSoundNotifications();
@@ -216,6 +217,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           )}
           <div className="p-4 sm:p-6 relative min-h-[calc(100vh-52px)] overflow-x-auto">
             <ErrorBoundary>
+              <GlobalBackButton />
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>
             <TermsAcceptanceModal />
