@@ -47692,6 +47692,51 @@ export type Database = {
           },
         ]
       }
+      suporte_evidencia_acessos: {
+        Row: {
+          acao: string
+          created_at: string
+          evidencia_id: string
+          id: string
+          ticket_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          evidencia_id: string
+          id?: string
+          ticket_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          evidencia_id?: string
+          id?: string
+          ticket_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_evidencia_acessos_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_ticket_evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_evidencia_acessos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_fila_agentes: {
         Row: {
           ativo: boolean
@@ -48351,6 +48396,78 @@ export type Database = {
             columns: ["ultimo_parecer_id"]
             isOneToOne: false
             referencedRelation: "suporte_pareceres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_ticket_evidencias: {
+        Row: {
+          categoria: string
+          created_at: string
+          descricao: string | null
+          hash_sha256: string
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          locked_juridico: boolean
+          mime: string | null
+          nome_arquivo: string
+          parecer_id: string | null
+          storage_path: string
+          tamanho: number | null
+          ticket_id: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          descricao?: string | null
+          hash_sha256: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_juridico?: boolean
+          mime?: string | null
+          nome_arquivo: string
+          parecer_id?: string | null
+          storage_path: string
+          tamanho?: number | null
+          ticket_id: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          hash_sha256?: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_juridico?: boolean
+          mime?: string | null
+          nome_arquivo?: string
+          parecer_id?: string | null
+          storage_path?: string
+          tamanho?: number | null
+          ticket_id?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_ticket_evidencias_parecer_id_fkey"
+            columns: ["parecer_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_pareceres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_ticket_evidencias_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -60082,9 +60199,28 @@ export type Database = {
         Returns: Json
       }
       rpc_suporte_assumir: { Args: { p_ticket_id: string }; Returns: undefined }
+      rpc_suporte_bloquear_evidencia: {
+        Args: { p_evidencia_id: string }
+        Returns: undefined
+      }
       rpc_suporte_bulk_update: {
         Args: { p_patch: Json; p_ticket_ids: string[] }
         Returns: Json
+      }
+      rpc_suporte_criar_evidencia: {
+        Args: {
+          p_categoria: string
+          p_descricao: string
+          p_hash_sha256: string
+          p_marcar_como_prova: boolean
+          p_mime: string
+          p_nome_arquivo: string
+          p_parecer_id: string
+          p_storage_path: string
+          p_tamanho: number
+          p_ticket_id: string
+        }
+        Returns: string
       }
       rpc_suporte_criar_parecer: {
         Args: {
@@ -60141,6 +60277,10 @@ export type Database = {
       }
       rpc_suporte_pausar_sla: {
         Args: { p_motivo?: string; p_ticket_id: string }
+        Returns: undefined
+      }
+      rpc_suporte_registrar_acesso_evidencia: {
+        Args: { p_acao: string; p_evidencia_id: string; p_user_agent: string }
         Returns: undefined
       }
       rpc_suporte_retomar_sla: {
