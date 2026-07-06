@@ -2,8 +2,10 @@
 // Lê SÓ as 3 RPCs agregadas (fn_despesas_departamentos/drill/variacoes) — nunca pagina
 // contas_pagar no cliente. Detecção determinística (motor) e IA vêm nas Fases 2/3.
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronsUpDown, CheckCircle, TowerControl } from "lucide-react";
+import { ArrowLeft, Building2, ChevronsUpDown, CheckCircle, TowerControl } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
