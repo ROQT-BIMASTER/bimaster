@@ -551,9 +551,9 @@ function AppContent() {
     </ProtectedRoute>
   );
 
-  const ScreenRoute = ({ screenCode, children, redirectTo }: { screenCode: string; children: React.ReactNode; redirectTo?: string }) => (
+  const ScreenRoute = ({ screenCode, children, redirectTo, allowRoles }: { screenCode: string; children: React.ReactNode; redirectTo?: string; allowRoles?: string[] }) => (
     <ProtectedRoute>
-      <ScreenProtectedRoute screenCode={screenCode} redirectTo={redirectTo}>
+      <ScreenProtectedRoute screenCode={screenCode} redirectTo={redirectTo} allowRoles={allowRoles}>
         {children}
       </ScreenProtectedRoute>
     </ProtectedRoute>
