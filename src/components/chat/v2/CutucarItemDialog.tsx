@@ -42,6 +42,8 @@ interface Props {
   itemId?: string | null;
   itemTipo?: "comentario" | "documento";
   docNome?: string | null;
+  /** Autor do item alvo — garante que ele receba o alerta em tempo real. */
+  itemAutorId?: string | null;
   onSent?: (conversaId: string) => void;
 }
 
@@ -58,6 +60,7 @@ export function CutucarItemDialog({
   itemId,
   itemTipo = "comentario",
   docNome,
+  itemAutorId,
   onSent,
 }: Props) {
   const [motivo, setMotivo] = useState("");
@@ -71,55 +74,21 @@ export function CutucarItemDialog({
     }
     setSending(true);
     try {
-      // 1. Rate-limit espelhando rpc_cutucar_mensagem (3/h por remetente).
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão expirada. Entre novamente.");
-
-      const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { count, error: countErr } = await supabase
-        .from("mensagens" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("remetente_id", user.id)
-        .eq("tipo", "urgente")
-        .gte("created_at", desde);
-      if (countErr) throw countErr;
-      if ((count ?? 0) >= 3) {
-        throw new Error("Limite atingido: máximo de 3 alertas urgentes por hora.");
-      }
-
-      // 2. Garante a conversa vinculada e participação.
-      const { data: convData, error: convErr } = await (supabase.rpc as any)(
-        "rpc_get_or_create_conversa_vinculada",
-        { p_tipo: tipo, p_ref_id: refId, p_titulo: tituloEscopo },
-      );
-      if (convErr) throw convErr;
-      const conversaId = convData as string;
-
-      // 3. Insere a mensagem urgente referenciando o item.
-      const resumo = itemResumo.slice(0, 160);
-      const conteudo = `Chamando atenção${docNome ? ` no documento "${docNome}"` : ""}: ${resumo}`;
-      const { error: insErr } = await supabase
-        .from("mensagens" as any)
-        .insert({
-          conversa_id: conversaId,
-          remetente_id: user.id,
-          conteudo,
-          tipo: "urgente",
-          metadata: {
-            urgente: true,
-            cutucada: true,
-            vinculo_tipo: tipo,
-            vinculo_ref_id: refId,
-            item_id: itemId ?? null,
-            item_tipo: itemTipo,
-            doc_nome: docNome ?? null,
-            motivo: m,
-            enviada_em: new Date().toISOString(),
-          },
-        } as any);
-      if (insErr) throw insErr;
+      // RPC única: rate-limit, re-sync de participantes do escopo, garantia
+      // de que o autor do item alvo entra na conversa vinculada e insert
+      // da mensagem urgente — tudo server-side.
+      const { data, error } = await (supabase.rpc as any)("rpc_cutucar_item", {
+        p_tipo: tipo,
+        p_ref_id: refId,
+        p_titulo_escopo: tituloEscopo,
+        p_item_id: itemId ?? null,
+        p_item_tipo: itemTipo,
+        p_doc_nome: docNome ?? null,
+        p_motivo: m,
+        p_item_autor_id: itemAutorId ?? null,
+      });
+      if (error) throw error;
+      const conversaId = data as string;
 
       toast.success(`Alerta enviado na conversa vinculada ao ${escopoLabel(tipo)}.`, {
         action: {

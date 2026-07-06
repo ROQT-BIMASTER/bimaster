@@ -8,6 +8,12 @@
  * "Não-lido" = mensagem/comentário criado após o `last_read_at` do
  * `projeto_membros` do usuário. Quem não é membro não recebe contagem
  * (admin/gerente sem membership veem 0).
+ *
+ * Escopo de listagem: apenas projetos em que o usuário tem VÍNCULO REAL
+ * (criador, membro em `projeto_membros`, ou departamento vinculado),
+ * obtidos via RPC `get_accessible_projetos(uid, false)`. Isso impede que a
+ * regra ampla `visibilidade='equipe'` da RLS de `projetos` faça a aba
+ * mostrar projetos de outros times para todos os usuários.
  */
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,16 +72,20 @@ export function useProjetosChat() {
     queryFn: async (): Promise<ProjetoChatItem[]> => {
       if (!userId) return [];
 
-      // 1) Projetos acessíveis (RLS filtra automaticamente).
-      const { data: projetos, error } = await supabase
-        .from("projetos")
-        .select("id, nome, status, cor, criador_id, created_at, updated_at")
-        .order("updated_at", { ascending: false })
-        .limit(200);
+      // 1) Projetos com vínculo real do usuário (criador / membro / departamento).
+      //    _include_all=false — não retorna todos os projetos da empresa
+      //    mesmo para admins/gerentes; o Chat não é o painel de gestão.
+      const { data: projetos, error } = await (supabase.rpc as any)(
+        "get_accessible_projetos",
+        { _target_user_id: userId, _include_all: false },
+      );
       if (error) throw error;
-      if (!projetos?.length) return [];
+      const lista = (projetos ?? []) as any[];
+      if (!lista.length) return [];
 
-      const ids = projetos.map((p: any) => p.id);
+      // Ordena pelo updated_at desc (RPC retorna por created_at desc).
+      lista.sort((a, b) => (b.updated_at ?? b.created_at ?? "").localeCompare(a.updated_at ?? a.created_at ?? ""));
+      const ids = lista.map((p) => p.id).slice(0, 200);
 
       // 2) last_read_at do usuário em cada projeto.
       const { data: membros } = await (supabase as any)
@@ -154,9 +164,6 @@ export function useProjetosChat() {
         projetoId: string,
         item: { texto: string; autor: string | null; created_at: string; mentions?: string[]; user_id?: string | null; fonte: "chat" | "tarefa"; tarefa_titulo?: string | null },
       ) => {
-        // Fallback: usuários sem registro em projeto_membros (admins/gerentes
-        // sem membership formal) tratam "nunca lido" como epoch para que
-        // não-lidos e menções apareçam normalmente.
         const lr = lastReadBy.get(projetoId) ?? "1970-01-01T00:00:00Z";
         const isNovo = item.created_at > lr;
         const ehDeOutro = !!item.user_id && item.user_id !== userId;
@@ -208,7 +215,7 @@ export function useProjetosChat() {
         });
       });
 
-      return (projetos as any[]).map((p) => {
+      return lista.slice(0, 200).map((p) => {
         const last = lastByProj.get(p.id);
         return {
           id: p.id,
