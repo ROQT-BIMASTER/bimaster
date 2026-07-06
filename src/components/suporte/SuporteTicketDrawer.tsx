@@ -23,6 +23,8 @@ import { useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
 
 interface Props {
   ticket: SuporteChamado | null;
@@ -122,13 +124,29 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                   </div>
                 )}
 
-              <div className="flex-1 min-h-0">
-                <ChatThread
-                  conversaId={ticket.conversa_id}
-                  onShowInfo={() => {}}
-                  onBack={onClose}
-                />
-              </div>
+              <Tabs defaultValue="chat" className="flex-1 min-h-0 flex flex-col">
+                <TabsList className="mx-3 mt-2 self-start">
+                  <TabsTrigger value="chat" className="text-xs">Conversa</TabsTrigger>
+                  <TabsTrigger value="pareceres" className="text-xs">Pareceres</TabsTrigger>
+                </TabsList>
+                <TabsContent value="chat" className="flex-1 min-h-0 mt-2">
+                  <ChatThread
+                    conversaId={ticket.conversa_id}
+                    onShowInfo={() => {}}
+                    onBack={onClose}
+                  />
+                </TabsContent>
+                <TabsContent value="pareceres" className="flex-1 min-h-0 mt-0">
+                  <PareceresTab
+                    ticketId={ticket.id}
+                    filaAtualId={ticket.fila_id}
+                    canWrite={ticket.requester_id !== user?.id}
+                    onlyExterno={
+                      (ticket.requester_id ?? ticket.owner_id) === user?.id
+                    }
+                  />
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </SheetContent>

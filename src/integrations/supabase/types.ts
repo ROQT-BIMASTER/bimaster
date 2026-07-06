@@ -47862,6 +47862,139 @@ export type Database = {
         }
         Relationships: []
       }
+      suporte_parecer_anexos: {
+        Row: {
+          created_at: string
+          id: string
+          mime: string | null
+          nome: string
+          parecer_id: string
+          storage_path: string
+          tamanho: number | null
+          ticket_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome: string
+          parecer_id: string
+          storage_path: string
+          tamanho?: number | null
+          ticket_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome?: string
+          parecer_id?: string
+          storage_path?: string
+          tamanho?: number | null
+          ticket_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_parecer_anexos_parecer_id_fkey"
+            columns: ["parecer_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_pareceres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_parecer_anexos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_pareceres: {
+        Row: {
+          acao_tomada: string | null
+          autor_id: string
+          conteudo: string
+          created_at: string
+          departamento_id: string | null
+          encaminhado_para_fila_id: string | null
+          fila_id: string | null
+          id: string
+          metadata: Json
+          plano_correcao: string | null
+          prazo_estimado: string | null
+          status_departamento: string
+          ticket_id: string
+          tipo: string
+          titulo: string | null
+          updated_at: string
+          visibilidade: string
+        }
+        Insert: {
+          acao_tomada?: string | null
+          autor_id: string
+          conteudo: string
+          created_at?: string
+          departamento_id?: string | null
+          encaminhado_para_fila_id?: string | null
+          fila_id?: string | null
+          id?: string
+          metadata?: Json
+          plano_correcao?: string | null
+          prazo_estimado?: string | null
+          status_departamento?: string
+          ticket_id: string
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          visibilidade?: string
+        }
+        Update: {
+          acao_tomada?: string | null
+          autor_id?: string
+          conteudo?: string
+          created_at?: string
+          departamento_id?: string | null
+          encaminhado_para_fila_id?: string | null
+          fila_id?: string | null
+          id?: string
+          metadata?: Json
+          plano_correcao?: string | null
+          prazo_estimado?: string | null
+          status_departamento?: string
+          ticket_id?: string
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_pareceres_encaminhado_para_fila_id_fkey"
+            columns: ["encaminhado_para_fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_pareceres_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_pareceres_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_pareceres_ti: {
         Row: {
           autor_id: string
@@ -48157,6 +48290,67 @@ export type Database = {
             columns: ["fila_id"]
             isOneToOne: false
             referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_ticket_departamentos: {
+        Row: {
+          acao_resumo: string | null
+          created_at: string
+          departamento_id: string | null
+          entrou_em: string
+          fila_id: string | null
+          id: string
+          saiu_em: string | null
+          status: string
+          ticket_id: string
+          ultimo_parecer_id: string | null
+        }
+        Insert: {
+          acao_resumo?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          entrou_em?: string
+          fila_id?: string | null
+          id?: string
+          saiu_em?: string | null
+          status?: string
+          ticket_id: string
+          ultimo_parecer_id?: string | null
+        }
+        Update: {
+          acao_resumo?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          entrou_em?: string
+          fila_id?: string | null
+          id?: string
+          saiu_em?: string | null
+          status?: string
+          ticket_id?: string
+          ultimo_parecer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_ticket_departamentos_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_ticket_departamentos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_ticket_departamentos_ultimo_parecer_id_fkey"
+            columns: ["ultimo_parecer_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_pareceres"
             referencedColumns: ["id"]
           },
         ]
@@ -59891,6 +60085,20 @@ export type Database = {
       rpc_suporte_bulk_update: {
         Args: { p_patch: Json; p_ticket_ids: string[] }
         Returns: Json
+      }
+      rpc_suporte_criar_parecer: {
+        Args: {
+          p_acao_tomada?: string
+          p_conteudo: string
+          p_encaminhar_para_fila_id?: string
+          p_plano_correcao?: string
+          p_prazo_estimado?: string
+          p_ticket_id: string
+          p_tipo: string
+          p_titulo: string
+          p_visibilidade: string
+        }
+        Returns: string
       }
       rpc_suporte_escalonar: {
         Args: {
