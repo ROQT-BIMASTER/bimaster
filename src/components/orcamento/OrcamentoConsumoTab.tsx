@@ -1,7 +1,9 @@
-import { AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Loader2, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -10,6 +12,8 @@ import {
   type OrcamentoConsumoEstagio,
   type OrcamentoConsumoRow,
 } from "@/hooks/orcamento/useOrcamentoCorporativo";
+import { SuplementacaoDialog } from "@/components/orcamento/SuplementacaoDialog";
+import { SuplementacoesPanel } from "@/components/orcamento/SuplementacoesPanel";
 
 function estagioMeta(estagio: OrcamentoConsumoEstagio) {
   switch (estagio) {
@@ -26,6 +30,7 @@ function estagioMeta(estagio: OrcamentoConsumoEstagio) {
 
 export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
   const { data, isLoading, error } = useOrcamentoConsumo(periodId);
+  const [supTarget, setSupTarget] = useState<OrcamentoConsumoRow | null>(null);
 
   const rows = data ?? [];
   const distribuidos = rows.filter((r) => r.distribution_id !== null);
@@ -44,6 +49,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
   );
 
   return (
+    <div className="space-y-4">
     <Card className="border-border/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div>
@@ -82,11 +88,16 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium text-right">Em fila</TableHead>
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium text-right">Saldo</TableHead>
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium w-[220px]">Consumo</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium w-[160px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {distribuidos.map((r) => (
-                  <ConsumoRow key={r.distribution_id ?? r.department_id ?? "row"} r={r} />
+                  <ConsumoRow
+                    key={r.distribution_id ?? r.department_id ?? "row"}
+                    r={r}
+                    onSolicitar={() => setSupTarget(r)}
+                  />
                 ))}
                 {sintetica && (
                   <TableRow className="bg-amber-500/5 border-t-2 border-amber-500/40">
@@ -108,6 +119,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                       {formatCurrency(sintetica.saldo_livre)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">Sem verba alocada</TableCell>
+                    <TableCell />
                   </TableRow>
                 )}
                 {distribuidos.length > 0 && (
@@ -127,6 +139,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                       {formatCurrency(totais.saldo)}
                     </TableCell>
                     <TableCell />
+                    <TableCell />
                   </TableRow>
                 )}
               </TableBody>
@@ -134,14 +147,30 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
           </div>
         )}
       </CardContent>
+
+      {supTarget && supTarget.distribution_id && (
+        <SuplementacaoDialog
+          open={supTarget !== null}
+          onOpenChange={(v) => !v && setSupTarget(null)}
+          periodId={periodId}
+          distributionId={supTarget.distribution_id}
+          departmentNome={supTarget.department_nome}
+          valorAlocado={supTarget.valor_alocado}
+          saldoLivre={supTarget.saldo_livre}
+        />
+      )}
     </Card>
+
+    <SuplementacoesPanel periodId={periodId} />
+    </div>
   );
 }
 
-function ConsumoRow({ r }: { r: OrcamentoConsumoRow }) {
+function ConsumoRow({ r, onSolicitar }: { r: OrcamentoConsumoRow; onSolicitar: () => void }) {
   const meta = estagioMeta(r.estagio);
   const pct = r.pct_consumido ?? 0;
   const pctCap = Math.min(100, Math.max(0, pct));
+  const alerta = r.estagio !== "ok";
   return (
     <TableRow>
       <TableCell className="font-medium">{r.department_nome ?? "—"}</TableCell>
@@ -173,6 +202,16 @@ function ConsumoRow({ r }: { r: OrcamentoConsumoRow }) {
             {meta.label}
           </Badge>
         </div>
+      </TableCell>
+      <TableCell>
+        <Button
+          size="sm"
+          variant={alerta ? "default" : "outline"}
+          className="h-7 px-2 text-xs gap-1"
+          onClick={onSolicitar}
+        >
+          <PlusCircle className="h-3 w-3" /> Suplementar
+        </Button>
       </TableCell>
     </TableRow>
   );
