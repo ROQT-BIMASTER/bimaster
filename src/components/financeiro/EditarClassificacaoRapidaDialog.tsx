@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -7,8 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Bot, User, Lock, Save } from "lucide-react";
+import { Bot, User, Lock, Save, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
 interface ContaPagar {
@@ -42,6 +45,7 @@ export function EditarClassificacaoRapidaDialog({
   const [departamentoId, setDepartamentoId] = useState<string>("");
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [bloquearReclassificacao, setBloquearReclassificacao] = useState(false);
+  const [planoOpen, setPlanoOpen] = useState(false);
 
   // Carregar departamentos
   const { data: departamentos } = useQuery({
@@ -171,21 +175,70 @@ export function EditarClassificacaoRapidaDialog({
           {/* Plano de Contas */}
           <div className="space-y-2">
             <Label>Plano de Contas</Label>
-            <Select value={planoContasId} onValueChange={setPlanoContasId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {planosContas?.map((plano) => (
-                  <SelectItem key={plano.id} value={plano.id}>
-                    <div className="flex flex-col">
-                      <span className="font-mono text-xs">{plano.code}</span>
-                      <span className="text-xs text-muted-foreground">{plano.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={planoOpen} onOpenChange={setPlanoOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={planoOpen}
+                  className="w-full justify-between font-normal h-auto min-h-10 py-2"
+                >
+                  {planoContasId ? (
+                    (() => {
+                      const p = planosContas?.find((pl) => pl.id === planoContasId);
+                      return p ? (
+                        <div className="flex flex-col items-start text-left">
+                          <span className="font-mono text-xs">{p.code}</span>
+                          <span className="text-xs text-muted-foreground truncate">{p.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Selecione a conta...</span>
+                      );
+                    })()
+                  ) : (
+                    <span className="text-muted-foreground">Selecione a conta...</span>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    const s = search.toLowerCase();
+                    return value.toLowerCase().includes(s) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Buscar por código ou nome..." className="h-9" />
+                  <CommandList className="max-h-[300px]">
+                    <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {planosContas?.map((plano) => (
+                        <CommandItem
+                          key={plano.id}
+                          value={`${plano.code} ${plano.name}`}
+                          onSelect={() => {
+                            setPlanoContasId(plano.id);
+                            setPlanoOpen(false);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              planoContasId === plano.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-mono text-xs">{plano.code}</span>
+                            <span className="text-xs text-muted-foreground truncate">{plano.name}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Checkbox bloquear reclassificação */}
