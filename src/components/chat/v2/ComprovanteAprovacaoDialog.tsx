@@ -97,7 +97,7 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
     queryFn: async (): Promise<AprovacaoFull | null> => {
       const { data, error } = await supabase
         .from("chat_aprovacoes" as any)
-        .select("id, titulo, descricao, status, solicitante_id, decidido_por, decidido_em, decidido_ip, decidido_user_agent, created_at")
+        .select("id, protocolo, titulo, descricao, status, solicitante_id, decidido_por, decidido_em, decidido_ip, decidido_user_agent, created_at")
         .eq("id", aprovacaoId)
         .maybeSingle();
       if (error) throw error;
