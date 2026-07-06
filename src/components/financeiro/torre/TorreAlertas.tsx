@@ -460,7 +460,7 @@ export function TorreAlertas() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
