@@ -95,6 +95,13 @@ export function PaymentReviewDialog({
     description: "",
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // Fase 1.C — classificação confirmada no aceite (categoria/plano/departamento).
+  // Categoria_codigo é o code do plano contábil; /incluir resolve plano_contas_id a partir dele.
+  // Passamos os dois na fila por consistência, mas categoria_codigo é o obrigatório.
+  const [categoriaCodigo, setCategoriaCodigo] = useState<string>("");
+  const [planoContasId, setPlanoContasId] = useState<string>("");
+  const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [isSavingClassificacao, setIsSavingClassificacao] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
   // Item 1: Replace window globals with useRef
