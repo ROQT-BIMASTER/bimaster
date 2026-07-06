@@ -176,9 +176,15 @@ export function TorreAlertas() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden">
+      {foco && <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" onClick={() => setFoco(false)} />}
+      <div
+        className={cn(
+          "rounded-2xl border border-border bg-card flex flex-col overflow-hidden",
+          foco && "fixed inset-4 z-50 shadow-2xl",
+        )}
+      >
         {/* Header do bloco */}
-        <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/30">
+        <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/30 shrink-0">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
