@@ -860,7 +860,7 @@ function AppContent() {
             <Route path="/dashboard/simulacao" element={<ScreenRoute screenCode="admin"><SimulacaoDados /></ScreenRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
-            <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_index"><Financeiro /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_index"><Navigate to="/dashboard/financeiro/consolidado" replace /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_visao_dept"><VisaoDepartamentos /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/torre-despesas" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_torre_despesas"><TorreDespesas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/torre-alertas" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_torre_despesas"><TorreAlertasCentral /></ScreenProtectedRoute></ModuleRoute>} />
