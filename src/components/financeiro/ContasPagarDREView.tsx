@@ -149,7 +149,7 @@ export function ContasPagarDREView({
 
   // Fetch lancamentos
   const { data: lancamentos, isLoading: isLoadingLancamentos } = useQuery({
-    queryKey: ['contas-pagar-dre-view', filterAno, filterMes, filterEmpresas.join(','), filterDepartamento, filterCentroCustoIds.join(',')],
+    queryKey: ['contas-pagar-dre-view', filterAno, filterMes, filterEmpresas.join(','), filterDepartamento, effectiveCentroCustoIds.join(',')],
     queryFn: async (): Promise<ContaPagar[]> => {
       const PAGE_SIZE = 1000;
       let allData: ContaPagar[] = [];
