@@ -20,7 +20,7 @@ import { TorreSerieChart } from "@/components/financeiro/torre/TorreSerieChart";
 import { TorreDrill } from "@/components/financeiro/torre/TorreDrill";
 import { TorreVariacoes } from "@/components/financeiro/torre/TorreVariacoes";
 import { TorreAlertas } from "@/components/financeiro/torre/TorreAlertas";
-import { useTorreDepartamentos, useTorreVariacoes } from "@/hooks/financeiro/useTorreDespesas";
+import { useTorreDepartamentos, useTorreVariacoes, useTorreCentrosCusto } from "@/hooks/financeiro/useTorreDespesas";
 import type { TorreFiltros, TorreSelecao, TorreNatureza } from "@/types/financeiro/torre-despesas";
 
 interface EmpresaOpc {
