@@ -55,7 +55,7 @@ function DrillSkeleton() {
   );
 }
 
-export function TorreDrill({ selecao, empresaIds, natureza }: Props) {
+export function TorreDrill({ selecao, empresaIds, natureza, centroCustoIds }: Props) {
   const [plano, setPlano] = useState<PlanoSel | null>(null);
   const [fornecedor, setFornecedor] = useState<FornecedorSel | null>(null);
   const [pagina, setPagina] = useState(0);
@@ -80,6 +80,7 @@ export function TorreDrill({ selecao, empresaIds, natureza }: Props) {
     semDepto: selecao?.semDepto ?? false,
     empresaIds,
     natureza,
+    centroCustoIds,
   };
 
   const planoQuery = useTorreDrill({
