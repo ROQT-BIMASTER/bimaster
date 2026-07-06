@@ -146,14 +146,30 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
           </div>
         )}
       </CardContent>
+
+      {supTarget && supTarget.distribution_id && (
+        <SuplementacaoDialog
+          open={supTarget !== null}
+          onOpenChange={(v) => !v && setSupTarget(null)}
+          periodId={periodId}
+          distributionId={supTarget.distribution_id}
+          departmentNome={supTarget.department_nome}
+          valorAlocado={supTarget.valor_alocado}
+          saldoLivre={supTarget.saldo_livre}
+        />
+      )}
     </Card>
+
+    <SuplementacoesPanel periodId={periodId} />
+    </div>
   );
 }
 
-function ConsumoRow({ r }: { r: OrcamentoConsumoRow }) {
+function ConsumoRow({ r, onSolicitar }: { r: OrcamentoConsumoRow; onSolicitar: () => void }) {
   const meta = estagioMeta(r.estagio);
   const pct = r.pct_consumido ?? 0;
   const pctCap = Math.min(100, Math.max(0, pct));
+  const alerta = r.estagio !== "ok";
   return (
     <TableRow>
       <TableCell className="font-medium">{r.department_nome ?? "—"}</TableCell>
@@ -185,6 +201,16 @@ function ConsumoRow({ r }: { r: OrcamentoConsumoRow }) {
             {meta.label}
           </Badge>
         </div>
+      </TableCell>
+      <TableCell>
+        <Button
+          size="sm"
+          variant={alerta ? "default" : "outline"}
+          className="h-7 px-2 text-xs gap-1"
+          onClick={onSolicitar}
+        >
+          <PlusCircle className="h-3 w-3" /> Suplementar
+        </Button>
       </TableCell>
     </TableRow>
   );
