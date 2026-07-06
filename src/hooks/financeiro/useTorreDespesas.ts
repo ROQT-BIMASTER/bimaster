@@ -93,6 +93,7 @@ export interface UseTorreDrillParams {
   limit?: number;
   offset?: number;
   enabled?: boolean;
+  centroCustoIds?: string[];
 }
 
 type DrillPayloadFor<N extends TorreDrillNivel> = N extends "plano"
@@ -106,6 +107,7 @@ export function useTorreDrill<N extends TorreDrillNivel>(
 ) {
   const limit = params.limit ?? 50;
   const offset = params.offset ?? 0;
+  const centroCustoIds = params.centroCustoIds ?? [];
   return useQuery({
     queryKey: [
       "torre-despesas-drill",
@@ -118,6 +120,7 @@ export function useTorreDrill<N extends TorreDrillNivel>(
       params.natureza ?? "todas",
       limit,
       offset,
+      centrosKey(centroCustoIds),
     ],
     // Drill só roda quando há uma seleção de mês vinda do heatmap
     enabled: (params.enabled ?? true) && !!params.mes,
@@ -133,6 +136,7 @@ export function useTorreDrill<N extends TorreDrillNivel>(
         p_natureza: params.natureza,
         p_limit: limit,
         p_offset: offset,
+        p_centro_custo_ids: centrosParam(centroCustoIds),
       }),
     staleTime: STALE_TIME,
   });
@@ -147,11 +151,13 @@ export interface UseTorreVariacoesParams {
   natureza: TorreNatureza;
   minValor?: number;
   limit?: number;
+  centroCustoIds?: string[];
 }
 
 export function useTorreVariacoes(params: UseTorreVariacoesParams) {
   const minValor = params.minValor ?? 5000;
   const limit = params.limit ?? 25;
+  const centroCustoIds = params.centroCustoIds ?? [];
   return useQuery({
     queryKey: [
       "torre-despesas-variacoes",
@@ -160,6 +166,7 @@ export function useTorreVariacoes(params: UseTorreVariacoesParams) {
       params.natureza ?? "todas",
       minValor,
       limit,
+      centrosKey(centroCustoIds),
     ],
     queryFn: () =>
       callRpc<TorreVariacoesPayload>("fn_despesas_variacoes", {
@@ -168,7 +175,37 @@ export function useTorreVariacoes(params: UseTorreVariacoesParams) {
         p_natureza: params.natureza,
         p_min_valor: minValor,
         p_limit: limit,
+        p_centro_custo_ids: centrosParam(centroCustoIds),
       }),
     staleTime: STALE_TIME,
+  });
+}
+
+// ── fn_torre_centros_custo_disponiveis ───────────────────────────────────────
+
+export interface UseTorreCentrosCustoParams {
+  meses?: number;
+  mesRef: string | null;
+  empresaIds: number[];
+  enabled?: boolean;
+}
+
+export function useTorreCentrosCusto(params: UseTorreCentrosCustoParams) {
+  const meses = params.meses ?? 13;
+  return useQuery({
+    queryKey: [
+      "torre-despesas-centros-custo",
+      meses,
+      params.mesRef ?? "atual",
+      empresasKey(params.empresaIds),
+    ],
+    enabled: params.enabled ?? true,
+    queryFn: () =>
+      callRpc<TorreCentroCustoDisponivel[]>("fn_torre_centros_custo_disponiveis", {
+        p_meses: meses,
+        p_mes_ref: params.mesRef,
+        p_empresa_ids: empresasParam(params.empresaIds),
+      }),
+    staleTime: 5 * 60_000,
   });
 }
