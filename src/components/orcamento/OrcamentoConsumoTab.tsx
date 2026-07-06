@@ -118,6 +118,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                       {formatCurrency(sintetica.saldo_livre)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">Sem verba alocada</TableCell>
+                    <TableCell />
                   </TableRow>
                 )}
                 {distribuidos.length > 0 && (
@@ -136,6 +137,7 @@ export function OrcamentoConsumoTab({ periodId }: { periodId: string }) {
                     >
                       {formatCurrency(totais.saldo)}
                     </TableCell>
+                    <TableCell />
                     <TableCell />
                   </TableRow>
                 )}
