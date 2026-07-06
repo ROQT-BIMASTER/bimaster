@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X, Printer } from "lucide-react";
 import { ErpExportStatusBadge } from "./ErpExportStatusBadge";
 import { format } from "date-fns";
@@ -41,7 +42,7 @@ interface PaymentReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: PaymentQueueItem | null;
-  onAccept: (id: string, notes?: string) => void;
+  onAccept: (id: string, notes?: string, opts?: { salvar_padrao_fornecedor?: boolean }) => void;
   onReject: (id: string, notes: string, rejectionCategory?: string, rejectionFields?: string[]) => void;
   onMarkPaid: (id: string, paymentMethod: string, paymentDetails: Record<string, string>, notes?: string) => void;
   onReopen?: (id: string) => void;
@@ -101,6 +102,7 @@ export function PaymentReviewDialog({
   const [categoriaCodigo, setCategoriaCodigo] = useState<string>("");
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [salvarPadraoFornecedor, setSalvarPadraoFornecedor] = useState<boolean>(false);
   const [isSavingClassificacao, setIsSavingClassificacao] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
@@ -139,6 +141,21 @@ export function PaymentReviewDialog({
     staleTime: 120_000,
   });
 
+  // Padrão atual do fornecedor (para exibir status e definir default do checkbox).
+  const { data: fornecedorPadrao } = useQuery({
+    queryKey: ["fpq-fornecedor-padrao", item?.supplier_document],
+    enabled: !!item?.supplier_document,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("fornecedores")
+        .select("categoria_codigo_padrao, plano_contas_id_padrao")
+        .eq("codigo_externo", item!.supplier_document!)
+        .maybeSingle();
+      return (data as any) ?? null;
+    },
+    staleTime: 60_000,
+  });
+
   // Sync com o item da fila ao abrir. Se a origem já sugeriu, pré-preenche;
   // caso contrário, financeiro escolhe do zero.
   useEffect(() => {
@@ -146,7 +163,15 @@ export function PaymentReviewDialog({
     setCategoriaCodigo(item.categoria_codigo || "");
     setPlanoContasId(item.plano_contas_id || "");
     setDepartamentoId(item.departamento_id || "");
+    setSalvarPadraoFornecedor(false);
   }, [item?.id]);
+
+  // Marca "salvar padrão" automaticamente quando o fornecedor ainda não tem um.
+  // Se já tem, deixa desmarcado para evitar sobrescrever silenciosamente.
+  useEffect(() => {
+    if (!item) return;
+    setSalvarPadraoFornecedor(!fornecedorPadrao?.categoria_codigo_padrao);
+  }, [item?.id, fornecedorPadrao?.categoria_codigo_padrao]);
 
 
   const startEdit = () => {
@@ -290,7 +315,7 @@ export function PaymentReviewDialog({
     setIsSavingClassificacao(false);
     setAction('accept');
     setAcceptConfirmOpen(false);
-    onAccept(item.id, notes);
+    onAccept(item.id, notes, { salvar_padrao_fornecedor: salvarPadraoFornecedor && !!item.supplier_document });
   };
 
   const handleConfirmarRejeicao = (data: RejectionData) => {
@@ -777,10 +802,16 @@ export function PaymentReviewDialog({
                         Sugestão da origem: {item.categoria_codigo}
                       </p>
                     )}
+                    {fornecedorPadrao?.categoria_codigo_padrao && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Padrão atual do fornecedor: {fornecedorPadrao.categoria_codigo_padrao}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">
-                      Departamento {departamentoObrigatorio && <span className="text-destructive">*</span>}
+                      Conferência de Departamento (para débito da verba)
+                      {departamentoObrigatorio && <span className="text-destructive"> *</span>}
                     </Label>
                     <Select
                       value={departamentoId || "__none__"}
@@ -810,6 +841,28 @@ export function PaymentReviewDialog({
                     )}
                   </div>
                 </div>
+
+                {/* Memoriza plano de contas escolhido como padrão do fornecedor para próximos títulos. */}
+                {item.supplier_document && categoriaCodigo && (
+                  <div className="flex items-start gap-2 pt-2 border-t">
+                    <Checkbox
+                      id="salvar-padrao-fornecedor"
+                      checked={salvarPadraoFornecedor}
+                      onCheckedChange={(v) => setSalvarPadraoFornecedor(v === true)}
+                      className="mt-0.5"
+                    />
+                    <div className="grid gap-0.5 leading-none">
+                      <Label htmlFor="salvar-padrao-fornecedor" className="text-sm cursor-pointer">
+                        Salvar como plano de contas padrão deste fornecedor
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {fornecedorPadrao?.categoria_codigo_padrao
+                          ? `Substituirá o padrão atual (${fornecedorPadrao.categoria_codigo_padrao}). Próximos títulos deste fornecedor entrarão já classificados.`
+                          : "Próximos títulos deste fornecedor entrarão já classificados com esse plano."}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

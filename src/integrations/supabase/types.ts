@@ -26252,6 +26252,7 @@ export type Database = {
           banco: string | null
           bloqueado: boolean | null
           capital_social: number | null
+          categoria_codigo_padrao: string | null
           cep: string | null
           chave_pix: string | null
           cidade: string | null
@@ -26290,6 +26291,9 @@ export type Database = {
           observacoes: string | null
           optante_simples_nacional: string | null
           pessoa_fisica: string | null
+          plano_contas_id_padrao: string | null
+          plano_padrao_atualizado_em: string | null
+          plano_padrao_atualizado_por: string | null
           porte: string | null
           prazo_pagamento_padrao: number | null
           razao_social: string | null
@@ -26309,6 +26313,7 @@ export type Database = {
           banco?: string | null
           bloqueado?: boolean | null
           capital_social?: number | null
+          categoria_codigo_padrao?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -26347,6 +26352,9 @@ export type Database = {
           observacoes?: string | null
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
+          plano_contas_id_padrao?: string | null
+          plano_padrao_atualizado_em?: string | null
+          plano_padrao_atualizado_por?: string | null
           porte?: string | null
           prazo_pagamento_padrao?: number | null
           razao_social?: string | null
@@ -26366,6 +26374,7 @@ export type Database = {
           banco?: string | null
           bloqueado?: boolean | null
           capital_social?: number | null
+          categoria_codigo_padrao?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -26404,6 +26413,9 @@ export type Database = {
           observacoes?: string | null
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
+          plano_contas_id_padrao?: string | null
+          plano_padrao_atualizado_em?: string | null
+          plano_padrao_atualizado_por?: string | null
           porte?: string | null
           prazo_pagamento_padrao?: number | null
           razao_social?: string | null
@@ -26423,6 +26435,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedores_plano_contas_id_padrao_fkey"
+            columns: ["plano_contas_id_padrao"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]

@@ -146,8 +146,8 @@ export default function FinancialPaymentCentral() {
     setReviewDialogOpen(true);
   };
 
-  const handleAccept = (id: string, notes?: string) => {
-    acceptPayment({ id, financial_notes: notes }, {
+  const handleAccept = (id: string, notes?: string, opts?: { salvar_padrao_fornecedor?: boolean }) => {
+    acceptPayment({ id, financial_notes: notes, salvar_padrao_fornecedor: opts?.salvar_padrao_fornecedor }, {
       onSuccess: () => {
         setReviewDialogOpen(false);
         setSelectedItem(null);

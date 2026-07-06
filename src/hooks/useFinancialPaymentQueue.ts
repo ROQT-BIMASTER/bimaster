@@ -5,6 +5,7 @@ import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { exportPaymentToErp } from "@/hooks/useErpExport";
 import { toast, toast as sonnerToast } from "sonner";
 import { callApi } from "@/lib/utils/api-helpers";
+import { saveFornecedorPadrao } from "@/lib/utils/fornecedorPadrao";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense' | 'department_expense';
@@ -457,7 +458,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
   // Accept payment (creates contas_pagar entry)
   const acceptPaymentMutation = useMutation({
-    mutationFn: async ({ id, financial_notes }: { id: string; financial_notes?: string }) => {
+    mutationFn: async ({ id, financial_notes, salvar_padrao_fornecedor }: { id: string; financial_notes?: string; salvar_padrao_fornecedor?: boolean }) => {
       const { data: userData } = await supabase.auth.getUser();
       
       // Get the payment queue item
@@ -525,6 +526,23 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       const apiResult = await callApi("contas-pagar-api", contaPagarPayload);
       const contaPagarId = apiResult?.id || apiResult?.data?.id;
+
+      // Memoriza o plano de contas escolhido como padrão do fornecedor, se solicitado.
+      // Falha silenciosa: não desfaz o aceite.
+      if (salvar_padrao_fornecedor && item.supplier_document && item.categoria_codigo) {
+        const saveRes = await saveFornecedorPadrao({
+          supplierDocument: item.supplier_document,
+          planoContasId: item.plano_contas_id,
+          categoriaCodigo: item.categoria_codigo,
+          userId: userData.user?.id,
+        });
+        if (!saveRes.ok) {
+          logger.warn("Não foi possível salvar plano padrão do fornecedor:", saveRes.error);
+          sonnerToast.warning("Título aceito, mas não foi possível salvar o plano como padrão do fornecedor.");
+        } else if (saveRes.count === 0) {
+          sonnerToast.info("Título aceito. Fornecedor ainda não está cadastrado — padrão não memorizado.");
+        }
+      }
 
       // Update payment queue status
       const { data, error } = await supabase
