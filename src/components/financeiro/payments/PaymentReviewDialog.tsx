@@ -254,8 +254,33 @@ export function PaymentReviewDialog({
     setAction(actionType);
   };
 
-  const handleConfirmAccept = () => {
+  const handleConfirmAccept = async () => {
     if (!item) return;
+    if (!categoriaCodigo) {
+      toast.error("Selecione o plano de contas antes de aceitar.");
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    setIsSavingClassificacao(true);
+    try {
+      // Persiste a classificação confirmada pelo financeiro na própria fila.
+      // O acceptPayment lê essas colunas de item.* e propaga para contas_pagar.
+      const { error } = await supabase
+        .from("financial_payment_queue")
+        .update({
+          categoria_codigo: categoriaCodigo,
+          plano_contas_id: planoContasId || null,
+          departamento_id: departamentoId || null,
+        } as any)
+        .eq("id", item.id);
+      if (error) throw error;
+    } catch (err: any) {
+      toast.error("Erro ao salvar classificação: " + (err.message || ""));
+      setIsSavingClassificacao(false);
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    setIsSavingClassificacao(false);
     setAction('accept');
     setAcceptConfirmOpen(false);
     onAccept(item.id, notes);
