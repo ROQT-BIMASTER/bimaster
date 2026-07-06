@@ -46,11 +46,13 @@ export interface UseTorreDepartamentosParams {
   natureza: TorreNatureza;
   confMinima: number | null;
   incluirSemDepto?: boolean;
+  centroCustoIds?: string[];
 }
 
 export function useTorreDepartamentos(params: UseTorreDepartamentosParams) {
   const meses = params.meses ?? 13;
   const incluirSemDepto = params.incluirSemDepto ?? true;
+  const centroCustoIds = params.centroCustoIds ?? [];
   return useQuery({
     queryKey: [
       "torre-despesas-departamentos",
@@ -60,6 +62,7 @@ export function useTorreDepartamentos(params: UseTorreDepartamentosParams) {
       params.natureza ?? "todas",
       params.confMinima ?? "sem-corte",
       incluirSemDepto,
+      centrosKey(centroCustoIds),
     ],
     queryFn: () =>
       callRpc<TorreDepartamentosPayload>("fn_despesas_departamentos", {
@@ -69,6 +72,7 @@ export function useTorreDepartamentos(params: UseTorreDepartamentosParams) {
         p_natureza: params.natureza,
         p_conf_minima: params.confMinima,
         p_incluir_sem_depto: incluirSemDepto,
+        p_centro_custo_ids: centrosParam(centroCustoIds),
       }),
     staleTime: STALE_TIME,
   });
