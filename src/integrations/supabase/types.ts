@@ -47870,6 +47870,59 @@ export type Database = {
           },
         ]
       }
+      suporte_respostas_rapidas: {
+        Row: {
+          atalho: string | null
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          escopo: string
+          fila_id: string | null
+          id: string
+          ordem: number
+          titulo: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          atalho?: string | null
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          escopo: string
+          fila_id?: string | null
+          id?: string
+          ordem?: number
+          titulo: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          atalho?: string | null
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          escopo?: string
+          fila_id?: string | null
+          id?: string
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_respostas_rapidas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_sla_policies: {
         Row: {
           fila_id: string
