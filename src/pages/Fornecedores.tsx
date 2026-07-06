@@ -772,7 +772,7 @@ export default function Fornecedores() {
   const footerActions: DetailFooterAction<Fornecedor>[] = [
     {
       key: "toggle",
-      label: (fornecedores.find(x => false)?.status === "ativo") ? "Bloquear" : "Bloquear/Ativar",
+      label: "Alternar status",
       variant: "outline",
       icon: Power,
       onClick: (f) => toggleMutation.mutate({ id: f.id, newStatus: f.status === "ativo" ? "bloqueado" : "ativo" }),
