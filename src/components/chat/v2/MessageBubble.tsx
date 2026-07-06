@@ -165,12 +165,20 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
         <div className={cn(
           "relative px-3 py-2 rounded-2xl shadow-sm",
           m.tipo === "urgente" && "ring-2 ring-destructive ring-offset-1 ring-offset-background",
-          isSofia
-            ? "bg-violet-500/10 border border-violet-500/30 rounded-bl-sm text-foreground"
-            : mine
-              ? "bg-emerald-600 text-white rounded-br-sm"
-              : "bg-card border border-border rounded-bl-sm",
+          m.visibilidade === "interna"
+            ? "bg-amber-500/10 border border-dashed border-amber-500/60 text-foreground rounded-bl-sm"
+            : isSofia
+              ? "bg-violet-500/10 border border-violet-500/30 rounded-bl-sm text-foreground"
+              : mine
+                ? "bg-emerald-600 text-white rounded-br-sm"
+                : "bg-card border border-border rounded-bl-sm",
         )}>
+          {m.visibilidade === "interna" && (
+            <div className="flex items-center gap-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Nota interna · só agentes
+            </div>
+          )}
           {m.tipo === "urgente" && (
             <div className="flex items-center gap-1 mb-1 text-[10px] font-bold uppercase tracking-wider text-destructive">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
