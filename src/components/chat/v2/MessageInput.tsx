@@ -261,6 +261,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         responde_a_id: responderA?.id ?? null,
         anexos: anexosMeta,
         mencoes: mentions.length ? mentions : undefined,
+        interna: notaInterna || undefined,
         metadata: tarefasMencionadas.length
           ? { tarefas: tarefasMencionadas }
           : undefined,
@@ -271,6 +272,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
       setMentionState(null);
       setTarefasMencionadas([]);
       setTaskMentionState(null);
+      setNotaInterna(false);
       onClearReply();
     } catch (e: any) {
       toast.error("Falha ao enviar: " + (e?.message ?? ""));
