@@ -8,7 +8,9 @@ import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRi
 import { CriarTarefaDoChatDialog } from "./CriarTarefaDoChatDialog";
 import { MessageInfoDialog } from "./MessageInfoDialog";
 import { CutucarDialog } from "./CutucarDialog";
-import { Link } from "react-router-dom";
+// Sem react-router aqui: MessageBubble também é montado pelo ChatDrawer,
+// que fica FORA do <Router/>. Usamos <a> — o clique dispara navegação
+// completa (aceitável, cliques em vínculos deste tipo são raros).
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
