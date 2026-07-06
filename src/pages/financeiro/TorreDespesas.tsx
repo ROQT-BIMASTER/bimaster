@@ -321,7 +321,7 @@ export default function TorreDespesas() {
       {/* Série com bandas + Drill do que estiver selecionado */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <TorreSerieChart payload={departamentos.data} isLoading={departamentos.isLoading} selecao={selecao} />
-        <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} />
+        <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} centroCustoIds={filtros.centroCustoIds} />
       </div>
 
         {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}
