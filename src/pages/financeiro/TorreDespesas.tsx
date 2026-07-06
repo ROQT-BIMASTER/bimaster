@@ -240,8 +240,9 @@ export default function TorreDespesas() {
         <TorreDrill selecao={selecao} empresaIds={filtros.empresaIds} natureza={filtros.natureza} />
       </div>
 
-      {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}
-      <TorreVariacoes payload={variacoes.data} isLoading={variacoes.isLoading} />
-    </div>
+        {/* Variações do mês — a fila provisória da Fase 1 (altas/quedas/novos/duplicidades) */}
+        <TorreVariacoes payload={variacoes.data} isLoading={variacoes.isLoading} />
+      </div>
+    </DashboardLayout>
   );
 }
