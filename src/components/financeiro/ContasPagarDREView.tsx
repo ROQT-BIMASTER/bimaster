@@ -173,8 +173,8 @@ export function ContasPagarDREView({
           query = query.eq('departamento_id', filterDepartamento);
         }
 
-        if (filterCentroCustoIds.length > 0) {
-          query = query.in('centro_custo_id', filterCentroCustoIds);
+        if (effectiveCentroCustoIds.length > 0) {
+          query = query.in('centro_custo_id', effectiveCentroCustoIds);
         }
 
         const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
