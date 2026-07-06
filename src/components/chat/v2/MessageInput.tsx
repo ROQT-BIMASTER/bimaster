@@ -40,7 +40,16 @@ interface Props {
 
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
-  const navigate = (to: string) => { window.location.href = to; };
+  // Navegação programática sem depender do Router (ChatDrawer é montado fora dele).
+  // Mostra um toast de progresso antes do redirect para dar feedback ao usuário.
+  const navigate = (to: string) => {
+    const id = toast.loading("Abrindo Gerenciar macros...");
+    // Pequeno delay para o toast pintar antes do full reload.
+    setTimeout(() => {
+      toast.dismiss(id);
+      window.location.href = to;
+    }, 180);
+  };
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
   // no meio de uma mensagem longa não perde o texto digitado.

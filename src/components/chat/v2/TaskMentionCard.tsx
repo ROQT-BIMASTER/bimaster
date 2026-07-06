@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+// Sem react-router aqui: montado também pelo ChatDrawer (fora do <Router/>).
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,8 +75,8 @@ export function TaskMentionCard({ tarefaId, mine }: { tarefaId: string; mine: bo
   }
 
   return (
-    <Link
-      to={`/projetos/${task.projeto_id}?tarefa=${task.id}`}
+    <a
+      href={`/projetos/${task.projeto_id}?tarefa=${task.id}`}
       className={cn(
         "mt-2 block rounded-lg border px-3 py-2 group transition-colors",
         mine
@@ -109,6 +109,6 @@ export function TaskMentionCard({ tarefaId, mine }: { tarefaId: string; mine: bo
           mine ? "text-white/80" : "text-muted-foreground",
         )} />
       </div>
-    </Link>
+    </a>
   );
 }
