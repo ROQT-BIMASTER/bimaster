@@ -210,14 +210,12 @@ export default function SuporteAdminSLA() {
     );
   }
 
-  if (!isAdmin) {
+  if (roleLoading) {
     return (
       <DashboardLayout>
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Acesso restrito a administradores.
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       </DashboardLayout>
     );
   }
