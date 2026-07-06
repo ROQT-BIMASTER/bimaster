@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   ChevronRight, 
@@ -24,8 +26,12 @@ import {
   Printer,
   FileDown,
   ArrowRightLeft,
-  Search
+  Search,
+  Layers,
+  ChevronsUpDown,
+  CheckCircle
 } from "lucide-react";
+import { useTorreCentrosCusto } from "@/hooks/financeiro/useTorreDespesas";
 import { ReclassificarContaDREDialog } from "./ReclassificarContaDREDialog";
 import { EditarClassificacaoRapidaDialog } from "./EditarClassificacaoRapidaDialog";
 import { TransferirFornecedorDialog } from "./TransferirFornecedorDialog";
