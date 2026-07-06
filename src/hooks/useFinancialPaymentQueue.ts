@@ -492,8 +492,18 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       // Create contas_pagar entry via API (idempotent, validated, audited)
       const erpId = `FPQ-${item.code}-${Date.now()}`;
-      
-      const contaPagarPayload = {
+
+      // Fase 1.D — passa os campos REAIS da fila (departamento, plano de contas, natureza, fiscal).
+      // Antes: categoria_nome era inventado como `${source_type} - ${source_code}`, o que
+      // fazia o título nascer sem classificação. Agora:
+      //   - categoria_nome é OMITIDO (o /incluir resolve o nome a partir do code)
+      //   - codigo_categoria = code do plano confirmado pelo financeiro
+      //   - departamento_id, natureza_lancamento, chave_nfe, numero_documento_fiscal
+      //     vêm da fila. Nomeação difere entre camadas:
+      //         origem/UI (chave_nfe) → fila (chave_acesso_nfe) → contas_pagar (chave_nfe).
+      //   - projeto_id NUNCA é passado (a coluna real em contas_pagar é codigo_projeto INTEGER,
+      //     e o /incluir rejeita projeto_id com PGRST204).
+      const contaPagarPayload: Record<string, any> = {
         path: "/incluir",
         codigo_lancamento_integracao: erpId,
         fornecedor_nome: item.supplier_name,
@@ -504,9 +514,14 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         data_vencimento: item.due_date,
         data_emissao: new Date().toISOString().split('T')[0],
         portador: item.portador,
-        categoria_nome: `${item.source_type} - ${item.source_code || item.code}`,
         empresa_id: empresaId,
       };
+
+      if (item.categoria_codigo) contaPagarPayload.codigo_categoria = item.categoria_codigo;
+      if (item.departamento_id) contaPagarPayload.departamento_id = item.departamento_id;
+      if (item.natureza_lancamento) contaPagarPayload.natureza_lancamento = item.natureza_lancamento;
+      if (item.chave_acesso_nfe) contaPagarPayload.chave_nfe = item.chave_acesso_nfe;
+      if (item.numero_documento_fiscal) contaPagarPayload.numero_documento_fiscal = item.numero_documento_fiscal;
 
       const apiResult = await callApi("contas-pagar-api", contaPagarPayload);
       const contaPagarId = apiResult?.id || apiResult?.data?.id;
