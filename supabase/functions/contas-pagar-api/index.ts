@@ -1,6 +1,7 @@
 // contas-pagar-api/index.ts — Thin router with secureHandler wrapper (PR-24 Production Hardening)
 // PR-24: envolto em secureHandler (WAF L7, IP blocklist, security headers) — antes só tinha CORS+auth+ratelimit manuais.
 // Mantém roteador interno + idempotência centralizada via withIdempotency (sem duplicação nos handlers).
+// Fase 1 redeploy bump: força pickup do IncluirSchema com departamento_id/plano_contas_id/natureza_lancamento.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { getCorsHeaders } from "../_shared/cors.ts";
