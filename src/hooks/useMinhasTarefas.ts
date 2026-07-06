@@ -78,7 +78,7 @@ export function useMinhasTarefas() {
       });
 
 
-      return ((data || []) as any[]).map((t): MinaTarefa => ({
+      return rows.map((t): MinaTarefa => ({
         id: t.id,
         titulo: t.titulo,
         descricao: t.descricao || null,
