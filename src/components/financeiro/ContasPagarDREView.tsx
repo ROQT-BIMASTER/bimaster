@@ -73,13 +73,15 @@ interface ContasPagarDREViewProps {
   filterMes: string;
   filterEmpresas: number[];
   filterDepartamento: string;
+  filterCentroCustoIds?: string[];
 }
 
 export function ContasPagarDREView({ 
   filterAno, 
   filterMes, 
   filterEmpresas,
-  filterDepartamento 
+  filterDepartamento,
+  filterCentroCustoIds = [],
 }: ContasPagarDREViewProps) {
   const queryClient = useQueryClient();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['2', '3', '4']));
