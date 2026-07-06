@@ -740,7 +740,6 @@ export default function Fornecedores() {
               cnpj={f.cnpj}
               size="sm"
               variant="outline"
-              className="w-full"
               onDataFound={(data) => {
                 const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
                 if (data.razaoSocial) updateFields.razao_social = data.razaoSocial;
