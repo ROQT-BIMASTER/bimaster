@@ -20,7 +20,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useChatDraft } from "@/hooks/chat/useChatDraft";
 import { RespostasRapidasPopover } from "@/components/suporte/RespostasRapidasPopover";
-import { useNavigate } from "react-router-dom";
+// Navegação via window.location: o MessageInput também é montado pelo
+// ChatDrawer (fora do <Router/>), então useNavigate() dispararia
+// "useNavigate() may be used only in the context of a <Router> component".
 import { useQuery } from "@tanstack/react-query";
 
 interface Props {
