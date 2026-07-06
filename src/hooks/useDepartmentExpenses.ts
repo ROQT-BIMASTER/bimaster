@@ -293,7 +293,7 @@ export function useDepartmentExpenses(departmentId?: string) {
       // First, get the expense to retrieve attachments, department, and empresa
       const { data: expense, error: fetchError } = await supabase
         .from("department_expenses")
-        .select("attachments, empresa_id, empresa_nome, department:departamentos(nome)")
+        .select("attachments, empresa_id, empresa_nome, department_id, department:departamentos(nome)")
         .eq("id", id)
         .single();
 
@@ -340,6 +340,9 @@ export function useDepartmentExpenses(departmentId?: string) {
         attachments: expense?.attachments || [],
         empresa_id: expense?.empresa_id,
         empresa_nome: expense?.empresa_nome,
+        // Fase 1.B — Departamento já tem department_id na origem: propagar.
+        // Categoria/plano/natureza/chave são confirmados/completados pelo financeiro no aceite.
+        departamento_id: expense?.department_id ?? null,
       };
 
       if (existingQueueId) {
