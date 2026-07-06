@@ -254,10 +254,17 @@ export function PaymentReviewDialog({
     setAction(actionType);
   };
 
+  const departamentoObrigatorio = !!item && item.source_type !== 'department_expense';
+
   const handleConfirmAccept = async () => {
     if (!item) return;
     if (!categoriaCodigo) {
       toast.error("Selecione o plano de contas antes de aceitar.");
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    if (departamentoObrigatorio && !departamentoId) {
+      toast.error("Selecione o departamento antes de aceitar (origem não informou).");
       setAcceptConfirmOpen(false);
       return;
     }
@@ -772,7 +779,9 @@ export function PaymentReviewDialog({
                     )}
                   </div>
                   <div>
-                    <Label className="text-muted-foreground text-xs">Departamento</Label>
+                    <Label className="text-muted-foreground text-xs">
+                      Departamento {departamentoObrigatorio && <span className="text-destructive">*</span>}
+                    </Label>
                     <Select
                       value={departamentoId || "__none__"}
                       onValueChange={(v) => setDepartamentoId(v === "__none__" ? "" : v)}
@@ -781,12 +790,19 @@ export function PaymentReviewDialog({
                         <SelectValue placeholder="Selecione o departamento" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">Sem departamento</SelectItem>
+                        {!departamentoObrigatorio && (
+                          <SelectItem value="__none__">Sem departamento</SelectItem>
+                        )}
                         {departamentosList.map((d: any) => (
                           <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {departamentoObrigatorio && !departamentoId && (
+                      <p className="text-xs text-destructive mt-1">
+                        Origem ({item.source_type}) não informou departamento — selecione um.
+                      </p>
+                    )}
                     {item.department_name && !departamentoId && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Origem informou: {item.department_name}
@@ -850,13 +866,15 @@ export function PaymentReviewDialog({
               <Button
                 variant="default"
                 onClick={() => handleAction('accept')}
-                disabled={isProcessing || !canAccept || !categoriaCodigo || isSavingClassificacao}
+                disabled={isProcessing || !canAccept || !categoriaCodigo || (departamentoObrigatorio && !departamentoId) || isSavingClassificacao}
                 title={
                   !canAccept
                     ? "Confirme todos os documentos antes de aprovar"
                     : !categoriaCodigo
                       ? "Selecione o plano de contas para aceitar"
-                      : undefined
+                      : departamentoObrigatorio && !departamentoId
+                        ? "Selecione o departamento para aceitar (origem não informou)"
+                        : undefined
                 }
               >
                 {isProcessing && action === 'accept' ? (
