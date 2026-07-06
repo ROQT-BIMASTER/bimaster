@@ -520,7 +520,9 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (item.categoria_codigo) contaPagarPayload.codigo_categoria = item.categoria_codigo;
       if (item.departamento_id) contaPagarPayload.departamento_id = item.departamento_id;
-      if (item.natureza_lancamento) contaPagarPayload.natureza_lancamento = item.natureza_lancamento;
+      // Aceite via Central de Pagamentos = provisão financeira (não lançamento ERP definitivo).
+      // Default 'provisionado'; origem só sobrescreve se explicitamente marcada como 'lancado'.
+      contaPagarPayload.natureza_lancamento = item.natureza_lancamento ?? 'provisionado';
       if (item.chave_acesso_nfe) contaPagarPayload.chave_nfe = item.chave_acesso_nfe;
       if (item.numero_documento_fiscal) contaPagarPayload.numero_documento_fiscal = item.numero_documento_fiscal;
 
