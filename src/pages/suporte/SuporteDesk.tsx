@@ -87,6 +87,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
 
 export default function SuporteDesk() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
 
   const { data: minhas, isLoading: minhasLoading } = useMinhasFilasAgente();
