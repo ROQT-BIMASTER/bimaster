@@ -28,7 +28,9 @@ import {
   Settings2,
   Plus,
   CalendarIcon,
+  Clock,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
@@ -85,6 +87,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
 
 export default function SuporteDesk() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
 
   const { data: minhas, isLoading: minhasLoading } = useMinhasFilasAgente();
@@ -335,13 +338,23 @@ export default function SuporteDesk() {
               </>
             )}
             {isAdmin && (
-              <Button
-                size="sm"
-                className="h-9 gap-1.5"
-                onClick={() => setNovoDeptoOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" /> Novo departamento
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => navigate("/dashboard/suporte/admin/sla")}
+                >
+                  <Clock className="h-3.5 w-3.5" /> SLA
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5"
+                  onClick={() => setNovoDeptoOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Novo departamento
+                </Button>
+              </>
             )}
           </div>
         </div>
