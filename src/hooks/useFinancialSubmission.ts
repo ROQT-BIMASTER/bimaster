@@ -20,6 +20,14 @@ export interface FinancialSubmissionConfig {
   installmentNumber?: number | null;
   installmentTotal?: number | null;
   boletoBarcode?: string | null;
+  // Fase 1.B — propagação de classificação/fiscal para a fila.
+  // Todos opcionais: o financeiro confirma/completa no aceite.
+  departamentoId?: string | null;
+  planoContasId?: string | null;
+  categoriaCodigo?: string | null;
+  naturezaLancamento?: 'provisionado' | 'lancado' | null;
+  chaveAcessoNfe?: string | null;
+  numeroDocumentoFiscal?: string | null;
   /** Callback to update the source table after queue insert/update */
   onUpdateSource?: (queueId: string, formData: FinancialFormData, notes: string | null) => Promise<void>;
 }
