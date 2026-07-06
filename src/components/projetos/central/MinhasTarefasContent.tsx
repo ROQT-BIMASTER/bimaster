@@ -746,11 +746,32 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? nowSaoPauloISO() : null;
+
+    // Patch otimista no cache da Central (minhas-tarefas) para o cartão migrar
+    // imediatamente entre as colunas do Kanban sem depender do refetch.
+    const centralKey = ["minhas-tarefas", user?.id] as const;
+    const prevCentral = queryClient.getQueryData<MinaTarefa[]>(centralKey);
+    if (prevCentral) {
+      queryClient.setQueryData<MinaTarefa[]>(centralKey, prevCentral.map((row) =>
+        row.id === t.id
+          ? { ...row, status: update.status, data_conclusao: update.data_conclusao }
+          : row,
+      ));
+    }
+
     const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
-    if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
+    if (!result.ok) {
+      if (prevCentral) queryClient.setQueryData(centralKey, prevCentral);
+      return;
+    }
+    // Refetch efetivo do quadro para reconciliar com o backend (data_conclusao
+    // canônica, ordenação da coluna "Concluídas", etc.) sem esperar o usuário
+    // fechar o painel ou dar F5.
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"], refetchType: "none" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
@@ -760,7 +781,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       );
     }
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
-  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave, user?.id]);
+
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
