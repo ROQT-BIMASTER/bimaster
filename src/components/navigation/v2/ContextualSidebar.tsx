@@ -367,7 +367,10 @@ function ModulePanel({
 
       <SearchBox value={query} onChange={setQuery} placeholder={`Buscar em ${module.label}`} />
 
-      <ScrollArea className="max-h-[60vh]">
+      <div
+        className="max-h-[60vh] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[hsl(var(--launcher-border))] hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(var(--launcher-muted))]"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "hsl(var(--launcher-border)) transparent" }}
+      >
         <nav className="p-2 flex flex-col gap-0.5">
           {pages.length === 0 ? (
             <Empty query={query} />
