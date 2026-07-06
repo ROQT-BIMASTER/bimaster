@@ -251,7 +251,7 @@ export function TorreAlertas() {
         </div>
 
         {/* Filtros por severidade */}
-        <div className="px-4 md:px-6 py-2 border-b border-border flex items-center gap-1.5 flex-wrap bg-card">
+        <div className="px-4 md:px-6 py-2 border-b border-border flex items-center gap-1.5 flex-wrap bg-card shrink-0">
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">
             Severidade
           </span>
