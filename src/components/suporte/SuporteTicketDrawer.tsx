@@ -54,7 +54,8 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                   </span>
                   <TicketEtapaBadge projetoTarefaId={ticket.projeto_tarefa_id} />
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <SuporteSlaCountdown ticket={ticket} />
                   {ticket.assignee_id !== user?.id && (
                     <Button
                       size="sm"
