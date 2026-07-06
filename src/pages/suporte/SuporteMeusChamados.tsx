@@ -147,6 +147,20 @@ export default function SuporteMeusChamados() {
           <Card className="min-h-0 overflow-hidden hidden lg:flex lg:flex-col">
             {selecionado?.conversa_id ? (
               <>
+                <div className="flex items-center justify-between gap-2 p-2 border-b">
+                  <div className="text-xs text-muted-foreground truncate">
+                    {selecionado.protocolo} — {selecionado.titulo}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 h-8"
+                    onClick={() => setPareceresOpen(true)}
+                  >
+                    <FileText className="h-4 w-4" />
+                    Pareceres
+                  </Button>
+                </div>
                 {selecionado.status === "resolvido" && (
                   <div className="p-2.5 border-b">
                     <CsatPrompt ticketId={selecionado.id} />
@@ -169,6 +183,27 @@ export default function SuporteMeusChamados() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={pareceresOpen} onOpenChange={setPareceresOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Pareceres — {selecionado?.protocolo}
+            </DialogTitle>
+          </DialogHeader>
+          {selecionado && (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PareceresTab
+                ticketId={selecionado.id}
+                filaId={(selecionado as any).fila_id ?? null}
+                departamentoId={(selecionado as any).departamento_id ?? null}
+                isAgent={true}
+                isRequester={selecionado.solicitante_id === user?.id}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <NovoChamadoDialog
         open={dialogOpen}
