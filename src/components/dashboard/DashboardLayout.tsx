@@ -217,6 +217,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           )}
           <div className="p-4 sm:p-6 relative min-h-[calc(100vh-52px)] overflow-x-auto">
             <ErrorBoundary>
+              <GlobalBackButton />
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>
             <TermsAcceptanceModal />
