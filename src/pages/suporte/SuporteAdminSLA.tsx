@@ -78,8 +78,13 @@ const DIAS: { key: string; label: string }[] = [
 
 export default function SuporteAdminSLA() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const qc = useQueryClient();
+  const abaInicial = (searchParams.get("tab") === "macros" ? "macros" : "matriz") as
+    | "matriz"
+    | "calendarios"
+    | "macros";
 
   const { data: filas = [], isLoading: filasLoading } = useQuery({
     queryKey: ["suporte-admin", "filas"],
