@@ -3,7 +3,7 @@ import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck, AlertOctagon } from "lucide-react";
+import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck, AlertOctagon, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
