@@ -35,6 +35,7 @@ import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import { useChatSoundNotifications } from "@/hooks/chat/useChatSoundNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { UrgentMessageBanner } from "@/components/chat/v2/UrgentMessageBanner";
+import { GlobalBackButton } from "@/components/layout/GlobalBackButton";
 
 function ChatGlobalNotifiers() {
   useChatSoundNotifications();
