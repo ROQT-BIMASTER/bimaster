@@ -317,6 +317,10 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo,
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      <MinhasTarefasCountersBar
+        tarefas={tarefas}
+        concluidasExibidas={groups.done.length}
+      />
       <div className="flex gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
           <div key={col.key} className="flex-1 min-w-[260px]">
