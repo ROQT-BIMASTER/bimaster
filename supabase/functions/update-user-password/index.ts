@@ -27,20 +27,23 @@ Deno.serve(secureHandler({
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: roleData, error: roleError } = await supabaseAdmin
+    const { data: rolesData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", ctx.userId)
-      .single();
+      .eq("user_id", ctx.userId);
 
-    if (roleError || !roleData || roleData.role !== "admin") {
+    const allowedRoles = new Set(["admin", "suporte"]);
+    const userRoles = (rolesData ?? []).map((r) => r.role);
+    const hasAccess = userRoles.some((r) => allowedRoles.has(r));
+
+    if (roleError || !hasAccess) {
       await logSensitiveOperation(ctx, req, {
         action: "user.password.self",
         outcome: "denied",
-        metadata: { reason: "not_admin" },
+        metadata: { reason: "role_not_allowed", roles: userRoles },
       });
       return new Response(
-        JSON.stringify({ error: "Access denied. Admin role required." }),
+        JSON.stringify({ error: "Access denied. Admin or Suporte TI role required." }),
         { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
       );
     }
