@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import {
   AlertTriangle, RefreshCw, Search, Ban, ClipboardCheck, Eye, ChevronDown, ChevronRight,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
