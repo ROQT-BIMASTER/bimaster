@@ -23,6 +23,7 @@ interface Props {
   selecao: TorreSelecao | null;
   empresaIds: number[];
   natureza: TorreNatureza;
+  centroCustoIds?: string[];
 }
 
 const TITULOS_POR_PAGINA = 25;
