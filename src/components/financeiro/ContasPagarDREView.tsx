@@ -97,6 +97,16 @@ export function ContasPagarDREView({
   const [selectedFornecedor, setSelectedFornecedor] = useState<{ nome: string; lancamentosIds: string[] } | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
   const [focusSearch, setFocusSearch] = useState("");
+  const [internalCentroCustoIds, setInternalCentroCustoIds] = useState<string[]>([]);
+  const [centrosSearch, setCentrosSearch] = useState("");
+
+  // Interseção entre filtro global (prop) e seletor interno da DRE.
+  const effectiveCentroCustoIds = useMemo(() => {
+    if (internalCentroCustoIds.length === 0) return filterCentroCustoIds;
+    if (filterCentroCustoIds.length === 0) return internalCentroCustoIds;
+    const propSet = new Set(filterCentroCustoIds);
+    return internalCentroCustoIds.filter((id) => propSet.has(id));
+  }, [filterCentroCustoIds, internalCentroCustoIds]);
   // Format functions
   const formatCurrency = useCallback((value: number, showSign = false) => {
     const formatted = formatNumber(Math.abs(value), 2);
