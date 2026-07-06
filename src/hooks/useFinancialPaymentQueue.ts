@@ -458,7 +458,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
   // Accept payment (creates contas_pagar entry)
   const acceptPaymentMutation = useMutation({
-    mutationFn: async ({ id, financial_notes }: { id: string; financial_notes?: string }) => {
+    mutationFn: async ({ id, financial_notes, salvar_padrao_fornecedor }: { id: string; financial_notes?: string; salvar_padrao_fornecedor?: boolean }) => {
       const { data: userData } = await supabase.auth.getUser();
       
       // Get the payment queue item
