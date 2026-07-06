@@ -155,7 +155,7 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
                 <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                 <SelectContent>
                   {(usuarios as any[]).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome_completo ?? u.email}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>{u.nome ?? u.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -167,7 +167,7 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
                 <SelectContent>
                   <SelectItem value="__none">— Usar líder da fila —</SelectItem>
                   {(usuarios as any[]).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome_completo ?? u.email}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>{u.nome ?? u.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
