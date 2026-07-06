@@ -802,10 +802,16 @@ export function PaymentReviewDialog({
                         Sugestão da origem: {item.categoria_codigo}
                       </p>
                     )}
+                    {fornecedorPadrao?.categoria_codigo_padrao && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Padrão atual do fornecedor: {fornecedorPadrao.categoria_codigo_padrao}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">
-                      Departamento {departamentoObrigatorio && <span className="text-destructive">*</span>}
+                      Conferência de Departamento (para débito da verba)
+                      {departamentoObrigatorio && <span className="text-destructive"> *</span>}
                     </Label>
                     <Select
                       value={departamentoId || "__none__"}
@@ -835,6 +841,28 @@ export function PaymentReviewDialog({
                     )}
                   </div>
                 </div>
+
+                {/* Memoriza plano de contas escolhido como padrão do fornecedor para próximos títulos. */}
+                {item.supplier_document && categoriaCodigo && (
+                  <div className="flex items-start gap-2 pt-2 border-t">
+                    <Checkbox
+                      id="salvar-padrao-fornecedor"
+                      checked={salvarPadraoFornecedor}
+                      onCheckedChange={(v) => setSalvarPadraoFornecedor(v === true)}
+                      className="mt-0.5"
+                    />
+                    <div className="grid gap-0.5 leading-none">
+                      <Label htmlFor="salvar-padrao-fornecedor" className="text-sm cursor-pointer">
+                        Salvar como plano de contas padrão deste fornecedor
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {fornecedorPadrao?.categoria_codigo_padrao
+                          ? `Substituirá o padrão atual (${fornecedorPadrao.categoria_codigo_padrao}). Próximos títulos deste fornecedor entrarão já classificados.`
+                          : "Próximos títulos deste fornecedor entrarão já classificados com esse plano."}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
