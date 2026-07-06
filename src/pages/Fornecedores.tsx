@@ -1,30 +1,28 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { logger } from "@/lib/logger";
 import {
-  Users, Plus, Search, Pencil, ToggleLeft, ToggleRight, Loader2,
-  ChevronDown, ChevronRight, Building2, MapPin, Phone, Mail,
-  QrCode, CreditCard, FileText, Globe, Briefcase, Info, RefreshCw,
+  Users, Plus, Pencil, Loader2, Building2, MapPin, Phone, Mail,
+  QrCode, CreditCard, FileText, Info, RefreshCw, Download, Power, Ban,
 } from "lucide-react";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { Link } from "react-router-dom";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { ErpBadge } from "@/components/cadastros/ErpBadge";
+import { CadastroShell } from "@/components/cadastros/CadastroShell";
+import type { ColumnDef, TabDef, KpiDef, FilterDef, BatchAction, DetailFooterAction } from "@/components/cadastros/CadastroShell";
 
 interface Fornecedor {
   id: string;
@@ -133,111 +131,23 @@ function validateCNPJ(cnpj: string): boolean {
   return calcDigit(weights1) === parseInt(digits[12]) && calcDigit(weights2) === parseInt(digits[13]);
 }
 
-function SituacaoBadge({ situacao }: { situacao: string | null }) {
-  if (!situacao) return null;
-  const isAtiva = situacao.toUpperCase() === "ATIVA";
-  return (
-    <Badge variant={isAtiva ? "success" : "destructive"} className="text-[10px]">
-      {situacao}
-    </Badge>
-  );
+function statusBadge(status: string) {
+  if (status === "ativo") return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" variant="outline">Ativo</Badge>;
+  if (status === "bloqueado") return <Badge variant="destructive">Bloqueado</Badge>;
+  return <Badge variant="secondary">Inativo</Badge>;
 }
 
-function InfoBadge({ label, show }: { label: string; show: boolean }) {
-  if (!show) return null;
-  return <Badge variant="outline" className="text-[10px]">{label}</Badge>;
-}
-
-function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
-  const hasAddress = f.endereco || f.bairro || f.cidade;
-  const hasBank = f.banco || f.chave_pix;
-  const hasTax = f.inscricao_estadual || f.inscricao_municipal || f.cnae;
-
-  return (
-    <div className="px-6 py-4 bg-muted/30 border-t space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <SituacaoBadge situacao={f.situacao_cadastral} />
-        <InfoBadge label={f.matriz_filial || ""} show={!!f.matriz_filial} />
-        <InfoBadge label={f.porte || ""} show={!!f.porte} />
-        <InfoBadge label={f.regime_tributario || ""} show={!!f.regime_tributario} />
-        {f.optante_simples_nacional === "S" && <InfoBadge label="Simples Nacional" show />}
-        {f.erp_code && <Badge variant="secondary" className="text-[10px]">ERP: {f.erp_code}</Badge>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
-            <MapPin className="h-3 w-3" /> Endereço
-          </p>
-          {hasAddress ? (
-            <div className="text-xs space-y-0.5">
-              <p>{[f.endereco, f.endereco_numero].filter(Boolean).join(", ")}{f.complemento ? ` - ${f.complemento}` : ""}</p>
-              <p>{[f.bairro, f.cidade, f.estado].filter(Boolean).join(" - ")}</p>
-              {f.cep && <p>CEP: {f.cep}</p>}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">Não cadastrado</p>
-          )}
-          <div className="pt-1 space-y-0.5">
-            {f.telefone && (
-              <p className="text-xs flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{f.telefone}</p>
-            )}
-            {f.email && (
-              <p className="text-xs flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" />{f.email}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
-            <CreditCard className="h-3 w-3" /> Dados Bancários
-          </p>
-          {hasBank ? (
-            <div className="text-xs space-y-1">
-              {f.banco && (
-                <p>{f.banco} • Ag: {f.agencia || "—"} • Cc: {f.conta_bancaria || "—"}{f.tipo_conta ? ` (${f.tipo_conta})` : ""}</p>
-              )}
-              {f.favorecido && <p className="text-muted-foreground">Favorecido: {f.favorecido}</p>}
-              {f.chave_pix && (
-                <p className="flex items-center gap-1">
-                  <QrCode className="h-3 w-3" />
-                  <Badge variant="outline" className="text-[9px]">{f.tipo_pix?.toUpperCase()}</Badge>
-                  {f.chave_pix}
-               </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">Não cadastrado</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
-            <FileText className="h-3 w-3" /> Dados Fiscais
-          </p>
-          {hasTax ? (
-            <div className="text-xs space-y-0.5">
-              {f.cnae && <p>CNAE: {f.cnae}</p>}
-              {f.inscricao_estadual && <p>IE: {f.inscricao_estadual}</p>}
-              {f.inscricao_municipal && <p>IM: {f.inscricao_municipal}</p>}
-              {f.capital_social != null && f.capital_social > 0 && (
-                <p>Capital Social: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.capital_social)}</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">Não cadastrado</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+function initialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export default function Fornecedores() {
   const queryClient = useQueryClient();
-  const { empresasDoUsuario, empresaIds, empresaSelecionada, loading: empresaLoading } = useEmpresaFilter();
+  const { empresasDoUsuario, empresaIds } = useEmpresaFilter();
 
-  // Restore persisted state from sessionStorage
   const STORAGE_KEY = "fornecedores_form_state";
   const getPersistedState = () => {
     try {
@@ -258,18 +168,15 @@ export default function Fornecedores() {
   const [form, setForm] = useState<FornecedorForm>(persisted?.form ?? emptyForm);
   const [editingId, setEditingId] = useState<string | null>(persisted?.editingId ?? null);
   const [upsertConfirm, setUpsertConfirm] = useState<{ existingId: string } | null>(null);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">(persisted?.dialogTab ?? "basico");
   const [syncingErp, setSyncingErp] = useState(false);
 
-  // Persist form state before navigating away
   const persistFormState = useCallback(() => {
     if (dialogOpen) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ dialogOpen, form, editingId, dialogTab }));
     }
   }, [dialogOpen, form, editingId, dialogTab]);
 
-  // Save state on visibility change (tab switch) and beforeunload
   const persistRef = useRef(persistFormState);
   persistRef.current = persistFormState;
 
@@ -286,7 +193,6 @@ export default function Fornecedores() {
     };
   }, []);
 
-  // Filter empresas to only those in user context
   const visibleEmpresas = empresasDoUsuario;
 
   const { data: fornecedores = [], isLoading } = useQuery({
@@ -295,14 +201,13 @@ export default function Fornecedores() {
       let query = supabase.from("fornecedores").select("*").order("nome");
       if (search) query = query.or(`nome.ilike.%${search}%,cnpj.ilike.%${search}%,razao_social.ilike.%${search}%`);
       if (statusFilter !== "todos") query = query.eq("status", statusFilter);
-      
+
       if (empresaFilter !== "todas") {
         query = query.eq("empresa_id", parseInt(empresaFilter));
       } else if (empresaIds.length > 0) {
-        // Filter by user's empresas — include null empresa_id (shared suppliers)
         query = query.or(`empresa_id.in.(${empresaIds.join(",")}),empresa_id.is.null`);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as Fornecedor[];
@@ -324,12 +229,9 @@ export default function Fornecedores() {
     onSuccess: async (fornecedorId: string) => {
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
       toast.success(editingId ? "Fornecedor atualizado!" : "Fornecedor cadastrado!");
-
-      // ERP sync for new suppliers
       if (!editingId && fornecedorId) {
         await syncWithErp(fornecedorId);
       }
-
       setDialogOpen(false);
       setForm(emptyForm);
       setEditingId(null);
@@ -341,8 +243,6 @@ export default function Fornecedores() {
     setSyncingErp(true);
     try {
       const cnpjDigits = form.cnpj.replace(/\D/g, "");
-      
-      // Step 1: Check if supplier exists in ERP
       const { data: checkData, error: checkErr } = await supabase.functions.invoke("erp-fornecedores-sync", {
         body: { cnpj: cnpjDigits, path: "/check" },
       });
@@ -355,7 +255,6 @@ export default function Fornecedores() {
 
       if (checkData?.found_in_erp && checkData?.erp_code) {
         toast.info(`Fornecedor já existe no ERP — Código: ${checkData.erp_code}`);
-        // Update local record with ERP code
         await supabase.from("fornecedores").update({
           erp_code: String(checkData.erp_code),
           erp_synced_at: new Date().toISOString(),
@@ -364,7 +263,6 @@ export default function Fornecedores() {
         return;
       }
 
-      // Step 2: Register in ERP
       const { data: syncData, error: syncErr } = await supabase.functions.invoke("erp-fornecedores-sync", {
         body: { cnpj: cnpjDigits, fornecedor_id: fornecedorId, path: "/sync" },
       });
@@ -397,6 +295,20 @@ export default function Fornecedores() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
       toast.success("Status atualizado!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const batchStatusMutation = useMutation({
+    mutationFn: async ({ ids, newStatus }: { ids: string[]; newStatus: string }) => {
+      const { error } = await supabase.from("fornecedores")
+        .update({ status: newStatus, updated_at: new Date().toISOString() } as any)
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+      toast.success(`${vars.ids.length} fornecedor(es) atualizados.`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -503,7 +415,6 @@ export default function Fornecedores() {
 
     const cnpjDigits = form.cnpj.replace(/\D/g, "");
 
-    // "Todas" — insert one record per empresa
     if (form.empresa_id === "todas" && !editingId) {
       const base = buildPayload();
       const payloads = visibleEmpresas.map(e => ({ ...base, empresa_id: e.id }));
@@ -556,21 +467,11 @@ export default function Fornecedores() {
         toast.warning(data?.message || "Sincronização pendente.");
       }
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
-    } catch (err: any) {
+    } catch {
       toast.error("Falha ao sincronizar com ERP");
     } finally {
       setSyncingErp(false);
     }
-  };
-
-  const statusBadge = (status: string) => {
-    const map: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
-      ativo: { variant: "default", label: "Ativo" },
-      inativo: { variant: "secondary", label: "Inativo" },
-      bloqueado: { variant: "destructive", label: "Bloqueado" },
-    };
-    const s = map[status] || { variant: "secondary" as const, label: status };
-    return <Badge variant={s.variant}>{s.label}</Badge>;
   };
 
   const empresaNome = (empresaId: number | null) => {
@@ -578,6 +479,312 @@ export default function Fornecedores() {
     const e = visibleEmpresas.find((emp) => emp.id === empresaId);
     return e ? e.nome : `#${empresaId}`;
   };
+
+  const handleExportCsv = (ids?: string[]) => {
+    const source = ids && ids.length ? fornecedores.filter(f => ids.includes(f.id)) : fornecedores;
+    if (!source.length) return toast.info("Nada a exportar.");
+    const header = ["Nome", "CNPJ", "Razão Social", "Email", "Cidade", "UF", "Status", "ERP"];
+    const rows = source.map(f => [
+      f.nome, formatCNPJ(f.cnpj), f.razao_social ?? "", f.email ?? "",
+      f.cidade ?? "", f.estado ?? "", f.status, f.erp_code ?? "",
+    ]);
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fornecedores-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${source.length} fornecedor(es) exportados.`);
+  };
+
+  // ============= KPIs =============
+  const kpis: KpiDef[] = useMemo(() => {
+    const total = fornecedores.length;
+    const ativos = fornecedores.filter(f => f.status === "ativo").length;
+    const semErp = fornecedores.filter(f => !f.erp_code).length;
+    const semSituacao = fornecedores.filter(f => !f.situacao_cadastral).length;
+    return [
+      { label: "Total", value: total.toLocaleString("pt-BR") },
+      { label: "Ativos", value: ativos.toLocaleString("pt-BR"), severity: "success", hint: total ? `${Math.round((ativos/total)*100)}% do total` : undefined },
+      { label: "Sem sync ERP", value: semErp.toLocaleString("pt-BR"), severity: semErp > 0 ? "warning" : "default" },
+      { label: "Sem situação RF", value: semSituacao.toLocaleString("pt-BR"), severity: semSituacao > 0 ? "warning" : "default" },
+    ];
+  }, [fornecedores]);
+
+  // ============= Columns =============
+  const columns: ColumnDef<Fornecedor>[] = [
+    {
+      key: "nome",
+      header: "Fornecedor",
+      className: "flex-[2]",
+      render: (f) => (
+        <div className="min-w-0">
+          <div className="font-medium truncate">{f.nome}</div>
+          <div className="text-xs text-muted-foreground truncate font-mono">{formatCNPJ(f.cnpj)}</div>
+        </div>
+      ),
+    },
+    {
+      key: "cidade",
+      header: "Cidade/UF",
+      render: (f) => (
+        <span className="text-xs text-muted-foreground truncate block">
+          {[f.cidade, f.estado].filter(Boolean).join("/") || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "erp",
+      header: "ERP",
+      className: "flex-none w-20",
+      render: (f) => <ErpBadge code={f.erp_code} />,
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "right",
+      className: "flex-none w-24",
+      render: (f) => statusBadge(f.status),
+    },
+  ];
+
+  // ============= Filters =============
+  const filters: FilterDef[] = [
+    {
+      key: "status",
+      label: "Status",
+      value: statusFilter,
+      onChange: setStatusFilter,
+      options: [
+        { value: "todos", label: "Todos" },
+        { value: "ativo", label: "Ativo" },
+        { value: "inativo", label: "Inativo" },
+        { value: "bloqueado", label: "Bloqueado" },
+      ],
+    },
+    {
+      key: "empresa",
+      label: "Empresa",
+      value: empresaFilter,
+      onChange: setEmpresaFilter,
+      options: [
+        { value: "todas", label: "Todas" },
+        ...visibleEmpresas.map(e => ({ value: e.id.toString(), label: e.nome })),
+      ],
+    },
+  ];
+
+  // ============= Batch actions =============
+  const batchActions: BatchAction[] = [
+    {
+      key: "ativar",
+      label: "Ativar",
+      icon: Power,
+      variant: "outline",
+      onClick: (ids) => batchStatusMutation.mutate({ ids, newStatus: "ativo" }),
+    },
+    {
+      key: "bloquear",
+      label: "Bloquear",
+      icon: Ban,
+      variant: "outline",
+      onClick: (ids) => batchStatusMutation.mutate({ ids, newStatus: "bloqueado" }),
+    },
+    {
+      key: "exportar",
+      label: "Exportar",
+      icon: Download,
+      variant: "outline",
+      onClick: (ids) => handleExportCsv(ids),
+    },
+  ];
+
+  // ============= Detail tabs =============
+  const tabs: TabDef<Fornecedor>[] = [
+    {
+      key: "info",
+      label: "Informações",
+      icon: Info,
+      render: (f) => (
+        <div className="space-y-5">
+          <section>
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Dados Cadastrais</h4>
+            <dl className="space-y-2.5">
+              <FieldRow label="CNPJ" value={<span className="font-mono">{formatCNPJ(f.cnpj)}</span>} />
+              <FieldRow label="Razão Social" value={f.razao_social} />
+              <FieldRow label="Nome Fantasia" value={f.nome_fantasia} />
+              <FieldRow label="Email" value={f.email && <span className="text-primary">{f.email}</span>} />
+              <FieldRow label="Telefone" value={f.telefone} />
+              <FieldRow label="Empresa" value={empresaNome(f.empresa_id)} />
+              <FieldRow label="Prazo padrão" value={f.prazo_pagamento_padrao ? `${f.prazo_pagamento_padrao} dias` : null} />
+            </dl>
+          </section>
+
+          <section className="pt-4 border-t border-border/60">
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <MapPin className="h-3 w-3" /> Endereço
+            </h4>
+            {f.endereco || f.cidade ? (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {[f.endereco, f.endereco_numero].filter(Boolean).join(", ")}
+                {f.complemento ? ` - ${f.complemento}` : ""}
+                <br />
+                {[f.bairro, f.cidade, f.estado].filter(Boolean).join(" - ")}
+                {f.cep && <><br />CEP: {f.cep}</>}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Não cadastrado</p>
+            )}
+          </section>
+        </div>
+      ),
+    },
+    {
+      key: "financeiro",
+      label: "Financeiro",
+      icon: CreditCard,
+      render: (f) => (
+        <div className="space-y-5">
+          <section>
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <CreditCard className="h-3 w-3" /> Dados Bancários
+            </h4>
+            {f.banco || f.chave_pix ? (
+              <dl className="space-y-2.5">
+                {f.banco && <FieldRow label="Banco" value={f.banco} />}
+                {f.agencia && <FieldRow label="Agência" value={f.agencia} />}
+                {f.conta_bancaria && <FieldRow label="Conta" value={`${f.conta_bancaria}${f.tipo_conta ? ` (${f.tipo_conta})` : ""}`} />}
+                {f.favorecido && <FieldRow label="Favorecido" value={f.favorecido} />}
+                {f.chave_pix && (
+                  <FieldRow
+                    label="PIX"
+                    value={
+                      <span className="flex items-center gap-1.5">
+                        <QrCode className="h-3 w-3" />
+                        <Badge variant="outline" className="text-[9px]">{f.tipo_pix?.toUpperCase()}</Badge>
+                        <span className="font-mono text-xs">{f.chave_pix}</span>
+                      </span>
+                    }
+                  />
+                )}
+              </dl>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Não cadastrado</p>
+            )}
+          </section>
+
+          <section className="pt-4 border-t border-border/60">
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <FileText className="h-3 w-3" /> Dados Fiscais
+            </h4>
+            <dl className="space-y-2.5">
+              <FieldRow label="Situação RF" value={f.situacao_cadastral} />
+              <FieldRow label="Regime" value={f.regime_tributario} />
+              <FieldRow label="Porte" value={f.porte} />
+              <FieldRow label="CNAE" value={f.cnae} />
+              <FieldRow label="IE" value={f.inscricao_estadual} />
+              <FieldRow label="IM" value={f.inscricao_municipal} />
+              {f.capital_social != null && f.capital_social > 0 && (
+                <FieldRow label="Capital Social" value={new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.capital_social)} />
+              )}
+            </dl>
+          </section>
+        </div>
+      ),
+    },
+    {
+      key: "sync",
+      label: "Sincronização",
+      icon: RefreshCw,
+      render: (f) => (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border/60 bg-background p-3">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Status ERP</div>
+            {f.erp_code ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Código</span>
+                  <Badge variant="secondary" className="font-mono">{f.erp_code}</Badge>
+                </div>
+                {f.erp_synced_at && (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-muted-foreground">Última sync</span>
+                    <span className="text-xs">{new Date(f.erp_synced_at).toLocaleDateString("pt-BR")}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground italic">Ainda não sincronizado.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleManualErpSync(f)}
+                  disabled={syncingErp}
+                  className="w-full gap-2"
+                >
+                  {syncingErp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  Sincronizar agora
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-background p-3">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Consulta Receita Federal</div>
+            <CnpjSearchButton
+              cnpj={f.cnpj}
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onDataFound={(data) => {
+                const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
+                if (data.razaoSocial) updateFields.razao_social = data.razaoSocial;
+                if (data.nomeFantasia) updateFields.nome_fantasia = data.nomeFantasia;
+                if (data.situacao) updateFields.situacao_cadastral = data.situacao;
+                if (data.porte) updateFields.porte = data.porte;
+                if (data.capitalSocial) updateFields.capital_social = data.capitalSocial;
+                if (data.regimeTributario) updateFields.regime_tributario = data.regimeTributario;
+                if (data.cnae) updateFields.cnae = data.cnae;
+                if (data.matrizFilial) updateFields.matriz_filial = data.matrizFilial;
+                if (data.endereco) updateFields.endereco = data.endereco;
+                if (data.bairro) updateFields.bairro = data.bairro;
+                if (data.cidade) updateFields.cidade = data.cidade;
+                if (data.uf) updateFields.estado = data.uf;
+                if (data.cep) updateFields.cep = data.cep;
+                if (data.telefone) updateFields.telefone = data.telefone;
+                if (data.email) updateFields.email = data.email;
+                supabase.from("fornecedores").update(updateFields as never).eq("id", f.id).then(() => {
+                  queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+                  toast.success("Dados atualizados da Receita Federal!");
+                });
+              }}
+            />
+          </div>
+        </div>
+      ),
+    },
+  ];
+
+  const footerActions: DetailFooterAction<Fornecedor>[] = [
+    {
+      key: "toggle",
+      label: (fornecedores.find(x => false)?.status === "ativo") ? "Bloquear" : "Bloquear/Ativar",
+      variant: "outline",
+      icon: Power,
+      onClick: (f) => toggleMutation.mutate({ id: f.id, newStatus: f.status === "ativo" ? "bloqueado" : "ativo" }),
+    },
+    {
+      key: "edit",
+      label: "Editar",
+      icon: Pencil,
+      onClick: (f) => handleEdit(f),
+    },
+  ];
 
   const tabClasses = (tab: string) =>
     `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -587,181 +794,71 @@ export default function Fornecedores() {
     }`;
 
   return (
-    <div className="space-y-6 p-6">
-      <ModuleBreadcrumb
-        moduleName="Financeiro"
-        moduleHref="/dashboard/financeiro"
-        currentPage="Fornecedores"
-      />
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Fornecedores</h1>
-          <Badge variant="secondary" className="text-xs">{fornecedores.length}</Badge>
-        </div>
-        <Button onClick={handleOpenNew} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Fornecedor
-        </Button>
-      </div>
-
-      {/* Banner de segregação */}
-      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-          Fornecedores do módulo Financeiro/Comercial. Para fornecedores da Fábrica, acesse{" "}
-          <Link to="/dashboard/fabrica/fornecedores" className="underline font-medium">Fábrica → Fornecedores</Link>.
-        </AlertDescription>
-      </Alert>
-
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, razão social ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="inativo">Inativo</SelectItem>
-                <SelectItem value="bloqueado">Bloqueado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={empresaFilter} onValueChange={setEmpresaFilter}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas Empresas</SelectItem>
-                {visibleEmpresas.map((e) => (
-                  <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <TableHead>Nome / Razão Social</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Situação RF</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Cidade/UF</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead className="text-center">Prazo (d)</TableHead>
-                <TableHead>ERP</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
-              ) : fornecedores.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhum fornecedor encontrado</TableCell></TableRow>
-              ) : (
-                fornecedores.map((f) => {
-                  const isExpanded = expandedRow === f.id;
-                  return (
-                    <Collapsible key={f.id} open={isExpanded} onOpenChange={() => setExpandedRow(isExpanded ? null : f.id)} asChild>
-                      <>
-                        <CollapsibleTrigger asChild>
-                          <TableRow className="cursor-pointer hover:bg-muted/50">
-                            <TableCell className="w-8 px-2">
-                              {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <span className="font-medium">{f.nome}</span>
-                                {f.nome_fantasia && f.nome_fantasia !== f.nome && (
-                                  <span className="text-xs text-muted-foreground block">{f.nome_fantasia}</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm font-mono">{formatCNPJ(f.cnpj)}</TableCell>
-                            <TableCell><SituacaoBadge situacao={f.situacao_cadastral} /></TableCell>
-                            <TableCell className="text-sm">{f.email || "—"}</TableCell>
-                            <TableCell className="text-sm">{[f.cidade, f.estado].filter(Boolean).join("/") || "—"}</TableCell>
-                            <TableCell className="text-sm">{empresaNome(f.empresa_id)}</TableCell>
-                            <TableCell className="text-center tabular-nums text-sm">{f.prazo_pagamento_padrao ?? "—"}</TableCell>
-                            <TableCell><ErpBadge code={f.erp_code} /></TableCell>
-                            <TableCell>{statusBadge(f.status)}</TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex justify-end gap-1">
-                                <CnpjSearchButton
-                                  cnpj={f.cnpj}
-                                  onDataFound={(data) => {
-                                    const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
-                                    if (data.razaoSocial) updateFields.razao_social = data.razaoSocial;
-                                    if (data.nomeFantasia) updateFields.nome_fantasia = data.nomeFantasia;
-                                    if (data.situacao) updateFields.situacao_cadastral = data.situacao;
-                                    if (data.porte) updateFields.porte = data.porte;
-                                    if (data.capitalSocial) updateFields.capital_social = data.capitalSocial;
-                                    if (data.regimeTributario) updateFields.regime_tributario = data.regimeTributario;
-                                    if (data.cnae) updateFields.cnae = data.cnae;
-                                    if (data.matrizFilial) updateFields.matriz_filial = data.matrizFilial;
-                                    if (data.endereco) updateFields.endereco = data.endereco;
-                                    if (data.bairro) updateFields.bairro = data.bairro;
-                                    if (data.cidade) updateFields.cidade = data.cidade;
-                                    if (data.uf) updateFields.estado = data.uf;
-                                    if (data.cep) updateFields.cep = data.cep;
-                                    if (data.telefone) updateFields.telefone = data.telefone;
-                                    if (data.email) updateFields.email = data.email;
-                                    supabase.from("fornecedores").update(updateFields as never).eq("id", f.id).then(() => {
-                                      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
-                                      toast.success("Dados atualizados da Receita Federal!");
-                                    });
-                                  }}
-                                  size="icon"
-                                  variant="ghost"
-                                />
-                                {!f.erp_code && (
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    onClick={() => handleManualErpSync(f)}
-                                    disabled={syncingErp}
-                                    title="Sincronizar com ERP"
-                                  >
-                                    <RefreshCw className={`h-4 w-4 ${syncingErp ? "animate-spin" : ""}`} />
-                                  </Button>
-                                )}
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(f)} title="Editar">
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  onClick={() => toggleMutation.mutate({ id: f.id, newStatus: f.status === "ativo" ? "bloqueado" : "ativo" })}
-                                  title={f.status === "ativo" ? "Bloquear" : "Ativar"}
-                                >
-                                  {f.status === "ativo" ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent asChild>
-                          <tr>
-                            <td colSpan={11} className="p-0">
-                              <FornecedorDetailPanel f={f} />
-                            </td>
-                          </tr>
-                        </CollapsibleContent>
-                      </>
-                    </Collapsible>
-                  );
-                })
+    <>
+      <CadastroShell<Fornecedor>
+        title="Fornecedores"
+        subtitle="Gerencie parceiros comerciais do módulo Financeiro/Comercial"
+        icon={Users}
+        breadcrumb={
+          <ModuleBreadcrumb
+            moduleName="Financeiro"
+            moduleHref="/dashboard/financeiro"
+            currentPage="Fornecedores"
+          />
+        }
+        banner={
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-xs">
+              Fornecedores do módulo Financeiro/Comercial. Para fornecedores da Fábrica, acesse{" "}
+              <Link to="/dashboard/fabrica/fornecedores" className="underline font-medium">Fábrica → Fornecedores</Link>.
+            </AlertDescription>
+          </Alert>
+        }
+        primaryAction={{ label: "Novo Fornecedor", onClick: handleOpenNew, icon: Plus }}
+        secondaryActions={[
+          { label: "Exportar", onClick: () => handleExportCsv(), icon: Download },
+        ]}
+        kpis={kpis}
+        items={fornecedores}
+        getId={(f) => f.id}
+        isLoading={isLoading}
+        columns={columns}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Buscar por nome, razão social ou CNPJ...",
+        }}
+        filters={filters}
+        batchActions={batchActions}
+        emptyMessage="Nenhum fornecedor encontrado."
+        detail={{
+          getTitle: (f) => f.nome,
+          getSubtitle: (f) => (
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono">{formatCNPJ(f.cnpj)}</span>
+              {f.cidade && <span>· {f.cidade}/{f.estado}</span>}
+            </span>
+          ),
+          getAvatar: (f) => ({ initials: initialsFrom(f.nome_fantasia || f.nome) }),
+          getBadges: (f) => (
+            <>
+              {statusBadge(f.status)}
+              {f.situacao_cadastral && (
+                <Badge variant={f.situacao_cadastral.toUpperCase() === "ATIVA" ? "outline" : "destructive"} className="text-[10px]">
+                  RF: {f.situacao_cadastral}
+                </Badge>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              {f.optante_simples_nacional === "S" && (
+                <Badge variant="outline" className="text-[10px]">Simples Nacional</Badge>
+              )}
+              {f.erp_code && <Badge variant="secondary" className="text-[10px] font-mono">ERP: {f.erp_code}</Badge>}
+            </>
+          ),
+          tabs,
+          footerActions,
+        }}
+      />
 
       {/* Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -774,7 +871,6 @@ export default function Fornecedores() {
             <DialogDescription>Preencha os dados do fornecedor.</DialogDescription>
           </DialogHeader>
 
-          {/* Tab navigation */}
           <div className="flex gap-1 border-b pb-2">
             <button className={tabClasses("basico")} onClick={() => setDialogTab("basico")}>
               <Building2 className="h-3 w-3 inline mr-1" />Dados Básicos
@@ -787,7 +883,6 @@ export default function Fornecedores() {
             </button>
           </div>
 
-          {/* Tab: Basico */}
           {dialogTab === "basico" && (
             <div className="grid gap-4 py-2">
               <div className="grid gap-1.5">
@@ -837,7 +932,7 @@ export default function Fornecedores() {
                   <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
                   <SelectContent>
                     {!editingId && visibleEmpresas.length > 1 && (
-                      <SelectItem value="todas">📋 Cadastrar em Todas as Empresas</SelectItem>
+                      <SelectItem value="todas">Cadastrar em todas as empresas</SelectItem>
                     )}
                     {visibleEmpresas.map((e) => (
                       <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
@@ -883,7 +978,6 @@ export default function Fornecedores() {
             </div>
           )}
 
-          {/* Tab: Endereco */}
           {dialogTab === "endereco" && (
             <div className="grid gap-4 py-2">
               <div className="grid grid-cols-3 gap-3">
@@ -923,7 +1017,6 @@ export default function Fornecedores() {
             </div>
           )}
 
-          {/* Tab: Banco */}
           {dialogTab === "banco" && (
             <div className="grid gap-4 py-2">
               <div className="grid grid-cols-3 gap-3">
@@ -990,7 +1083,6 @@ export default function Fornecedores() {
         </DialogContent>
       </Dialog>
 
-      {/* Upsert Confirmation */}
       <AlertDialog open={!!upsertConfirm} onOpenChange={(o) => !o && setUpsertConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1005,6 +1097,24 @@ export default function Fornecedores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
+  );
+}
+
+// ============= Helpers =============
+function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
+  if (value === null || value === undefined || value === "") {
+    return (
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+        <span className="text-xs text-muted-foreground/60 italic">—</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <span className="text-xs font-medium text-foreground text-right min-w-0 break-words">{value}</span>
     </div>
   );
 }
