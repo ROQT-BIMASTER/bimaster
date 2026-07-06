@@ -625,11 +625,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       ],
     },
     {
+      key: "orcamentos",
+      label: "Orçamentos",
+      icon: Target,
+      items: [
+        { title: "Orçamento Corporativo", url: "/dashboard/orcamento", icon: Target, screenCode: "orcamento_periodos" },
+      ],
+    },
+    {
       key: "campanhas",
-      label: "Campanhas e Lançamentos",
+      label: "Verbas de Campanhas",
       icon: Megaphone,
       items: [
         { title: "Campanhas", url: "/dashboard/trade/financeiro/campanhas", icon: Megaphone, screenCode: "trade_admin" },
+        { title: "Aprovar Campanhas", url: "/dashboard/trade/campanhas/aprovacoes", icon: ClipboardCheck, screenCode: "trade_admin" },
         { title: "Painel de Lançamentos", url: "/dashboard/trade/financeiro/lancamentos-campanhas", icon: FileText, screenCode: "trade_admin" },
         { title: "Contas Correntes", url: "/dashboard/trade/financeiro/contas", icon: Wallet, screenCode: "trade_admin" },
         { title: "Lançamentos", url: "/dashboard/trade/financeiro/lancamentos", icon: FileText, screenCode: "trade_admin" },
