@@ -20,7 +20,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useChatDraft } from "@/hooks/chat/useChatDraft";
 import { RespostasRapidasPopover } from "@/components/suporte/RespostasRapidasPopover";
-import { useNavigate } from "react-router-dom";
+// Navegação via window.location: o MessageInput também é montado pelo
+// ChatDrawer (fora do <Router/>), então useNavigate() dispararia
+// "useNavigate() may be used only in the context of a <Router> component".
 import { useQuery } from "@tanstack/react-query";
 
 interface Props {
@@ -38,7 +40,7 @@ interface Props {
 
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const navigate = (to: string) => { window.location.href = to; };
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
   // no meio de uma mensagem longa não perde o texto digitado.
