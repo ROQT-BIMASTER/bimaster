@@ -81,6 +81,7 @@ export default function SuporteMeusChamados() {
             Novo chamado
           </Button>
         </div>
+        <MinhasRotinasHojeWidget />
 
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
           {/* Lista */}
