@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useChatDraft } from "@/hooks/chat/useChatDraft";
+import { RespostasRapidasPopover } from "@/components/suporte/RespostasRapidasPopover";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   conversaId: string;
@@ -35,6 +37,7 @@ interface Props {
 
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
   // no meio de uma mensagem longa não perde o texto digitado.
@@ -405,6 +408,11 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         >
           <AlertOctagon className="h-4 w-4" />
         </Button>
+        <RespostasRapidasPopover
+          conversaId={conversaId}
+          onPick={(t) => setTxt(txt ? `${txt}\n${t}` : t)}
+          onGerenciar={() => navigate("/dashboard/suporte/admin/sla?tab=macros")}
+        />
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>

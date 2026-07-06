@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { Zap } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,8 +78,13 @@ const DIAS: { key: string; label: string }[] = [
 
 export default function SuporteAdminSLA() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const qc = useQueryClient();
+  const abaInicial = (searchParams.get("tab") === "macros" ? "macros" : "matriz") as
+    | "matriz"
+    | "calendarios"
+    | "macros";
 
   const { data: filas = [], isLoading: filasLoading } = useQuery({
     queryKey: ["suporte-admin", "filas"],
@@ -202,18 +210,6 @@ export default function SuporteAdminSLA() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <DashboardLayout>
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Acesso restrito a administradores.
-          </CardContent>
-        </Card>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-4">
@@ -228,22 +224,28 @@ export default function SuporteAdminSLA() {
           </Button>
           <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Clock className="h-6 w-6 text-primary" /> SLA e Calendários
+              <Clock className="h-6 w-6 text-primary" /> Configurações da Central de Suporte
             </h2>
             <p className="text-sm text-muted-foreground">
-              Defina o tempo de primeira resposta e de resolução por departamento e
-              prioridade, e configure calendários de expediente.
+              SLA por departamento, calendários de expediente e biblioteca de respostas rápidas.
             </p>
           </div>
         </div>
 
-        <Tabs defaultValue="matriz">
+        <Tabs defaultValue={abaInicial}>
           <TabsList>
-            <TabsTrigger value="matriz" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Matriz de SLA
-            </TabsTrigger>
-            <TabsTrigger value="calendarios" className="gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5" /> Calendários
+            {isAdmin && (
+              <TabsTrigger value="matriz" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Matriz de SLA
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="calendarios" className="gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> Calendários
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="macros" className="gap-1.5">
+              <Zap className="h-3.5 w-3.5" /> Respostas rápidas
             </TabsTrigger>
           </TabsList>
 
@@ -391,6 +393,10 @@ export default function SuporteAdminSLA() {
 
           <TabsContent value="calendarios" className="mt-4">
             <CalendariosEditor calendarios={calendarios} />
+          </TabsContent>
+
+          <TabsContent value="macros" className="mt-4">
+            <MacrosEditor filas={filas} isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>
       </div>
@@ -727,4 +733,372 @@ function intervalosPadrao() {
 function normalizarIntervalos(i: any) {
   if (!i || typeof i !== "object") return intervalosPadrao();
   return i;
+}
+
+// ---------------- Macros / Respostas rápidas ----------------
+
+interface MacroRow {
+  id: string;
+  escopo: "global" | "fila" | "usuario";
+  fila_id: string | null;
+  user_id: string | null;
+  atalho: string | null;
+  titulo: string;
+  conteudo: string;
+  ordem: number;
+  ativo: boolean;
+}
+
+function MacrosEditor({ filas, isAdmin }: { filas: Fila[]; isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const uid = user?.id ?? "";
+
+  const { data: macros = [], isLoading } = useQuery({
+    queryKey: ["suporte-macros-admin"],
+    queryFn: async (): Promise<MacroRow[]> => {
+      const { data, error } = await (supabase as any)
+        .from("suporte_respostas_rapidas")
+        .select("*")
+        .order("escopo")
+        .order("ordem")
+        .order("titulo");
+      if (error) throw error;
+      return (data ?? []) as MacroRow[];
+    },
+  });
+
+  const [editando, setEditando] = useState<MacroRow | null>(null);
+  const [novo, setNovo] = useState<Partial<MacroRow> | null>(null);
+
+  const salvar = useMutation({
+    mutationFn: async (m: Partial<MacroRow>) => {
+      const payload: any = {
+        escopo: m.escopo,
+        fila_id: m.escopo === "fila" ? m.fila_id : null,
+        user_id: m.escopo === "usuario" ? uid : null,
+        atalho: m.atalho || null,
+        titulo: m.titulo,
+        conteudo: m.conteudo,
+        ordem: m.ordem ?? 0,
+        ativo: m.ativo ?? true,
+        updated_at: new Date().toISOString(),
+      };
+      if (m.id) {
+        const { error } = await (supabase as any)
+          .from("suporte_respostas_rapidas")
+          .update(payload)
+          .eq("id", m.id);
+        if (error) throw error;
+      } else {
+        payload.created_by = uid;
+        const { error } = await (supabase as any)
+          .from("suporte_respostas_rapidas")
+          .insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["suporte-macros-admin"] });
+      qc.invalidateQueries({ queryKey: ["suporte-macros"] });
+      setEditando(null);
+      setNovo(null);
+      toast.success("Macro salva");
+    },
+    onError: (e: Error) => toast.error("Falha", { description: e.message }),
+  });
+
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("suporte_respostas_rapidas")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["suporte-macros-admin"] });
+      qc.invalidateQueries({ queryKey: ["suporte-macros"] });
+      toast.success("Macro excluída");
+    },
+    onError: (e: Error) => toast.error("Falha", { description: e.message }),
+  });
+
+  const nomeFila = (id: string | null) => filas.find((f) => f.id === id)?.nome ?? "—";
+
+  const podeEditar = (m: MacroRow) =>
+    isAdmin || (m.escopo === "usuario" && m.user_id === uid);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base">Biblioteca de respostas rápidas</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Use no chat para inserir respostas prontas. Variáveis:{" "}
+            <code>{"{{protocolo}}"}</code> <code>{"{{titulo}}"}</code>{" "}
+            <code>{"{{solicitante}}"}</code> <code>{"{{responsavel}}"}</code>{" "}
+            <code>{"{{fila}}"}</code> <code>{"{{data}}"}</code>.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="gap-1.5"
+          onClick={() =>
+            setNovo({
+              escopo: isAdmin ? "global" : "usuario",
+              titulo: "",
+              conteudo: "",
+              atalho: "",
+              ordem: 0,
+              ativo: true,
+            })
+          }
+        >
+          <Plus className="h-3.5 w-3.5" /> Nova macro
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : macros.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Nenhuma macro cadastrada.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead className="w-[110px]">Escopo</TableHead>
+                <TableHead className="w-[180px]">Departamento</TableHead>
+                <TableHead className="w-[100px]">Atalho</TableHead>
+                <TableHead className="w-[70px]">Ativa</TableHead>
+                <TableHead className="w-[140px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {macros.map((m) => (
+                <TableRow key={m.id}>
+                  <TableCell className="max-w-[280px] truncate">{m.titulo}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">
+                      {m.escopo === "global"
+                        ? "Global"
+                        : m.escopo === "fila"
+                          ? "Departamento"
+                          : "Pessoal"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {m.escopo === "fila" ? nomeFila(m.fila_id) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {m.atalho ? (
+                      <Badge variant="outline" className="text-[10px] font-mono">
+                        {m.atalho}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {m.ativo ? (
+                      <Badge className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20">
+                        Sim
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">
+                        Não
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {podeEditar(m) ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setEditando(m)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm(`Excluir "${m.titulo}"?`)) excluir.mutate(m.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">Somente leitura</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {(editando || novo) && (
+          <MacroDrawer
+            initial={editando ?? (novo as MacroRow)}
+            filas={filas}
+            isAdmin={isAdmin}
+            onClose={() => {
+              setEditando(null);
+              setNovo(null);
+            }}
+            onSave={(m) => salvar.mutate(m)}
+            saving={salvar.isPending}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MacroDrawer({
+  initial,
+  filas,
+  isAdmin,
+  onClose,
+  onSave,
+  saving,
+}: {
+  initial: Partial<MacroRow>;
+  filas: Fila[];
+  isAdmin: boolean;
+  onClose: () => void;
+  onSave: (m: Partial<MacroRow>) => void;
+  saving: boolean;
+}) {
+  const [draft, setDraft] = useState<Partial<MacroRow>>(initial);
+
+  const escoposPermitidos: MacroRow["escopo"][] = isAdmin
+    ? ["global", "fila", "usuario"]
+    : ["usuario"];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            {initial.id ? "Editar macro" : "Nova macro"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <Label className="text-xs">Escopo</Label>
+              <Select
+                value={draft.escopo ?? "global"}
+                onValueChange={(v) => setDraft({ ...draft, escopo: v as any, fila_id: null })}
+                disabled={!!initial.id}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {escoposPermitidos.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {e === "global"
+                        ? "Global (todos os departamentos)"
+                        : e === "fila"
+                          ? "Departamento"
+                          : "Pessoal (só você)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {draft.escopo === "fila" && (
+              <div>
+                <Label className="text-xs">Departamento</Label>
+                <Select
+                  value={draft.fila_id ?? ""}
+                  onValueChange={(v) => setDraft({ ...draft, fila_id: v })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filas.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">Título</Label>
+              <Input
+                value={draft.titulo ?? ""}
+                onChange={(e) => setDraft({ ...draft, titulo: e.target.value })}
+                className="h-8"
+                placeholder="Ex.: Solicitar mais informações"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Atalho (opcional)</Label>
+              <Input
+                value={draft.atalho ?? ""}
+                onChange={(e) => setDraft({ ...draft, atalho: e.target.value })}
+                className="h-8 font-mono"
+                placeholder="/info"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Conteúdo</Label>
+            <Textarea
+              value={draft.conteudo ?? ""}
+              onChange={(e) => setDraft({ ...draft, conteudo: e.target.value })}
+              className="min-h-[160px] font-mono text-xs"
+              placeholder={"Olá {{solicitante}},\n\nPara seguir com o chamado {{protocolo}} precisamos das seguintes informações:\n- ...\n\nObrigado,\n{{responsavel}}"}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Variáveis: <code>{"{{protocolo}}"}</code> <code>{"{{titulo}}"}</code>{" "}
+              <code>{"{{solicitante}}"}</code> <code>{"{{responsavel}}"}</code>{" "}
+              <code>{"{{fila}}"}</code> <code>{"{{data}}"}</code>.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={draft.ativo ?? true}
+              onCheckedChange={(v) => setDraft({ ...draft, ativo: v })}
+            />
+            <Label className="text-xs">Ativa</Label>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-2 border-t">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={
+                saving ||
+                !draft.titulo?.trim() ||
+                !draft.conteudo?.trim() ||
+                (draft.escopo === "fila" && !draft.fila_id)
+              }
+              onClick={() => onSave(draft)}
+            >
+              <Save className="h-3.5 w-3.5" /> Salvar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
