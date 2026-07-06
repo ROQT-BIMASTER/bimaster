@@ -3,7 +3,7 @@ import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck, AlertOctagon } from "lucide-react";
+import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck, AlertOctagon, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useChatDraft } from "@/hooks/chat/useChatDraft";
 import { RespostasRapidasPopover } from "@/components/suporte/RespostasRapidasPopover";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 interface Props {
   conversaId: string;
@@ -59,9 +60,32 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
   const [sofiaLoading, setSofiaLoading] = useState(false);
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
   const [urgenteOpen, setUrgenteOpen] = useState(false);
+  /** Se true, a próxima mensagem enviada será nota interna (invisível
+   *  ao solicitante do chamado — só agentes/admin veem). */
+  const [notaInterna, setNotaInterna] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
+
+  // Detecta se a conversa está vinculada a um ticket ativo (para exibir
+  // o botão de "nota interna" apenas quando fizer sentido — chat suporte).
+  const { data: ticketAtivo } = useQuery({
+    queryKey: ["chat-ticket-ativo", conversaId],
+    enabled: !!conversaId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("suporte_tickets" as any)
+        .select("id, requester_id")
+        .eq("conversa_id", conversaId)
+        .neq("status", "resolvido")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as unknown as { id: string; requester_id: string | null } | null;
+    },
+  });
+  const podeNotaInterna = !!ticketAtivo && ticketAtivo.requester_id !== uid;
 
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
 
@@ -258,6 +282,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         responde_a_id: responderA?.id ?? null,
         anexos: anexosMeta,
         mencoes: mentions.length ? mentions : undefined,
+        interna: notaInterna || undefined,
         metadata: tarefasMencionadas.length
           ? { tarefas: tarefasMencionadas }
           : undefined,
@@ -268,6 +293,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
       setMentionState(null);
       setTarefasMencionadas([]);
       setTaskMentionState(null);
+      setNotaInterna(false);
       onClearReply();
     } catch (e: any) {
       toast.error("Falha ao enviar: " + (e?.message ?? ""));
@@ -374,7 +400,26 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         </div>
       )}
 
-      <div className="px-3 py-2 flex items-end gap-2">
+      {notaInterna && (
+        <div className="px-3 py-1.5 border-b border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400">
+          <Lock className="h-3 w-3" />
+          <span className="flex-1">
+            Nota interna — visível apenas para agentes e administradores. O solicitante não verá esta mensagem.
+          </span>
+          <button
+            onClick={() => setNotaInterna(false)}
+            className="hover:opacity-80"
+            aria-label="Desativar nota interna"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      <div className={cn(
+        "px-3 py-2 flex items-end gap-2",
+        notaInterna && "bg-amber-500/5",
+      )}>
         <input
           ref={fileRef}
           type="file"
@@ -408,6 +453,25 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         >
           <AlertOctagon className="h-4 w-4" />
         </Button>
+        {podeNotaInterna && (
+          <Button
+            size="icon"
+            variant={notaInterna ? "default" : "ghost"}
+            className={cn(
+              "h-9 w-9 shrink-0",
+              notaInterna && "bg-amber-500 hover:bg-amber-600 text-white",
+            )}
+            onClick={() => setNotaInterna((v) => !v)}
+            disabled={uploading || sofiaLoading}
+            title={notaInterna
+              ? "Nota interna ativa — o solicitante não verá esta mensagem"
+              : "Enviar como nota interna (só agentes veem)"}
+            aria-label="Alternar nota interna"
+            aria-pressed={notaInterna}
+          >
+            <Lock className="h-4 w-4" />
+          </Button>
+        )}
         <RespostasRapidasPopover
           conversaId={conversaId}
           onPick={(t) => setTxt(txt ? `${txt}\n${t}` : t)}
