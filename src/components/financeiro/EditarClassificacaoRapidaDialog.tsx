@@ -209,7 +209,12 @@ export function EditarClassificacaoRapidaDialog({
                     return value.toLowerCase().includes(s) ? 1 : 0;
                   }}
                 >
-                  <CommandInput placeholder="Buscar por código ou nome..." className="h-9" />
+                  <CommandInput
+                    placeholder="Buscar por código ou nome..."
+                    className="h-9"
+                    value={planoSearch}
+                    onValueChange={setPlanoSearch}
+                  />
                   <CommandList className="max-h-[300px]">
                     <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
                     <CommandGroup>
@@ -230,9 +235,11 @@ export function EditarClassificacaoRapidaDialog({
                             )}
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-mono text-xs">{plano.code}</span>
-                            <span className="text-xs text-muted-foreground truncate">{plano.name}</span>
+                            <span className="font-mono text-xs">{highlightMatch(plano.code, planoSearch)}</span>
+                            <span className="text-xs text-muted-foreground truncate">{highlightMatch(plano.name, planoSearch)}</span>
                           </div>
+                        </CommandItem>
+                      ))}
                         </CommandItem>
                       ))}
                     </CommandGroup>
