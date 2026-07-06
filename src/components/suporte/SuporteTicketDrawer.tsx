@@ -143,6 +143,15 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
           onTransferido={onClose}
         />
       )}
+
+      {ticket && (
+        <EscalonarChamadoDialog
+          open={escalonarOpen}
+          onOpenChange={setEscalonarOpen}
+          ticketId={ticket.id}
+          prioridadeAtual={ticket.prioridade}
+        />
+      )}
     </>
   );
 }
