@@ -4892,6 +4892,7 @@ export type Database = {
           id: string
           mensagem_id: string | null
           motivo: string | null
+          protocolo: string | null
           solicitante_id: string
           status: string
           titulo: string
@@ -4909,6 +4910,7 @@ export type Database = {
           id?: string
           mensagem_id?: string | null
           motivo?: string | null
+          protocolo?: string | null
           solicitante_id: string
           status?: string
           titulo: string
@@ -4926,6 +4928,7 @@ export type Database = {
           id?: string
           mensagem_id?: string | null
           motivo?: string | null
+          protocolo?: string | null
           solicitante_id?: string
           status?: string
           titulo?: string
@@ -4946,6 +4949,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chat_aprovacoes_protocolo_seq: {
+        Row: {
+          ano: number
+          ultimo: number
+        }
+        Insert: {
+          ano: number
+          ultimo?: number
+        }
+        Update: {
+          ano?: number
+          ultimo?: number
+        }
+        Relationships: []
       }
       chat_preferencias: {
         Row: {

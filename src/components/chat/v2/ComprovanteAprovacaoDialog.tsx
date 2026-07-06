@@ -23,6 +23,7 @@ interface Props {
 
 interface AprovacaoFull {
   id: string;
+  protocolo: string | null;
   titulo: string;
   descricao: string | null;
   status: string;
@@ -96,7 +97,7 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
     queryFn: async (): Promise<AprovacaoFull | null> => {
       const { data, error } = await supabase
         .from("chat_aprovacoes" as any)
-        .select("id, titulo, descricao, status, solicitante_id, decidido_por, decidido_em, decidido_ip, decidido_user_agent, created_at")
+        .select("id, protocolo, titulo, descricao, status, solicitante_id, decidido_por, decidido_em, decidido_ip, decidido_user_agent, created_at")
         .eq("id", aprovacaoId)
         .maybeSingle();
       if (error) throw error;
@@ -176,6 +177,11 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
     doc.line(margin, y, pageW - margin, y);
     y += 5;
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(20);
+    doc.text(`Protocolo: ${ap.protocolo ?? "—"}`, margin, y);
+    y += 5;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(120);
@@ -335,6 +341,14 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
           </div>
         ) : (
           <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Protocolo</p>
+                <p className="font-mono font-semibold text-sm">{ap.protocolo ?? "—"}</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Gerado em {fmt(ap.created_at)}</p>
+            </div>
+
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Assunto</p>
               <p className="font-medium">{ap.titulo}</p>
