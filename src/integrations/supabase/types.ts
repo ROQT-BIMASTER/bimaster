@@ -4158,6 +4158,66 @@ export type Database = {
           },
         ]
       }
+      budget_suplementacoes: {
+        Row: {
+          alerta_id: string | null
+          decidido_em: string | null
+          decisor_id: string | null
+          distribution_id: string
+          id: string
+          justificativa: string
+          motivo_decisao: string | null
+          solicitado_em: string
+          solicitante_id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          alerta_id?: string | null
+          decidido_em?: string | null
+          decisor_id?: string | null
+          distribution_id: string
+          id?: string
+          justificativa: string
+          motivo_decisao?: string | null
+          solicitado_em?: string
+          solicitante_id: string
+          status?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          alerta_id?: string | null
+          decidido_em?: string | null
+          decisor_id?: string | null
+          distribution_id?: string
+          id?: string
+          justificativa?: string
+          motivo_decisao?: string | null
+          solicitado_em?: string
+          solicitante_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_suplementacoes_alerta_id_fkey"
+            columns: ["alerta_id"]
+            isOneToOne: false
+            referencedRelation: "despesa_alertas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_suplementacoes_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "budget_distributions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_briefings: {
         Row: {
           agency_client_id: string
@@ -56887,6 +56947,13 @@ export type Database = {
           regra: string
         }[]
       }
+      fn_despesa_detectar_r10_orcamento: {
+        Args: never
+        Returns: {
+          atualizados: number
+          inseridos: number
+        }[]
+      }
       fn_despesas_alerta_transicao: {
         Args: {
           p_alerta_id: string
@@ -59119,6 +59186,10 @@ export type Database = {
         Args: { p_mensagem_alvo_id: string; p_motivo: string }
         Returns: string
       }
+      rpc_decidir_suplementacao: {
+        Args: { p_aprovar: boolean; p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       rpc_definir_prazo_item: {
         Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined
@@ -59611,6 +59682,15 @@ export type Database = {
       rpc_solicitar_revisao_item: {
         Args: { p_comentario?: string; p_item_id: string }
         Returns: undefined
+      }
+      rpc_solicitar_suplementacao: {
+        Args: {
+          p_alerta_id?: string
+          p_distribution_id: string
+          p_justificativa: string
+          p_valor: number
+        }
+        Returns: string
       }
       rpc_submeter_tabela_para_aprovacao: {
         Args: { p_produto_ids: string[]; p_tabela_id: string }
