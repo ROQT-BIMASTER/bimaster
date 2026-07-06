@@ -147,6 +147,7 @@ function Configuracoes() {
   // Acesso administrativo pode vir do papel admin OU de permissão explícita à tela "configuracoes"
   // (usado para usuários de Suporte de TI sem o bypass de admin).
   const isAdminRole = userRole === 'admin';
+  const isSuporteTI = userRole === 'suporte';
   const isAdmin = isAdminRole || hasScreenPermission('configuracoes');
   const isSupervisor = userRole === 'supervisor';
 
