@@ -47962,6 +47962,167 @@ export type Database = {
           },
         ]
       }
+      suporte_rotina_execucoes: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          data_referencia: string
+          escalada_em: string | null
+          escalada_para: string | null
+          id: string
+          protocolo: string | null
+          rotina_id: string
+          sla_deadline: string | null
+          status: string
+          tarefa_id: string | null
+          ticket_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          data_referencia: string
+          escalada_em?: string | null
+          escalada_para?: string | null
+          id?: string
+          protocolo?: string | null
+          rotina_id: string
+          sla_deadline?: string | null
+          status?: string
+          tarefa_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          data_referencia?: string
+          escalada_em?: string | null
+          escalada_para?: string | null
+          id?: string
+          protocolo?: string | null
+          rotina_id?: string
+          sla_deadline?: string | null
+          status?: string
+          tarefa_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_rotina_execucoes_rotina_id_fkey"
+            columns: ["rotina_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_rotinas_fixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_rotina_execucoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_rotina_execucoes_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_rotinas_fixas: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          checklist: Json
+          created_at: string
+          created_by: string
+          descricao: string | null
+          dias_semana: number[]
+          fila_id: string
+          gera_tarefa_projeto: boolean
+          horario_geracao: string
+          id: string
+          lider_user_id: string | null
+          prioridade: string
+          projeto_id_espelho: string | null
+          responsavel_user_id: string
+          sla_primeira_resposta_min: number | null
+          sla_resolucao_min: number | null
+          tags: string[]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          checklist?: Json
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          dias_semana?: number[]
+          fila_id: string
+          gera_tarefa_projeto?: boolean
+          horario_geracao?: string
+          id?: string
+          lider_user_id?: string | null
+          prioridade?: string
+          projeto_id_espelho?: string | null
+          responsavel_user_id: string
+          sla_primeira_resposta_min?: number | null
+          sla_resolucao_min?: number | null
+          tags?: string[]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          checklist?: Json
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          dias_semana?: number[]
+          fila_id?: string
+          gera_tarefa_projeto?: boolean
+          horario_geracao?: string
+          id?: string
+          lider_user_id?: string | null
+          prioridade?: string
+          projeto_id_espelho?: string | null
+          responsavel_user_id?: string
+          sla_primeira_resposta_min?: number | null
+          sla_resolucao_min?: number | null
+          tags?: string[]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_rotinas_fixas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_rotinas_fixas_projeto_id_espelho_fkey"
+            columns: ["projeto_id_espelho"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_rotinas_fixas_projeto_id_espelho_fkey"
+            columns: ["projeto_id_espelho"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       suporte_sla_policies: {
         Row: {
           fila_id: string
@@ -59055,6 +59216,10 @@ export type Database = {
         Args: { p_comentario: string; p_item_id: string }
         Returns: string
       }
+      rpc_concluir_rotina_execucao: {
+        Args: { p_execucao_id: string }
+        Returns: Json
+      }
       rpc_criar_container_consolidado: {
         Args: { p_itens: Json; p_payload: Json }
         Returns: string
@@ -59248,6 +59413,7 @@ export type Database = {
           expira_em: string
         }[]
       }
+      rpc_escalar_rotinas_sla: { Args: never; Returns: Json }
       rpc_estoque_cores: {
         Args: {
           p_apenas_com_saldo?: boolean
@@ -59480,6 +59646,10 @@ export type Database = {
           numero: string
           op_id: string
         }[]
+      }
+      rpc_gerar_rotinas_fixas_do_dia: {
+        Args: { p_data?: string }
+        Returns: Json
       }
       rpc_get_filiais_plano_reducao: {
         Args: { p_plano_id: string }
