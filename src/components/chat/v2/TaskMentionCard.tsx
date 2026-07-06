@@ -75,8 +75,8 @@ export function TaskMentionCard({ tarefaId, mine }: { tarefaId: string; mine: bo
   }
 
   return (
-    <Link
-      to={`/projetos/${task.projeto_id}?tarefa=${task.id}`}
+    <a
+      href={`/projetos/${task.projeto_id}?tarefa=${task.id}`}
       className={cn(
         "mt-2 block rounded-lg border px-3 py-2 group transition-colors",
         mine
