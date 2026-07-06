@@ -59668,6 +59668,19 @@ export type Database = {
           trecho: string
         }[]
       }
+      rpc_cutucar_item: {
+        Args: {
+          p_doc_nome: string
+          p_item_autor_id: string
+          p_item_id: string
+          p_item_tipo: string
+          p_motivo: string
+          p_ref_id: string
+          p_tipo: string
+          p_titulo_escopo: string
+        }
+        Returns: string
+      }
       rpc_cutucar_mensagem: {
         Args: { p_mensagem_alvo_id: string; p_motivo: string }
         Returns: string
