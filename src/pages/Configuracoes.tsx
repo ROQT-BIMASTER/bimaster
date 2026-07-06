@@ -190,8 +190,9 @@ function Configuracoes() {
     {
       label: "Usuários",
       adminOnly: true,
+      suporteAllowed: true,
       items: [
-        { key: "usuarios", label: "Gerenciar Usuários" },
+        { key: "usuarios", label: "Gerenciar Usuários", suporteAllowed: true },
         { key: "hierarquia", label: "Hierarquia" },
         { key: "vendedores", label: "Vendedores / Supervisores" },
         { key: "municipios", label: "Atribuir Municípios" },
