@@ -21,6 +21,10 @@ export interface SendMessageInput {
     duration_ms?: number;
   }>;
   metadata?: Record<string, unknown>;
+  /** Marca mensagem como nota interna (visível apenas a agentes/admin,
+   *  oculta do solicitante do ticket). Só faz sentido em conversas
+   *  vinculadas a um chamado de suporte. */
+  interna?: boolean;
 }
 
 export function useChatActions() {
