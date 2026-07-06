@@ -254,10 +254,17 @@ export function PaymentReviewDialog({
     setAction(actionType);
   };
 
+  const departamentoObrigatorio = !!item && item.source_type !== 'department_expense';
+
   const handleConfirmAccept = async () => {
     if (!item) return;
     if (!categoriaCodigo) {
       toast.error("Selecione o plano de contas antes de aceitar.");
+      setAcceptConfirmOpen(false);
+      return;
+    }
+    if (departamentoObrigatorio && !departamentoId) {
+      toast.error("Selecione o departamento antes de aceitar (origem não informou).");
       setAcceptConfirmOpen(false);
       return;
     }
