@@ -141,6 +141,21 @@ export function PaymentReviewDialog({
     staleTime: 120_000,
   });
 
+  // Padrão atual do fornecedor (para exibir status e definir default do checkbox).
+  const { data: fornecedorPadrao } = useQuery({
+    queryKey: ["fpq-fornecedor-padrao", item?.supplier_document],
+    enabled: !!item?.supplier_document,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("fornecedores")
+        .select("categoria_codigo_padrao, plano_contas_id_padrao")
+        .eq("codigo_externo", item!.supplier_document!)
+        .maybeSingle();
+      return (data as any) ?? null;
+    },
+    staleTime: 60_000,
+  });
+
   // Sync com o item da fila ao abrir. Se a origem já sugeriu, pré-preenche;
   // caso contrário, financeiro escolhe do zero.
   useEffect(() => {
@@ -148,7 +163,15 @@ export function PaymentReviewDialog({
     setCategoriaCodigo(item.categoria_codigo || "");
     setPlanoContasId(item.plano_contas_id || "");
     setDepartamentoId(item.departamento_id || "");
+    setSalvarPadraoFornecedor(false);
   }, [item?.id]);
+
+  // Marca "salvar padrão" automaticamente quando o fornecedor ainda não tem um.
+  // Se já tem, deixa desmarcado para evitar sobrescrever silenciosamente.
+  useEffect(() => {
+    if (!item) return;
+    setSalvarPadraoFornecedor(!fornecedorPadrao?.categoria_codigo_padrao);
+  }, [item?.id, fornecedorPadrao?.categoria_codigo_padrao]);
 
 
   const startEdit = () => {
