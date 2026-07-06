@@ -527,6 +527,23 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       const apiResult = await callApi("contas-pagar-api", contaPagarPayload);
       const contaPagarId = apiResult?.id || apiResult?.data?.id;
 
+      // Memoriza o plano de contas escolhido como padrão do fornecedor, se solicitado.
+      // Falha silenciosa: não desfaz o aceite.
+      if (salvar_padrao_fornecedor && item.supplier_document && item.categoria_codigo) {
+        const saveRes = await saveFornecedorPadrao({
+          supplierDocument: item.supplier_document,
+          planoContasId: item.plano_contas_id,
+          categoriaCodigo: item.categoria_codigo,
+          userId: userData.user?.id,
+        });
+        if (!saveRes.ok) {
+          logger.warn("Não foi possível salvar plano padrão do fornecedor:", saveRes.error);
+          sonnerToast.warning("Título aceito, mas não foi possível salvar o plano como padrão do fornecedor.");
+        } else if (saveRes.count === 0) {
+          sonnerToast.info("Título aceito. Fornecedor ainda não está cadastrado — padrão não memorizado.");
+        }
+      }
+
       // Update payment queue status
       const { data, error } = await supabase
         .from('financial_payment_queue')
