@@ -82,7 +82,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data as { id: string; requester_id: string | null } | null;
+      return data as unknown as { id: string; requester_id: string | null } | null;
     },
   });
   const podeNotaInterna = !!ticketAtivo && ticketAtivo.requester_id !== uid;
