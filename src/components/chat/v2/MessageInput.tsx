@@ -59,6 +59,9 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
   const [sofiaLoading, setSofiaLoading] = useState(false);
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
   const [urgenteOpen, setUrgenteOpen] = useState(false);
+  /** Se true, a próxima mensagem enviada será nota interna (invisível
+   *  ao solicitante do chamado — só agentes/admin veem). */
+  const [notaInterna, setNotaInterna] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
