@@ -42,6 +42,8 @@ interface Props {
   itemId?: string | null;
   itemTipo?: "comentario" | "documento";
   docNome?: string | null;
+  /** Autor do item alvo — garante que ele receba o alerta em tempo real. */
+  itemAutorId?: string | null;
   onSent?: (conversaId: string) => void;
 }
 
