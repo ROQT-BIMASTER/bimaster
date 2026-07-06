@@ -36,6 +36,19 @@ interface EditarClassificacaoRapidaDialogProps {
   onSuccess: () => void;
 }
 
+function highlightMatch(text: string, term: string) {
+  if (!term.trim()) return text;
+  const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "ig"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === term.trim().toLowerCase() ? (
+      <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">{part}</mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 export function EditarClassificacaoRapidaDialog({
   open,
   onOpenChange,
