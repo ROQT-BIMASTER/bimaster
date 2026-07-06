@@ -36,6 +36,19 @@ interface EditarClassificacaoRapidaDialogProps {
   onSuccess: () => void;
 }
 
+function highlightMatch(text: string, term: string) {
+  if (!term.trim()) return text;
+  const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "ig"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === term.trim().toLowerCase() ? (
+      <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">{part}</mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 export function EditarClassificacaoRapidaDialog({
   open,
   onOpenChange,
@@ -46,6 +59,7 @@ export function EditarClassificacaoRapidaDialog({
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [bloquearReclassificacao, setBloquearReclassificacao] = useState(false);
   const [planoOpen, setPlanoOpen] = useState(false);
+  const [planoSearch, setPlanoSearch] = useState("");
 
   // Carregar departamentos
   const { data: departamentos } = useQuery({
@@ -208,7 +222,12 @@ export function EditarClassificacaoRapidaDialog({
                     return value.toLowerCase().includes(s) ? 1 : 0;
                   }}
                 >
-                  <CommandInput placeholder="Buscar por código ou nome..." className="h-9" />
+                  <CommandInput
+                    placeholder="Buscar por código ou nome..."
+                    className="h-9"
+                    value={planoSearch}
+                    onValueChange={setPlanoSearch}
+                  />
                   <CommandList className="max-h-[300px]">
                     <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
                     <CommandGroup>
@@ -229,8 +248,8 @@ export function EditarClassificacaoRapidaDialog({
                             )}
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-mono text-xs">{plano.code}</span>
-                            <span className="text-xs text-muted-foreground truncate">{plano.name}</span>
+                            <span className="font-mono text-xs">{highlightMatch(plano.code, planoSearch)}</span>
+                            <span className="text-xs text-muted-foreground truncate">{highlightMatch(plano.name, planoSearch)}</span>
                           </div>
                         </CommandItem>
                       ))}
