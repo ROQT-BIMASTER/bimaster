@@ -386,6 +386,13 @@ export default function SuporteDesk() {
               onOpenChange={setFluxoOpen}
               fila={filaAtivaObj}
             />
+            <ExcluirDepartamentoDialog
+              open={excluirDeptoOpen}
+              onOpenChange={setExcluirDeptoOpen}
+              filaId={filaAtivaObj.id}
+              filaNome={filaAtivaObj.nome}
+              onDeleted={() => setFilaAtiva(TODOS)}
+            />
           </>
         )}
         <NovoDepartamentoDialog
