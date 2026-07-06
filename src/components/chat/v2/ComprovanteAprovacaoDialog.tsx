@@ -341,6 +341,14 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
           </div>
         ) : (
           <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Protocolo</p>
+                <p className="font-mono font-semibold text-sm">{ap.protocolo ?? "—"}</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Gerado em {fmt(ap.created_at)}</p>
+            </div>
+
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Assunto</p>
               <p className="font-medium">{ap.titulo}</p>
