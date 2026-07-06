@@ -195,10 +195,9 @@ export default function SuporteMeusChamados() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <PareceresTab
                 ticketId={selecionado.id}
-                filaId={(selecionado as any).fila_id ?? null}
-                departamentoId={(selecionado as any).departamento_id ?? null}
-                isAgent={true}
-                isRequester={selecionado.solicitante_id === user?.id}
+                filaAtualId={selecionado.fila_id}
+                canWrite={selecionado.owner_id === user?.id || selecionado.assignee_id === user?.id}
+                onlyExterno={selecionado.requester_id === user?.id && selecionado.owner_id !== user?.id}
               />
             </div>
           )}
