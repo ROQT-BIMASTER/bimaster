@@ -255,7 +255,7 @@ const PortalCliente = lazyWithRetry(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazyWithRetry(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazyWithRetry(() => import("./pages/ContasAPagar"));
 const PlanoContas = lazyWithRetry(() => import("./pages/PlanoContas"));
-const Financeiro = lazyWithRetry(() => import("./pages/Financeiro"));
+
 const VisaoDepartamentos = lazyWithRetry(() => import("./pages/VisaoDepartamentos"));
 const TorreDespesas = lazyWithRetry(() => import("./pages/financeiro/TorreDespesas"));
 const TorreAlertasCentral = lazyWithRetry(() => import("./pages/financeiro/TorreAlertasCentral"));
