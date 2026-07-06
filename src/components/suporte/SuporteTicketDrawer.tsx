@@ -81,6 +81,17 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                       Transferir
                     </Button>
                   )}
+                  {ticket.status !== "resolvido" && ticket.status !== "escalado" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-400"
+                      onClick={() => setEscalonarOpen(true)}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Escalonar
+                    </Button>
+                  )}
                   <Select
                     value={ticket.status}
                     onValueChange={(v) =>
