@@ -21,6 +21,7 @@ import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
+import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
 
 interface Props {
@@ -32,6 +33,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
   const { user } = useAuth();
   const { assumir, mudarStatus } = useSuporteAcoes();
   const [transferOpen, setTransferOpen] = useState(false);
+  const [escalonarOpen, setEscalonarOpen] = useState(false);
 
   return (
     <>
