@@ -67,6 +67,26 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
 
+  // Detecta se a conversa está vinculada a um ticket ativo (para exibir
+  // o botão de "nota interna" apenas quando fizer sentido — chat suporte).
+  const { data: ticketAtivo } = useQuery({
+    queryKey: ["chat-ticket-ativo", conversaId],
+    enabled: !!conversaId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("suporte_tickets" as any)
+        .select("id, requester_id")
+        .eq("conversa_id", conversaId)
+        .neq("status", "resolvido")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as { id: string; requester_id: string | null } | null;
+    },
+  });
+  const podeNotaInterna = !!ticketAtivo && ticketAtivo.requester_id !== uid;
+
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
 
   // Consome auto-open vindo de deep-link (Briefings/Projetos/Submissões → Pessoas)
