@@ -343,6 +343,7 @@ function DetalheAlerta({
 }
 
 export default function TorreAlertasCentral() {
+  const navigate = useNavigate();
   const [f, setF] = useState<AlertaFiltrosCentral>(FILTROS_VAZIO);
   const [busca, setBusca] = useState("");
   const [selecionado, setSelecionado] = useState<DespesaAlerta | null>(null);
