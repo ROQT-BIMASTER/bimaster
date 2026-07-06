@@ -253,11 +253,24 @@ function Configuracoes() {
     },
   ];
 
-  const visibleSections = navSections.filter(section => {
-    if (section.adminOnly && !isAdmin) return false;
-    if (section.requiresUnlock && !outrasOpcoesUnlocked) return false;
-    return true;
-  });
+  const visibleSections = navSections
+    .filter(section => {
+      if (section.adminOnly && !isAdmin) {
+        if (isSuporteTI && section.suporteAllowed) {
+          // Suporte TI vê a seção, mas com itens filtrados abaixo
+        } else {
+          return false;
+        }
+      }
+      if (section.requiresUnlock && !outrasOpcoesUnlocked) return false;
+      return true;
+    })
+    .map(section => {
+      if (isSuporteTI && !isAdmin && section.adminOnly && section.suporteAllowed) {
+        return { ...section, items: section.items.filter(i => i.suporteAllowed) };
+      }
+      return section;
+    });
 
   const handleNavClick = (key: string, section: NavSection) => {
     if (section.requiresUnlock && !outrasOpcoesUnlocked) {
