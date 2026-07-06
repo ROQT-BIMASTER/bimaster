@@ -29,6 +29,7 @@ export default function SuporteMeusChamados() {
   const { data: chamados = [], isLoading } = useMeusChamados();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [pareceresOpen, setPareceresOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
 
