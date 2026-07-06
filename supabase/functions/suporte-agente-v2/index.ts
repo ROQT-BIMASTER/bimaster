@@ -122,12 +122,15 @@ Deno.serve(secureHandler(
         }, required: ["slug","motivo"] } } });
     }
 
+    const promptDepto = fila.ia_prompt
+      ? fila.ia_prompt
+      : `Você atende o departamento ${fila.nome}. Colete o mínimo necessário: o que aconteceu, quando começou, qual documento/registro/ID envolvido e qual o impacto. Se a demanda pertencer a outro departamento, use transferir_departamento com o slug apropriado. Nunca peça senha, token ou CPF completo.`;
     const messages: any[] = [
       { role: "system", content: PERSONA_BASE },
-      fila.ia_prompt ? { role: "system", content: `INSTRUÇÕES DO DEPARTAMENTO ${fila.nome}:\n${fila.ia_prompt}` } : null,
+      { role: "system", content: `INSTRUÇÕES DO DEPARTAMENTO ${fila.nome}:\n${promptDepto}` },
       { role: "system", content: contexto },
       ...history,
-    ].filter(Boolean);
+    ];
 
     async function execTool(name: string, args: any): Promise<unknown> {
       await sb.from("suporte_tickets_audit").insert({
