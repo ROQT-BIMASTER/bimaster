@@ -20,6 +20,7 @@ import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
+import { MinhasRotinasHojeWidget } from "@/components/suporte/MinhasRotinasHojeWidget";
 
 export default function SuporteMeusChamados() {
   const { data: chamados = [], isLoading } = useMeusChamados();
