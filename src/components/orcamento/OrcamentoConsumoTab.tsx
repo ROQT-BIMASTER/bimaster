@@ -1,7 +1,9 @@
-import { AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Loader2, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -10,6 +12,8 @@ import {
   type OrcamentoConsumoEstagio,
   type OrcamentoConsumoRow,
 } from "@/hooks/orcamento/useOrcamentoCorporativo";
+import { SuplementacaoDialog } from "@/components/orcamento/SuplementacaoDialog";
+import { SuplementacoesPanel } from "@/components/orcamento/SuplementacoesPanel";
 
 function estagioMeta(estagio: OrcamentoConsumoEstagio) {
   switch (estagio) {
