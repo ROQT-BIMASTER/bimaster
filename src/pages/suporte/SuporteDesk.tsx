@@ -29,6 +29,7 @@ import {
   Plus,
   CalendarIcon,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
