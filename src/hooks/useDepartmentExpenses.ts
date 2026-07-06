@@ -323,6 +323,9 @@ export function useDepartmentExpenses(departmentId?: string) {
         if (profile?.nome) userName = profile.nome;
       }
 
+      // Autofill do plano de contas via padrão memorizado do fornecedor.
+      const padrao = await lookupFornecedorPadrao(financialData.supplier_document || null);
+
       const queuePayload = {
         source_type: 'department_expense' as const,
         source_id: id,
@@ -342,8 +345,10 @@ export function useDepartmentExpenses(departmentId?: string) {
         empresa_id: expense?.empresa_id,
         empresa_nome: expense?.empresa_nome,
         // Fase 1.B — Departamento já tem department_id na origem: propagar.
-        // Categoria/plano/natureza/chave são confirmados/completados pelo financeiro no aceite.
+        // Plano/categoria vêm do padrão do fornecedor (se houver); financeiro confirma no aceite.
         departamento_id: expense?.department_id ?? null,
+        plano_contas_id: padrao.plano_contas_id,
+        categoria_codigo: padrao.categoria_codigo,
       };
 
       if (existingQueueId) {
