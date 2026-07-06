@@ -160,7 +160,12 @@ function ConsumoRow({ r }: { r: OrcamentoConsumoRow }) {
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Progress value={pctCap} className="h-2 flex-1" indicatorClassName={meta.cls} />
+          <div className="relative h-2 flex-1 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn("absolute inset-y-0 left-0 transition-all", meta.cls)}
+              style={{ width: `${pctCap}%` }}
+            />
+          </div>
           <span className="text-xs tabular-nums text-muted-foreground w-12 text-right">
             {r.pct_consumido == null ? "—" : `${pct.toFixed(0)}%`}
           </span>
