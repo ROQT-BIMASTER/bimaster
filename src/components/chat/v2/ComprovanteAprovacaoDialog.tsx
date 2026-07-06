@@ -23,6 +23,7 @@ interface Props {
 
 interface AprovacaoFull {
   id: string;
+  protocolo: string | null;
   titulo: string;
   descricao: string | null;
   status: string;
