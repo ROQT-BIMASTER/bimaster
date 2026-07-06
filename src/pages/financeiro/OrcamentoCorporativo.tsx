@@ -12,6 +12,7 @@ import {
   Layers,
   Building2,
   DollarSign,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
