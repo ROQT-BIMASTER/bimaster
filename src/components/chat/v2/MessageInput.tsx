@@ -400,7 +400,26 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
         </div>
       )}
 
-      <div className="px-3 py-2 flex items-end gap-2">
+      {notaInterna && (
+        <div className="px-3 py-1.5 border-b border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400">
+          <Lock className="h-3 w-3" />
+          <span className="flex-1">
+            Nota interna — visível apenas para agentes e administradores. O solicitante não verá esta mensagem.
+          </span>
+          <button
+            onClick={() => setNotaInterna(false)}
+            className="hover:opacity-80"
+            aria-label="Desativar nota interna"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      <div className={cn(
+        "px-3 py-2 flex items-end gap-2",
+        notaInterna && "bg-amber-500/5",
+      )}>
         <input
           ref={fileRef}
           type="file"
