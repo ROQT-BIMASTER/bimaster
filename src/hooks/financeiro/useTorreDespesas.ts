@@ -22,6 +22,12 @@ const empresasKey = (ids: number[]) =>
 
 const empresasParam = (ids: number[]) => (ids.length > 0 ? ids : null);
 
+/** Chave estável para arrays de centros de custo no queryKey */
+const centrosKey = (ids: string[]) =>
+  ids.length > 0 ? [...ids].sort().join(",") : "all";
+
+const centrosParam = (ids: string[]) => (ids.length > 0 ? ids : null);
+
 // As RPCs da Torre ainda não existem nos tipos gerados do Supabase —
 // o cast é o mesmo padrão usado em useSyncControlRubysp/callAggRpc.
 async function callRpc<T>(fn: string, params: Record<string, unknown>): Promise<T> {
