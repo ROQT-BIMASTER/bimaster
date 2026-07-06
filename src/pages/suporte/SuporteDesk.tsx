@@ -28,7 +28,9 @@ import {
   Settings2,
   Plus,
   CalendarIcon,
+  Clock,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
