@@ -2033,6 +2033,10 @@ Data: ${dataGeracao}
           </Card>
         </div>
 
+        <p className="text-[10px] text-muted-foreground -mt-1">
+          Custos em competência = data de emissão (padrão Apuração de Custo do ERP); caixa = extrato bancário (MovimentoConta), com exclusão de transferências entre contas, aplicações e ajustes de saldo (tesouraria).
+        </p>
+
         {/* Tabs principais */}
         <Tabs value={tabAtiva} onValueChange={(v) => setTabAtiva(v as 'dre' | 'reducao')}>
           <TabsList className="mb-4">
