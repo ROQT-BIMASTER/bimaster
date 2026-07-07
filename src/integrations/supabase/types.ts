@@ -16596,6 +16596,66 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_pagamentos_rubysp: {
+        Row: {
+          ccusto_id: number | null
+          ccusto_nome: string | null
+          complemento: string | null
+          conta_id: string | null
+          conta_nome: string | null
+          data_movimento: string | null
+          documento: string | null
+          empresa_id: number | null
+          erp_id: string
+          forma: number | null
+          historico_id: number | null
+          historico_nome: string | null
+          pedido: string | null
+          raw: Json | null
+          staged_at: string
+          tipo_mov: string | null
+          valor: number | null
+        }
+        Insert: {
+          ccusto_id?: number | null
+          ccusto_nome?: string | null
+          complemento?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          data_movimento?: string | null
+          documento?: string | null
+          empresa_id?: number | null
+          erp_id: string
+          forma?: number | null
+          historico_id?: number | null
+          historico_nome?: string | null
+          pedido?: string | null
+          raw?: Json | null
+          staged_at?: string
+          tipo_mov?: string | null
+          valor?: number | null
+        }
+        Update: {
+          ccusto_id?: number | null
+          ccusto_nome?: string | null
+          complemento?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          data_movimento?: string | null
+          documento?: string | null
+          empresa_id?: number | null
+          erp_id?: string
+          forma?: number | null
+          historico_id?: number | null
+          historico_nome?: string | null
+          pedido?: string | null
+          raw?: Json | null
+          staged_at?: string
+          tipo_mov?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       erp_pedido_itens_rubysp: {
         Row: {
           created_at: string
@@ -33418,6 +33478,87 @@ export type Database = {
             columns: ["parcela_id"]
             isOneToOne: false
             referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos_caixa: {
+        Row: {
+          ccusto_id: number | null
+          ccusto_nome: string | null
+          centro_custo_id: string | null
+          complemento: string | null
+          conta_id: string | null
+          conta_nome: string | null
+          created_at: string
+          data_movimento: string
+          documento: string | null
+          empresa_id: number | null
+          erp_id: string
+          forma: number | null
+          historico_id: number | null
+          historico_nome: string | null
+          pedido: string | null
+          plano_contas_id: string | null
+          tipo_mov: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ccusto_id?: number | null
+          ccusto_nome?: string | null
+          centro_custo_id?: string | null
+          complemento?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          data_movimento: string
+          documento?: string | null
+          empresa_id?: number | null
+          erp_id: string
+          forma?: number | null
+          historico_id?: number | null
+          historico_nome?: string | null
+          pedido?: string | null
+          plano_contas_id?: string | null
+          tipo_mov: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          ccusto_id?: number | null
+          ccusto_nome?: string | null
+          centro_custo_id?: string | null
+          complemento?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          data_movimento?: string
+          documento?: string | null
+          empresa_id?: number | null
+          erp_id?: string
+          forma?: number | null
+          historico_id?: number | null
+          historico_nome?: string | null
+          pedido?: string | null
+          plano_contas_id?: string | null
+          tipo_mov?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_caixa_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_caixa_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -57782,6 +57923,15 @@ export type Database = {
         Args: never
         Returns: {
           atualizados: number
+          inseridos: number
+        }[]
+      }
+      fn_transform_pagamentos_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
+          com_centro: number
+          com_plano: number
           inseridos: number
         }[]
       }
