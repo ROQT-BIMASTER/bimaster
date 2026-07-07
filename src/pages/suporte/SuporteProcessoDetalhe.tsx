@@ -11,7 +11,6 @@ import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
-import { invokeChat } from "@/lib/ai/invokeChat";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
