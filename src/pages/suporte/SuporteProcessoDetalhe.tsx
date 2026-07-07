@@ -20,6 +20,24 @@ export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState<string | null>(id ?? null);
+  const [instanciando, setInstanciando] = useState(false);
+
+  const iniciarExecucao = async () => {
+    if (!selecionado) return;
+    setInstanciando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("processo-instanciar-execucao", {
+        body: { processo_id: selecionado },
+      });
+      if (error) throw error;
+      const criadas = (data as any)?.tarefas_criadas ?? 0;
+      toast.success(`Execução iniciada. ${criadas} tarefa(s) criada(s) em Projetos.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao iniciar execução");
+    } finally {
+      setInstanciando(false);
+    }
+  };
 
   const { data: processos = [], isLoading } = useProcessos();
   const { data: filas = [] } = useSuporteFilas();
