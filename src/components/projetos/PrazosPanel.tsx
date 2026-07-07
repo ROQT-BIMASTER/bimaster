@@ -231,6 +231,7 @@ export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
                           regime={regime}
                           limiteSuperior={secao.data_prazo ?? projeto.data_fim_alvo ?? null}
                           limiteInferior={secao.data_inicio ?? projeto.data_inicio ?? null}
+                          locked={espelhoSet?.has(tar.id) ?? false}
                           onSave={async (next) => {
                             await updateTarefaPrazo(tar.id, {
                               data_inicio_planejada: next.data_inicio,
