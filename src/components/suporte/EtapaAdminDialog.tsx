@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, UserPlus, Users, AlertTriangle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { X, Plus, UserPlus, Users, AlertTriangle, ChevronDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,8 +23,11 @@ import {
   useAddEtapaPapel,
   useRemoveEtapaPapel,
   useSalvarParecerEtapa,
+  useSalvarDescritivoAtividades,
   type PapelEtapa,
+  type EtapaPapelRow,
 } from "@/hooks/suporte/useEtapaPapeis";
+
 
 interface Props {
   open: boolean;
@@ -90,27 +94,19 @@ function PapelSection({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="space-y-2">
         {filtrados.map((p) => (
-          <Badge key={p.id} variant="secondary" className="gap-2 pl-1 pr-1.5 py-1 h-7">
-            <Avatar className="h-5 w-5">
-              <AvatarImage src={p.profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="text-[10px]">{iniciais(p.profile?.nome)}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs">{p.profile?.nome ?? "—"}</span>
-            <button
-              className="text-muted-foreground hover:text-destructive"
-              onClick={() => remP.mutate({ id: p.id, etapa_id: etapaId })}
-              aria-label="Remover"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
+          <CollaboratorRow
+            key={p.id}
+            row={p}
+            onRemove={() => remP.mutate({ id: p.id, etapa_id: etapaId })}
+          />
         ))}
+
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-              <Plus className="h-3 w-3" /> Adicionar
+            <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+              <Plus className="h-3 w-3" /> Adicionar colaborador
             </Button>
           </PopoverTrigger>
           <PopoverContent className="p-0 w-[300px]" align="start">
@@ -151,6 +147,92 @@ function PapelSection({
     </div>
   );
 }
+
+function CollaboratorRow({ row, onRemove }: { row: EtapaPapelRow; onRemove: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [descritivo, setDescritivo] = useState(row.descritivo_atividades ?? "");
+  const salvar = useSalvarDescritivoAtividades();
+
+  useEffect(() => {
+    setDescritivo(row.descritivo_atividades ?? "");
+  }, [row.descritivo_atividades]);
+
+  const hasDescritivo = !!(row.descritivo_atividades && row.descritivo_atividades.trim().length > 0);
+
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded} className="border rounded-md bg-muted/30">
+      <div className="flex items-center gap-2 p-2">
+        <Avatar className="h-7 w-7">
+          <AvatarImage src={row.profile?.avatar_url ?? undefined} />
+          <AvatarFallback className="text-[10px]">{iniciais(row.profile?.nome)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium truncate">{row.profile?.nome ?? "—"}</div>
+          {hasDescritivo && !expanded && (
+            <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+              <FileText className="h-3 w-3 shrink-0" />
+              <span className="truncate">{row.descritivo_atividades}</span>
+            </div>
+          )}
+        </div>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+            <FileText className="h-3 w-3" />
+            {hasDescritivo ? "Editar" : "Descritivo"}
+            <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={onRemove}
+          aria-label="Remover"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      <CollapsibleContent className="px-2 pb-2 space-y-2">
+        <Label className="text-xs text-muted-foreground">
+          Descritivo das atividades desse colaborador nesta etapa
+        </Label>
+        <Textarea
+          value={descritivo}
+          onChange={(e) => setDescritivo(e.target.value)}
+          placeholder="Ex.: Conferir DRE do dia, validar apuração e enviar ao Fiscal…"
+          className="min-h-[110px] text-sm bg-background"
+        />
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setDescritivo(row.descritivo_atividades ?? "")}
+            disabled={salvar.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() =>
+              salvar.mutate({
+                id: row.id,
+                etapa_id: row.etapa_id,
+                descritivo_atividades: descritivo,
+              })
+            }
+            disabled={salvar.isPending}
+          >
+            {salvar.isPending ? "Salvando…" : "Salvar descritivo"}
+          </Button>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 
 export function EtapaAdminDialog({ open, onOpenChange, etapaId, etapaNome, parecerAtual }: Props) {
   const [parecer, setParecer] = useState("");

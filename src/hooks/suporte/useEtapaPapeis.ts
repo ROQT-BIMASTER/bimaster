@@ -9,6 +9,7 @@ export interface EtapaPapelRow {
   etapa_id: string;
   user_id: string;
   papel: PapelEtapa;
+  descritivo_atividades?: string | null;
   profile?: { nome: string | null; avatar_url: string | null } | null;
 }
 
@@ -19,7 +20,7 @@ export function useEtapaPapeis(etapaId: string | null | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("processo_etapa_responsaveis")
-        .select("id, etapa_id, user_id, papel")
+        .select("id, etapa_id, user_id, papel, descritivo_atividades")
         .eq("etapa_id", etapaId!);
       if (error) throw error;
       const rows = (data ?? []) as EtapaPapelRow[];
@@ -35,6 +36,7 @@ export function useEtapaPapeis(etapaId: string | null | undefined) {
     },
   });
 }
+
 
 export function useAddEtapaPapel() {
   const qc = useQueryClient();
@@ -74,6 +76,24 @@ export function useRemoveEtapaPapel() {
     onError: (e: any) => toast.error(e?.message ?? "Falha ao remover papel"),
   });
 }
+export function useSalvarDescritivoAtividades() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; etapa_id: string; descritivo_atividades: string }) => {
+      const { error } = await (supabase as any)
+        .from("processo_etapa_responsaveis")
+        .update({ descritivo_atividades: p.descritivo_atividades })
+        .eq("id", p.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["etapa-papeis", v.etapa_id] });
+      toast.success("Descritivo salvo");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar descritivo"),
+  });
+}
+
 
 export function useSalvarParecerEtapa() {
   const qc = useQueryClient();
