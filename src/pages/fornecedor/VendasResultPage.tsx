@@ -35,7 +35,7 @@ export default function VendasResultPage() {
     vendedorId,
   }), [ano, empresa, vendedorId]);
 
-  const kpis = useVendasKpis(rangeFilters);
+  const kpis = useVendasKpis(rangeFilters, "rubysp");
 
   return (
     <DashboardLayout>
