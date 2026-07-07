@@ -187,6 +187,15 @@ function ProjetoTarefaRowImpl({
             compact
           />
           <TarefaEspelhoBadge tarefaId={tarefa.id} status={tarefa.status} />
+          {!isCompleted && (tarefa.data_prazo || (tarefa as any).sla_limite) && (
+            <SLACountdownPill
+              deadline={(tarefa as any).sla_limite ?? tarefa.data_prazo}
+              size="sm"
+              frozen={isCompleted}
+              sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
+              className="flex-shrink-0"
+            />
+          )}
           {!isCompleted && !tarefa.data_prazo && (
             <Badge
               variant="outline"
