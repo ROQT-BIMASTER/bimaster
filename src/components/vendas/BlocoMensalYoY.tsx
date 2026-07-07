@@ -12,6 +12,7 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 
 interface Props {
   ano: number;
+  mes?: number | null;
   empresa: number | null;
   tabelaPrecoId?: number | null;
   uf?: string | null;
@@ -20,17 +21,28 @@ interface Props {
   source?: "futura" | "rubysp";
 }
 
-export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
+export function BlocoMensalYoY({ ano, mes, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
   const anoAnterior = ano - 1;
 
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const rangeFor = (y: number): { de: string; ate: string } => {
+    if (mes != null) {
+      const lastDay = new Date(y, mes, 0).getDate();
+      return { de: `${y}-${pad(mes)}-01`, ate: `${y}-${pad(mes)}-${pad(lastDay)}` };
+    }
+    return { de: `${y}-01-01`, ate: `${y}-12-31` };
+  };
+  const rAtual = rangeFor(ano);
+  const rAnt = rangeFor(anoAnterior);
+
   const filtroAtual: VendasFilters = {
-    de: `${ano}-01-01`, ate: `${ano}-12-31`,
+    de: rAtual.de, ate: rAtual.ate,
     empresa, vendedor: null, coordenador: null,
     tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
     clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
   };
   const filtroAnt: VendasFilters = {
-    de: `${anoAnterior}-01-01`, ate: `${anoAnterior}-12-31`,
+    de: rAnt.de, ate: rAnt.ate,
     empresa, vendedor: null, coordenador: null,
     tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
     clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
