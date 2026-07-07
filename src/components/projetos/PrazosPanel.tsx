@@ -32,6 +32,7 @@ const fmt = (iso: string | null | undefined) =>
 export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
   const { data: projeto } = useProjeto(projetoId);
   const { secoes, tarefas, tarefasPorSecao, updateSecao } = useProjetoTarefas(projetoId);
+  const { data: espelhoSet } = useTarefasComEspelho(projetoId);
   const queryClient = useQueryClient();
   const ano = new Date().getFullYear();
   const { feriados } = useFeriados(ano);
