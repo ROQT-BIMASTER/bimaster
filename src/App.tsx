@@ -653,8 +653,9 @@ function AppContent() {
             <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/admin/sla" element={<ProtectedRoute><SuporteAdminSLA /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/rotinas-fixas" element={<ProtectedRoute><SuporteRotinasFixas /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos" element={<ProtectedRoute><SuporteProcessoDetalhe /></ProtectedRoute>} />
+            <Route path="/dashboard/suporte/processos" element={<ProtectedRoute><SuporteCentralOperacional /></ProtectedRoute>} />
             <Route path="/dashboard/suporte/processos/:id" element={<ProtectedRoute><SuporteProcessoDetalhe /></ProtectedRoute>} />
+
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin" allowRoles={["suporte"]}><Configuracoes /></ScreenRoute>} />
 
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_importar"><ImportarClientes /></ScreenProtectedRoute></ModuleRoute>} />
