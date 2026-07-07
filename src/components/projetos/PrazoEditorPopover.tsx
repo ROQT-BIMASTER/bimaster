@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarIcon, Calculator } from "lucide-react";
+import { CalendarIcon, Calculator, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
