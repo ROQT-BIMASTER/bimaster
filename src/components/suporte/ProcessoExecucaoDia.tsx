@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle, CircleDashed, Timer } from "lucide-react";
 import { useProcessoExecucaoDia, type EtapaExecucaoDia } from "@/hooks/suporte/useProcessoExecucao";
+import { ProcessoHandoffAlertas } from "./ProcessoHandoffAlertas";
 
 interface Props {
   processoId: string;
