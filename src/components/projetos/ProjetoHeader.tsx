@@ -175,6 +175,8 @@ export function ProjetoHeader({
 
   return (
     <div className="space-y-5">
+      {/* Banner: processo operacional vinculado (se houver) */}
+      <ProjetoProcessoBanner projetoId={projeto.id} />
       {/* Hero banner */}
       <div
         className="relative rounded-xl overflow-hidden px-6 py-5"
