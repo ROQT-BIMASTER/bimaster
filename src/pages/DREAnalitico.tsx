@@ -254,6 +254,51 @@ export default function DREAnalitico() {
     }
   });
 
+  // Mapeamento empresa_nome -> lista de empresa_id (várias grafias apontam para o mesmo id no ERP)
+  const { data: empresaNomeToIds } = useQuery({
+    queryKey: ['dre-empresa-nome-to-ids'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('contas_pagar')
+        .select('empresa_id, empresa_nome')
+        .not('empresa_id', 'is', null)
+        .not('empresa_nome', 'is', null);
+      const map = new Map<string, number[]>();
+      (data ?? []).forEach((r: any) => {
+        if (!r.empresa_nome || r.empresa_id == null) return;
+        const arr = map.get(r.empresa_nome) ?? [];
+        if (!arr.includes(r.empresa_id)) arr.push(r.empresa_id);
+        map.set(r.empresa_nome, arr);
+      });
+      return map;
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+
+  // Receita competência via faturamento_mensal (agregado validado contra o BI/ERP)
+  const anoMesIni = format(parseISO(dataInicio), 'yyyy-MM');
+  const anoMesFim = format(parseISO(dataFim), 'yyyy-MM');
+  const { data: faturamentoMensal } = useSupabaseQuery(
+    ['faturamento-mensal-dre', anoMesIni, anoMesFim, filterEmpresa, regimeAnalise],
+    async () => {
+      if (regimeAnalise !== 'competencia') return [];
+      let q = supabase
+        .from('faturamento_mensal')
+        .select('empresa_id, ano_mes, faturamento_liquido, vendas_brutas, devolucoes, n_notas')
+        .gte('ano_mes', anoMesIni)
+        .lte('ano_mes', anoMesFim);
+      if (filterEmpresa !== 'todas') {
+        const ids = empresaNomeToIds?.get(filterEmpresa) ?? [];
+        if (ids.length === 0) return [];
+        q = q.in('empresa_id', ids);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
+  );
+
   // Funções para obter a data de referência baseado no regime de análise.
   // Competência = emissão (padrão Apuração ERP); Caixa = movimento bancário.
   const getDataRefReceber = (registro: any): string | null => {
