@@ -40,6 +40,11 @@ export default function SuporteRotinasFixas() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/suporte/processos">
+                <Workflow className="h-4 w-4 mr-1" /> Processos
+              </Link>
+            </Button>
             <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
               <Play className="h-4 w-4 mr-1" /> Gerar agora
             </Button>
