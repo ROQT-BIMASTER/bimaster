@@ -250,23 +250,33 @@ export function ProcessoCanvas({ processoId }: Props) {
   }
 
   return (
-    <Card className="h-[calc(100vh-260px)] min-h-[520px] overflow-hidden">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={handleConnect}
-        onEdgesDelete={handleEdgesDelete}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        proOptions={{ hideAttribution: true }}
-        deleteKeyCode={["Backspace", "Delete"]}
-      >
-        <Background gap={16} />
-        <Controls showInteractive={false} />
-        <MiniMap pannable zoomable />
-      </ReactFlow>
-    </Card>
+    <>
+      <Card className="h-[calc(100vh-260px)] min-h-[520px] overflow-hidden">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={handleConnect}
+          onEdgesDelete={handleEdgesDelete}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          proOptions={{ hideAttribution: true }}
+          deleteKeyCode={["Backspace", "Delete"]}
+        >
+          <Background gap={16} />
+          <Controls showInteractive={false} />
+          <MiniMap pannable zoomable />
+        </ReactFlow>
+      </Card>
+      <EtapaAdminDialog
+        open={adminOpen}
+        onOpenChange={setAdminOpen}
+        etapaId={adminEtapa?.id ?? null}
+        etapaNome={adminEtapa?.nome}
+        parecerAtual={adminEtapa?.parecer ?? null}
+      />
+    </>
   );
 }
