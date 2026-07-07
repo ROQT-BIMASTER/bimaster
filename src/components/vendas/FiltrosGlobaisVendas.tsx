@@ -4,7 +4,7 @@ import { Check, ChevronDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import type { VendasGlobalFilters } from "@/hooks/vendas/vendasFilters";
+import { MESES_PT, type VendasGlobalFilters } from "@/hooks/vendas/vendasFilters";
 
 const sb = supabase as any;
 
