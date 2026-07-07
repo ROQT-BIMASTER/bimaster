@@ -36651,6 +36651,89 @@ export type Database = {
           },
         ]
       }
+      processo_handoff_alertas: {
+        Row: {
+          created_at: string
+          data_ref: string
+          de_etapa_id: string
+          escalado_em: string | null
+          escalado_para: string | null
+          gerado_em: string
+          id: string
+          ligacao_id: string
+          minutos_atraso: number | null
+          para_etapa_id: string
+          processo_id: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+          tipo: Database["public"]["Enums"]["processo_handoff_alerta_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_ref: string
+          de_etapa_id: string
+          escalado_em?: string | null
+          escalado_para?: string | null
+          gerado_em?: string
+          id?: string
+          ligacao_id: string
+          minutos_atraso?: number | null
+          para_etapa_id: string
+          processo_id: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          tipo: Database["public"]["Enums"]["processo_handoff_alerta_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_ref?: string
+          de_etapa_id?: string
+          escalado_em?: string | null
+          escalado_para?: string | null
+          gerado_em?: string
+          id?: string
+          ligacao_id?: string
+          minutos_atraso?: number | null
+          para_etapa_id?: string
+          processo_id?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          tipo?: Database["public"]["Enums"]["processo_handoff_alerta_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_handoff_alertas_de_etapa_id_fkey"
+            columns: ["de_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_handoff_alertas_ligacao_id_fkey"
+            columns: ["ligacao_id"]
+            isOneToOne: false
+            referencedRelation: "processo_ligacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_handoff_alertas_para_etapa_id_fkey"
+            columns: ["para_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_handoff_alertas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_operacionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_instancia_etapa_status: {
         Row: {
           aprovada_em: string | null
@@ -60590,6 +60673,10 @@ export type Database = {
           mp_id: string
         }[]
       }
+      rpc_processo_escalar_alerta: {
+        Args: { _alerta_id: string }
+        Returns: undefined
+      }
       rpc_processo_execucao_dia: {
         Args: { _data_ref?: string; _processo_id: string }
         Returns: {
@@ -60611,6 +60698,13 @@ export type Database = {
           sla_minutos: number
           status: string
           ticket_id: string
+        }[]
+      }
+      rpc_processo_gerar_alertas_handoff: {
+        Args: { _data_ref?: string }
+        Returns: {
+          novos: number
+          resolvidos: number
         }[]
       }
       rpc_processos_saude_dia: {
@@ -61759,6 +61853,7 @@ export type Database = {
         | "concluida"
         | "atrasada"
         | "cancelada"
+      processo_handoff_alerta_tipo: "origem_atrasada" | "handoff_estourado"
       processo_ligacao_condicao: "sempre" | "se_concluida" | "em_excecao"
       processo_parecer_tipo: "parecer" | "decisao" | "adaptacao" | "observacao"
       projeto_convite_status:
@@ -62039,6 +62134,7 @@ export const Constants = {
         "atrasada",
         "cancelada",
       ],
+      processo_handoff_alerta_tipo: ["origem_atrasada", "handoff_estourado"],
       processo_ligacao_condicao: ["sempre", "se_concluida", "em_excecao"],
       processo_parecer_tipo: ["parecer", "decisao", "adaptacao", "observacao"],
       projeto_convite_status: [
