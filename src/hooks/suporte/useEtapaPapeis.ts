@@ -76,6 +76,24 @@ export function useRemoveEtapaPapel() {
     onError: (e: any) => toast.error(e?.message ?? "Falha ao remover papel"),
   });
 }
+export function useSalvarDescritivoAtividades() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; etapa_id: string; descritivo_atividades: string }) => {
+      const { error } = await (supabase as any)
+        .from("processo_etapa_responsaveis")
+        .update({ descritivo_atividades: p.descritivo_atividades })
+        .eq("id", p.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["etapa-papeis", v.etapa_id] });
+      toast.success("Descritivo salvo");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar descritivo"),
+  });
+}
+
 
 export function useSalvarParecerEtapa() {
   const qc = useQueryClient();
