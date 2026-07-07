@@ -4,18 +4,39 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Workflow, ArrowLeft, Info } from "lucide-react";
+import { Workflow, ArrowLeft, Info, Play, Loader2 } from "lucide-react";
 import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
 
 export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState<string | null>(id ?? null);
+  const [instanciando, setInstanciando] = useState(false);
+
+  const iniciarExecucao = async () => {
+    if (!selecionado) return;
+    setInstanciando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("processo-instanciar-execucao", {
+        body: { processo_id: selecionado },
+      });
+      if (error) throw error;
+      const criadas = (data as any)?.tarefas_criadas ?? 0;
+      toast.success(`Execução iniciada. ${criadas} tarefa(s) criada(s) em Projetos.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao iniciar execução");
+    } finally {
+      setInstanciando(false);
+    }
+  };
 
   const { data: processos = [], isLoading } = useProcessos();
   const { data: filas = [] } = useSuporteFilas();
@@ -96,9 +117,22 @@ export default function SuporteProcessoDetalhe() {
             <Badge variant="outline">{proc.etapas.length} etapa(s)</Badge>
             <Badge variant="outline">{proc.ligacoes.length} ligação(ões)</Badge>
             <span className="inline-flex items-center gap-1 ml-2">
-              <Info className="h-3 w-3" /> Arraste para reposicionar. Conecte etapas ligando os
-              pontos das bordas. Pressione Delete sobre uma ligação para removê-la.
+              <Info className="h-3 w-3" /> Arraste para reposicionar. Duplo-clique em uma etapa
+              para editar parecer, responsáveis e escalação. Delete remove ligações.
             </span>
+            <Button
+              size="sm"
+              className="ml-auto"
+              onClick={iniciarExecucao}
+              disabled={instanciando}
+            >
+              {instanciando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              Iniciar execução em Projetos
+            </Button>
           </div>
         )}
 

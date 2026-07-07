@@ -80,6 +80,15 @@ import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
+import { createContext, useContext } from "react";
+import {
+  useProcessoOperacionalMap,
+  type ProcessoOperacionalTag,
+} from "@/hooks/suporte/useProcessoOperacionalMap";
+import { ProcessoOperacionalBadge } from "@/components/suporte/ProcessoOperacionalBadge";
+
+const ProcessoTagMapCtx = createContext<Map<string, ProcessoOperacionalTag> | null>(null);
+const useProcessoTag = (id: string) => useContext(ProcessoTagMapCtx)?.get(id) ?? null;
 
 const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
@@ -93,6 +102,7 @@ const ListRow = memo(function ListRow({
 }) {
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const processoTag = useProcessoTag(tarefa.id);
 
   return (
     <div
@@ -116,6 +126,7 @@ const ListRow = memo(function ListRow({
         <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
           {tarefa.titulo}
         </span>
+        {processoTag && <ProcessoOperacionalBadge tag={processoTag} compact />}
         {tarefa.papel === "responsavel" && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -1426,10 +1437,15 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     };
   }, [tarefas]);
 
+  const tarefaIdList = useMemo(() => tarefas.map((t) => t.id), [tarefas]);
+  const { data: processoTagMap } = useProcessoOperacionalMap(tarefaIdList);
+
   return (
+    <ProcessoTagMapCtx.Provider value={processoTagMap ?? null}>
     <div className="space-y-4">
       <PapelExplicativoBanner />
       <PapelChangeBanner />
+
       {showRoleOverview && tarefas.length > 0 && (
         <RoleOverviewCard
           tarefas={tarefas}
@@ -2101,5 +2117,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         })}
       />
     </div>
+    </ProcessoTagMapCtx.Provider>
   );
 }
