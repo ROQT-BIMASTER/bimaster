@@ -10664,6 +10664,7 @@ export type Database = {
           data_vencimento: string | null
           departamento_id: string | null
           departamento_nome: string | null
+          departamento_origem: string | null
           empresa_id: number
           empresa_nome: string | null
           erp_id: string
@@ -10699,6 +10700,8 @@ export type Database = {
           retem_iss: boolean | null
           retem_pis: boolean | null
           servico_tomado: Json | null
+          setor_erp_id: number | null
+          setor_erp_nome: string | null
           sincronizado_em: string | null
           status: string | null
           status_titulo: string | null
@@ -10760,6 +10763,7 @@ export type Database = {
           data_vencimento?: string | null
           departamento_id?: string | null
           departamento_nome?: string | null
+          departamento_origem?: string | null
           empresa_id: number
           empresa_nome?: string | null
           erp_id: string
@@ -10795,6 +10799,8 @@ export type Database = {
           retem_iss?: boolean | null
           retem_pis?: boolean | null
           servico_tomado?: Json | null
+          setor_erp_id?: number | null
+          setor_erp_nome?: string | null
           sincronizado_em?: string | null
           status?: string | null
           status_titulo?: string | null
@@ -10856,6 +10862,7 @@ export type Database = {
           data_vencimento?: string | null
           departamento_id?: string | null
           departamento_nome?: string | null
+          departamento_origem?: string | null
           empresa_id?: number
           empresa_nome?: string | null
           erp_id?: string
@@ -10891,6 +10898,8 @@ export type Database = {
           retem_iss?: boolean | null
           retem_pis?: boolean | null
           servico_tomado?: Json | null
+          setor_erp_id?: number | null
+          setor_erp_nome?: string | null
           sincronizado_em?: string | null
           status?: string | null
           status_titulo?: string | null
@@ -16273,6 +16282,8 @@ export type Database = {
           parcela: number | null
           portador: string | null
           raw: Json | null
+          setor_nome: string | null
+          setor_tpg: number | null
           sincronizado_em: string | null
           status_tpg: number | null
           tipo_documento: string | null
@@ -16299,6 +16310,8 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           raw?: Json | null
+          setor_nome?: string | null
+          setor_tpg?: number | null
           sincronizado_em?: string | null
           status_tpg?: number | null
           tipo_documento?: string | null
@@ -16325,6 +16338,8 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           raw?: Json | null
+          setor_nome?: string | null
+          setor_tpg?: number | null
           sincronizado_em?: string | null
           status_tpg?: number | null
           tipo_documento?: string | null
@@ -16360,6 +16375,42 @@ export type Database = {
           historico_tpg?: number | null
           sincronizado_em?: string | null
           status_tpg?: number | null
+        }
+        Relationships: []
+      }
+      erp_dre_mapa: {
+        Row: {
+          ccusto_id: number | null
+          complemento_like: string | null
+          created_at: string
+          departamento: string
+          historico_id: number | null
+          id: number
+          obs: string | null
+          plano_code: string
+          prioridade: number
+        }
+        Insert: {
+          ccusto_id?: number | null
+          complemento_like?: string | null
+          created_at?: string
+          departamento: string
+          historico_id?: number | null
+          id?: number
+          obs?: string | null
+          plano_code: string
+          prioridade: number
+        }
+        Update: {
+          ccusto_id?: number | null
+          complemento_like?: string | null
+          created_at?: string
+          departamento?: string
+          historico_id?: number | null
+          id?: number
+          obs?: string | null
+          plano_code?: string
+          prioridade?: number
         }
         Relationships: []
       }
@@ -17381,6 +17432,27 @@ export type Database = {
           sincronizado_em?: string
           unidade?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      erp_setor_depara: {
+        Row: {
+          created_at: string
+          departamento: string
+          setor_id: number
+          setor_nome: string
+        }
+        Insert: {
+          created_at?: string
+          departamento: string
+          setor_id: number
+          setor_nome: string
+        }
+        Update: {
+          created_at?: string
+          departamento?: string
+          setor_id?: number
+          setor_nome?: string
         }
         Relationships: []
       }
@@ -33558,6 +33630,8 @@ export type Database = {
           conta_nome: string | null
           created_at: string
           data_movimento: string
+          departamento_id: string | null
+          departamento_origem: string | null
           documento: string | null
           empresa_id: number | null
           erp_id: string
@@ -33566,6 +33640,7 @@ export type Database = {
           historico_nome: string | null
           pedido: string | null
           plano_contas_id: string | null
+          tesouraria: boolean
           tipo_mov: string
           updated_at: string
           valor: number
@@ -33579,6 +33654,8 @@ export type Database = {
           conta_nome?: string | null
           created_at?: string
           data_movimento: string
+          departamento_id?: string | null
+          departamento_origem?: string | null
           documento?: string | null
           empresa_id?: number | null
           erp_id: string
@@ -33587,6 +33664,7 @@ export type Database = {
           historico_nome?: string | null
           pedido?: string | null
           plano_contas_id?: string | null
+          tesouraria?: boolean
           tipo_mov: string
           updated_at?: string
           valor: number
@@ -33600,6 +33678,8 @@ export type Database = {
           conta_nome?: string | null
           created_at?: string
           data_movimento?: string
+          departamento_id?: string | null
+          departamento_origem?: string | null
           documento?: string | null
           empresa_id?: number | null
           erp_id?: string
@@ -33608,6 +33688,7 @@ export type Database = {
           historico_nome?: string | null
           pedido?: string | null
           plano_contas_id?: string | null
+          tesouraria?: boolean
           tipo_mov?: string
           updated_at?: string
           valor?: number
@@ -33619,6 +33700,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_caixa_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_caixa_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
           },
           {
             foreignKeyName: "pagamentos_caixa_plano_contas_id_fkey"
@@ -56465,6 +56560,13 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_departamento_canonico: {
+        Row: {
+          departamento_id: string | null
+          nome_canonico: string | null
+        }
+        Relationships: []
+      }
       vw_divergencia_linha_erp: {
         Row: {
           cod_fabricante: string | null
@@ -58414,6 +58516,25 @@ export type Database = {
             Returns: string
           }
         | { Args: { payload: Json }; Returns: Json }
+      fn_resolve_depto_dre: {
+        Args: { p_ccusto: number; p_historico: number; p_setor: number }
+        Returns: {
+          departamento: string
+          departamento_id: string
+          origem: string
+        }[]
+      }
+      fn_resolve_plano_dre: {
+        Args: { p_ccusto: number; p_complemento: string; p_historico: number }
+        Returns: {
+          departamento: string
+          plano_code: string
+          plano_contas_id: string
+          prioridade: number
+          regra_id: number
+          tesouraria: boolean
+        }[]
+      }
       fn_resolver_responsavel_etapa: {
         Args: {
           p_default_responsavel: string
