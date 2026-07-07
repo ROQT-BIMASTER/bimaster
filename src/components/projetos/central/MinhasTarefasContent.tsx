@@ -80,6 +80,15 @@ import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
+import { createContext, useContext } from "react";
+import {
+  useProcessoOperacionalMap,
+  type ProcessoOperacionalTag,
+} from "@/hooks/suporte/useProcessoOperacionalMap";
+import { ProcessoOperacionalBadge } from "@/components/suporte/ProcessoOperacionalBadge";
+
+const ProcessoTagMapCtx = createContext<Map<string, ProcessoOperacionalTag> | null>(null);
+const useProcessoTag = (id: string) => useContext(ProcessoTagMapCtx)?.get(id) ?? null;
 
 const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
