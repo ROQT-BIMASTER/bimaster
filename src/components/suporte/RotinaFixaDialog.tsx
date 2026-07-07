@@ -99,8 +99,23 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
       setTitulo(""); setDescricao(""); setFilaId(""); setResponsavel(""); setLider("");
       setPrioridade("media"); setDias([1,2,3,4,5]); setHorario("07:00"); setSlaResMin("");
       setChecklist([]); setNovoItem(""); setGeraTarefa(true); setAtivo(true);
+      setProcessoOpt(NENHUM); setNovoProcessoNome(""); setProximas([]); setSlaHandoff("");
     }
   }, [rotina, open]);
+
+  // Hidrata seção de encadeamento quando a rotina existente já participa de um processo
+  useEffect(() => {
+    if (!encadeamento) return;
+    if (encadeamento.processo_id) {
+      setProcessoOpt(encadeamento.processo_id);
+      setProximas(encadeamento.proximas);
+      setSlaHandoff(encadeamento.sla_handoff != null ? String(encadeamento.sla_handoff) : "");
+    } else {
+      setProcessoOpt(NENHUM);
+      setProximas([]);
+      setSlaHandoff("");
+    }
+  }, [encadeamento?.processo_id, encadeamento?.etapa_id]);
 
   const toggleDia = (d: number) => {
     setDias((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
@@ -111,6 +126,20 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
     if (!t) return;
     setChecklist((prev) => [...prev, { texto: t }]);
     setNovoItem("");
+  };
+
+  const filaNomePorId = useMemo(() => {
+    const m = new Map<string, { nome: string; cor: string | null }>();
+    for (const f of filas as any[]) m.set(f.id, { nome: f.nome, cor: f.cor ?? null });
+    return m;
+  }, [filas]);
+
+  const rotinasDisponiveis = useMemo(() => {
+    return (todasRotinas as RotinaFixa[]).filter((r) => r.ativo && r.id !== rotina?.id);
+  }, [todasRotinas, rotina?.id]);
+
+  const toggleProxima = (id: string) => {
+    setProximas((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
   const salvar = async () => {
@@ -129,8 +158,31 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
       gera_tarefa_projeto: geraTarefa,
       ativo,
     };
-    if (rotina) await update.mutateAsync({ id: rotina.id, ...payload });
-    else await create.mutateAsync(payload);
+    let rotinaId: string;
+    if (rotina) {
+      await update.mutateAsync({ id: rotina.id, ...payload });
+      rotinaId = rotina.id;
+    } else {
+      const criada = await create.mutateAsync(payload);
+      rotinaId = (criada as any)?.id ?? (criada as any);
+    }
+
+    // Persistir encadeamento
+    if (rotinaId) {
+      if (processoOpt === NENHUM) {
+        if (encadeamento?.etapa_id) await desvincular.mutateAsync(rotinaId);
+      } else {
+        await vincular.mutateAsync({
+          rotina_id: rotinaId,
+          fila_id: filaId,
+          processo_id: processoOpt === NOVO ? null : processoOpt,
+          novo_processo_nome: processoOpt === NOVO ? novoProcessoNome : null,
+          proximas_rotinas: proximas,
+          sla_handoff_minutos: slaHandoff ? Number(slaHandoff) : null,
+        });
+      }
+    }
+
     onOpenChange(false);
   };
 
