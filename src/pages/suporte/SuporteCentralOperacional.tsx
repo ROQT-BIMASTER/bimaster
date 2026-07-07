@@ -29,6 +29,7 @@ import { useProcessos } from "@/hooks/suporte/useProcessos";
 import { useProcessosSaudeDia } from "@/hooks/suporte/useProcessoExecucao";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { useGerarAlertasHandoff } from "@/hooks/suporte/useHandoffAlertas";
+import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
