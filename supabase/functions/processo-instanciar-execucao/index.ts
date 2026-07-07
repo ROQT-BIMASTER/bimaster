@@ -80,13 +80,15 @@ Deno.serve(
         exec = novaExec;
       }
 
-      // 3) execucao_etapas
+      // 3) execucao_etapas (upsert por execucao+etapa)
       const execEtapas = etapas.map((e) => ({
         execucao_id: exec.id,
         etapa_id: e.id,
         status: "pendente",
       }));
-      const { error: e3 } = await sb.from("processo_execucao_etapas").insert(execEtapas);
+      const { error: e3 } = await sb
+        .from("processo_execucao_etapas")
+        .upsert(execEtapas, { onConflict: "execucao_id,etapa_id", ignoreDuplicates: true });
       if (e3) return json(500, { error: e3.message }, cors);
 
       // 4) papéis por etapa
