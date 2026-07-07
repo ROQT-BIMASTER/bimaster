@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type VendasSource = "futura" | "rubysp";
+
 export interface VendasFilters {
   de: string | null;
   ate: string | null;
@@ -16,14 +18,27 @@ export interface VendasFilters {
   vendedorId?: number | null; // futura int
 }
 
-function rpcParams(f: VendasFilters) {
-  // RPCs *_rubysp usam apenas de/ate/empresa/vendedor.
-  // Demais filtros (tabelaPreco, uf, cliente) permanecem na UI como no-op até
-  // termos backend equivalente sobre erp_pedidos_rubysp.
+/**
+ * Monta o payload da RPC conforme a base:
+ * - Futura (RPCs sem sufixo): aceita todos os filtros (tabela, uf, cliente, vendedor).
+ * - Rubysp (RPCs *_rubysp): aceita apenas de/ate/empresa/vendedor.
+ */
+function rpcParams(f: VendasFilters, source: VendasSource) {
+  if (source === "rubysp") {
+    return {
+      p_de: f.de,
+      p_ate: f.ate,
+      p_empresa: f.empresa,
+      p_vendedor: f.vendedorId ?? null,
+    };
+  }
   return {
     p_de: f.de,
     p_ate: f.ate,
     p_empresa: f.empresa,
+    p_tabela_preco: f.tabelaPrecoId ?? null,
+    p_uf: f.uf ?? null,
+    p_cliente: f.clienteId ?? null,
     p_vendedor: f.vendedorId ?? null,
   };
 }
@@ -31,11 +46,12 @@ function rpcParams(f: VendasFilters) {
 const STALE = 5 * 60 * 1000;
 const sb = supabase as any;
 
-export function useVendasKpis(f: VendasFilters) {
+export function useVendasKpis(f: VendasFilters, source: VendasSource = "futura") {
+  const rpc = source === "rubysp" ? "vendas_kpis_rubysp" : "vendas_kpis";
   return useQuery({
-    queryKey: ["vendas_kpis", f],
+    queryKey: ["vendas_kpis", source, f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_kpis_rubysp", rpcParams(f));
+      const { data, error } = await sb.rpc(rpc, rpcParams(f, source));
       if (error) throw error;
       const row = (data?.[0] ?? {}) as any;
       return {
@@ -52,11 +68,12 @@ export function useVendasKpis(f: VendasFilters) {
   });
 }
 
-export function useVendasSerieMensal(f: VendasFilters) {
+export function useVendasSerieMensal(f: VendasFilters, source: VendasSource = "futura") {
+  const rpc = source === "rubysp" ? "vendas_serie_mensal_rubysp" : "vendas_serie_mensal";
   return useQuery({
-    queryKey: ["vendas_serie_mensal", f],
+    queryKey: ["vendas_serie_mensal", source, f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_serie_mensal_rubysp", rpcParams(f));
+      const { data, error } = await sb.rpc(rpc, rpcParams(f, source));
       if (error) throw error;
       return (data || []).map((r: any) => ({
         mes: r.mes as string,
@@ -68,13 +85,15 @@ export function useVendasSerieMensal(f: VendasFilters) {
   });
 }
 
-export function useVendasRankingVendedor(f: VendasFilters) {
+export function useVendasRankingVendedor(f: VendasFilters, source: VendasSource = "futura") {
+  const rpc = source === "rubysp" ? "vendas_ranking_vendedor_rubysp" : "vendas_ranking_vendedor";
   return useQuery({
-    queryKey: ["vendas_ranking_vendedor", f],
+    queryKey: ["vendas_ranking_vendedor", source, f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_ranking_vendedor_rubysp", {
-        p_de: f.de, p_ate: f.ate, p_empresa: f.empresa,
-      });
+      const params = source === "rubysp"
+        ? { p_de: f.de, p_ate: f.ate, p_empresa: f.empresa }
+        : rpcParams(f, "futura");
+      const { data, error } = await sb.rpc(rpc, params);
       if (error) throw error;
       return (data || []).map((r: any) => ({
         vendedor_id: r.vendedor_id as string | null,
