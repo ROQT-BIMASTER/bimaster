@@ -290,6 +290,8 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
           </CardContent>
         </Card>
       )}
+
+      <MembrosAuditLog projetoId={projetoId} darkBg={darkBg} />
     </div>
   );
 }
