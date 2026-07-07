@@ -32,6 +32,8 @@ const TituloSchema = z.object({
   status_tpg: z.number().int().optional().nullable(),
   custo_tpg: z.number().int().optional().nullable(),
   historico_tpg: z.number().int().optional().nullable(),
+  setor_tpg: z.number().int().optional().nullable(),
+  setor_nome: z.string().optional().nullable(),
 }).passthrough();
 
 const BodySchema = z.object({
