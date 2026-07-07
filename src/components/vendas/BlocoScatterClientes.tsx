@@ -16,14 +16,15 @@ interface Props {
   uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
+  source?: "futura" | "rubysp";
 }
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
-  const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
+export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
+  const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source });
   const rows = data ?? [];
 
   const { pontos, proximos, destaques, aside, maxY } = useMemo(() => {

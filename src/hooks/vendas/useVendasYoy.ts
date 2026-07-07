@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { VendasSource } from "@/hooks/useVendasAnalise";
 
 export type YoyDim = "cliente" | "vendedor";
 
@@ -23,19 +24,29 @@ export function useVendasYoy(p: {
   uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
+  source?: VendasSource;
 }) {
+  const source: VendasSource = p.source ?? "futura";
+  const rpc = source === "rubysp" ? "vendas_yoy_por_dimensao_rubysp" : "vendas_yoy_por_dimensao";
   return useQuery({
     queryKey: [
-      "vendas_yoy_por_dimensao_rubysp", p.dim, p.ano, p.empresa ?? null,
+      "vendas_yoy_por_dimensao", source, p.dim, p.ano, p.empresa ?? null,
       p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
     ],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<VendasYoyRow[]> => {
-      const { data, error } = await sb.rpc("vendas_yoy_por_dimensao_rubysp", {
-        p_dim: p.dim,
-        p_ano: p.ano,
-        p_empresa: p.empresa ?? null,
-      });
+      const params = source === "rubysp"
+        ? { p_dim: p.dim, p_ano: p.ano, p_empresa: p.empresa ?? null }
+        : {
+            p_dim: p.dim,
+            p_ano: p.ano,
+            p_empresa: p.empresa ?? null,
+            p_tabela_preco: p.tabelaPrecoId ?? null,
+            p_uf: p.uf ?? null,
+            p_cliente: p.clienteId ?? null,
+            p_vendedor: p.vendedorId ?? null,
+          };
+      const { data, error } = await sb.rpc(rpc, params);
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => {
         const atual = Number(r.fat_atual ?? 0);
@@ -57,3 +68,4 @@ export function useVendasYoy(p: {
     },
   });
 }
+

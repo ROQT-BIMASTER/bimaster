@@ -17,9 +17,10 @@ interface Props {
   uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
+  source?: "futura" | "rubysp";
 }
 
-export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
+export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
   const anoAnterior = ano - 1;
 
   const filtroAtual: VendasFilters = {
@@ -35,8 +36,8 @@ export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, ven
     clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
   };
 
-  const atual = useVendasSerieMensal(filtroAtual);
-  const anterior = useVendasSerieMensal(filtroAnt);
+  const atual = useVendasSerieMensal(filtroAtual, source);
+  const anterior = useVendasSerieMensal(filtroAnt, source);
 
   const today = new Date();
   const currentY = today.getFullYear();

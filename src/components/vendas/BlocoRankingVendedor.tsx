@@ -24,11 +24,12 @@ function initialOf(name: string): string {
 
 interface Props {
   filters: VendasFilters;
+  source?: "futura" | "rubysp";
 }
 
-export function BlocoRankingVendedor({ filters }: Props) {
+export function BlocoRankingVendedor({ filters, source = "futura" }: Props) {
   const [metric, setMetric] = useState<Metric>("fat");
-  const { data, isLoading } = useVendasRankingVendedor(filters);
+  const { data, isLoading } = useVendasRankingVendedor(filters, source);
 
   const rows = useMemo(() => {
     const all = (data ?? []).map((r) => ({
