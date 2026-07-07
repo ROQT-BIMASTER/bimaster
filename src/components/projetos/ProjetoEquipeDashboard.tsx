@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { Workbook } from "exceljs";
 import { saveAs } from "file-saver";
+import { MembrosAuditLog } from "./MembrosAuditLog";
 
 interface ProjetoEquipeDashboardProps {
   projetoId: string;
@@ -289,6 +290,8 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
           </CardContent>
         </Card>
       )}
+
+      <MembrosAuditLog projetoId={projetoId} darkBg={darkBg} />
     </div>
   );
 }
