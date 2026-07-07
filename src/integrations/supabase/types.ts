@@ -37290,13 +37290,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "processo_tarefa_espelho_etapa_id_fkey"
-            columns: ["etapa_id"]
-            isOneToOne: false
-            referencedRelation: "processo_perfil_etapas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "processo_tarefa_espelho_evidencia_documento_id_fkey"
             columns: ["evidencia_documento_id"]
             isOneToOne: false
