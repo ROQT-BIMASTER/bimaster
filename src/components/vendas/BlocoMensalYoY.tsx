@@ -86,11 +86,12 @@ export function BlocoMensalYoY({ ano, mes, empresa, tabelaPrecoId, uf, clienteId
   }, [atual.data, anterior.data, isCurrentYear, currentM, mes]);
 
   const varPeriodo = useMemo(() => {
-    const upto = isCurrentYear ? currentM : 12;
     let a = 0, b = 0;
-    for (let i = 0; i < upto; i++) {
-      if (rows[i].atual != null) a += rows[i].atual as number;
-      b += rows[i].anterior;
+    for (const r of rows) {
+      const upto = isCurrentYear ? currentM : 12;
+      if (r.mesIdx > upto) continue;
+      if (r.atual != null) a += r.atual as number;
+      b += r.anterior;
     }
     return b > 0 ? a / b - 1 : null;
   }, [rows, isCurrentYear, currentM]);
