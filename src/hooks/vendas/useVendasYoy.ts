@@ -19,6 +19,7 @@ const sb = supabase as any;
 export function useVendasYoy(p: {
   dim: YoyDim;
   ano: number;
+  mes?: number | null;
   empresa?: number | null;
   tabelaPrecoId?: number | null;
   uf?: string | null;
@@ -30,7 +31,7 @@ export function useVendasYoy(p: {
   const rpc = source === "rubysp" ? "vendas_yoy_por_dimensao_rubysp" : "vendas_yoy_por_dimensao";
   return useQuery({
     queryKey: [
-      "vendas_yoy_por_dimensao", source, p.dim, p.ano, p.empresa ?? null,
+      "vendas_yoy_por_dimensao", source, p.dim, p.ano, p.mes ?? null, p.empresa ?? null,
       p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
     ],
     staleTime: 5 * 60 * 1000,
@@ -45,6 +46,7 @@ export function useVendasYoy(p: {
             p_uf: p.uf ?? null,
             p_cliente: p.clienteId ?? null,
             p_vendedor: p.vendedorId ?? null,
+            p_mes: p.mes ?? null,
           };
       const { data, error } = await sb.rpc(rpc, params);
       if (error) throw error;
