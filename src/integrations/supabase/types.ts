@@ -14188,6 +14188,7 @@ export type Database = {
           id: string
           nivel_totalizador: string | null
           nome: string
+          projeto_operacional_id: string | null
           responsavel_id: string | null
           updated_at: string | null
         }
@@ -14202,6 +14203,7 @@ export type Database = {
           id?: string
           nivel_totalizador?: string | null
           nome: string
+          projeto_operacional_id?: string | null
           responsavel_id?: string | null
           updated_at?: string | null
         }
@@ -14216,6 +14218,7 @@ export type Database = {
           id?: string
           nivel_totalizador?: string | null
           nome?: string
+          projeto_operacional_id?: string | null
           responsavel_id?: string | null
           updated_at?: string | null
         }
@@ -36270,6 +36273,41 @@ export type Database = {
           },
         ]
       }
+      processo_etapa_responsaveis: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          etapa_id: string
+          id: string
+          papel: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          etapa_id: string
+          id?: string
+          papel: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          etapa_id?: string
+          id?: string
+          papel?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_responsaveis_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_etapa_tarefas_template: {
         Row: {
           auto_gerar: boolean
@@ -36397,6 +36435,7 @@ export type Database = {
           id: string
           nome_override: string | null
           ordem: number
+          parecer_administrativo: string | null
           posicao_x: number
           posicao_y: number
           processo_id: string
@@ -36410,6 +36449,7 @@ export type Database = {
           id?: string
           nome_override?: string | null
           ordem?: number
+          parecer_administrativo?: string | null
           posicao_x?: number
           posicao_y?: number
           processo_id: string
@@ -36423,6 +36463,7 @@ export type Database = {
           id?: string
           nome_override?: string | null
           ordem?: number
+          parecer_administrativo?: string | null
           posicao_x?: number
           posicao_y?: number
           processo_id?: string
@@ -37179,9 +37220,12 @@ export type Database = {
           concluida_por: string | null
           created_at: string
           created_by: string | null
+          departamento_id: string | null
+          escalonado_em: string | null
           etapa_id: string
           evidencia_documento_id: string | null
           evidencia_observacao: string | null
+          execucao_id: string | null
           exige_documentos: boolean
           id: string
           instancia_id: string
@@ -37189,6 +37233,7 @@ export type Database = {
           projeto_id: string | null
           projeto_secao_id: string | null
           projeto_tarefa_id: string | null
+          sla_limite: string | null
           status: string
           template_id: string | null
           updated_at: string
@@ -37200,9 +37245,12 @@ export type Database = {
           concluida_por?: string | null
           created_at?: string
           created_by?: string | null
+          departamento_id?: string | null
+          escalonado_em?: string | null
           etapa_id: string
           evidencia_documento_id?: string | null
           evidencia_observacao?: string | null
+          execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
           instancia_id: string
@@ -37210,6 +37258,7 @@ export type Database = {
           projeto_id?: string | null
           projeto_secao_id?: string | null
           projeto_tarefa_id?: string | null
+          sla_limite?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -37221,9 +37270,12 @@ export type Database = {
           concluida_por?: string | null
           created_at?: string
           created_by?: string | null
+          departamento_id?: string | null
+          escalonado_em?: string | null
           etapa_id?: string
           evidencia_documento_id?: string | null
           evidencia_observacao?: string | null
+          execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
           instancia_id?: string
@@ -37231,6 +37283,7 @@ export type Database = {
           projeto_id?: string | null
           projeto_secao_id?: string | null
           projeto_tarefa_id?: string | null
+          sla_limite?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -42452,6 +42505,7 @@ export type Database = {
           is_subtask: boolean
           motivo_retrabalho: string | null
           ordem: number | null
+          origem: string | null
           origem_projeto: string | null
           parent_tarefa_id: string | null
           prioridade: string | null
@@ -42496,6 +42550,7 @@ export type Database = {
           is_subtask?: boolean
           motivo_retrabalho?: string | null
           ordem?: number | null
+          origem?: string | null
           origem_projeto?: string | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
@@ -42540,6 +42595,7 @@ export type Database = {
           is_subtask?: boolean
           motivo_retrabalho?: string | null
           ordem?: number | null
+          origem?: string | null
           origem_projeto?: string | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
@@ -42791,6 +42847,7 @@ export type Database = {
           regime_calendario: string
           status: string | null
           tipo: string
+          tipo_operacional: boolean
           uf_feriados: string
           updated_at: string | null
           usa_feriados: boolean
@@ -42826,6 +42883,7 @@ export type Database = {
           regime_calendario?: string
           status?: string | null
           tipo?: string
+          tipo_operacional?: boolean
           uf_feriados?: string
           updated_at?: string | null
           usa_feriados?: boolean
@@ -42861,6 +42919,7 @@ export type Database = {
           regime_calendario?: string
           status?: string | null
           tipo?: string
+          tipo_operacional?: boolean
           uf_feriados?: string
           updated_at?: string | null
           usa_feriados?: boolean
@@ -57772,6 +57831,10 @@ export type Database = {
         Args: { p_empresa_id?: number; p_evento: string; p_payload: Json }
         Returns: number
       }
+      ensure_projeto_operacional: {
+        Args: { _departamento_id: string }
+        Returns: string
+      }
       estoque_faixas_saldo: {
         Args: { p_empresa_ids?: number[]; p_linhas?: string[] }
         Returns: {
@@ -58388,6 +58451,7 @@ export type Database = {
           regime_calendario: string
           status: string | null
           tipo: string
+          tipo_operacional: boolean
           uf_feriados: string
           updated_at: string | null
           usa_feriados: boolean
@@ -60204,6 +60268,7 @@ export type Database = {
           regime_calendario: string
           status: string | null
           tipo: string
+          tipo_operacional: boolean
           uf_feriados: string
           updated_at: string | null
           usa_feriados: boolean
