@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Workflow, AlarmClock } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ProcessoOperacionalTag } from "@/hooks/suporte/useProcessoOperacionalMap";
 
@@ -14,7 +14,8 @@ interface Props {
  * Etiqueta dupla exibida em cards de "Minhas Tarefas" / Central de Trabalho
  * para tarefas geradas por processos operacionais:
  *  - Badge com o nome do processo e "Etapa X/Y".
- *  - Selo de SLA colorido (verde >2h · amarelo <2h · vermelho vencido).
+ *  - Selo de SLA colorido (verde >2h · amarelo <2h · vermelho vencido) com
+ *    tooltip detalhado: prazo configurado + tempo restante / atraso.
  */
 export function ProcessoOperacionalBadge({ tag, compact }: Props) {
   const now = Date.now();
@@ -22,16 +23,24 @@ export function ProcessoOperacionalBadge({ tag, compact }: Props) {
   const diffMs = sla ? sla - now : null;
 
   let slaColor = "border-success/50 bg-success/10 text-success";
-  let slaLabel = "SLA ok";
-  if (diffMs !== null) {
+  let slaShort = "SLA ok";
+  let slaDetail = "SLA configurado.";
+  if (diffMs !== null && sla) {
+    const prazoFmt = format(new Date(sla), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     if (diffMs < 0) {
       slaColor = "border-destructive/60 bg-destructive/10 text-destructive";
-      slaLabel = `SLA vencido há ${formatDistanceToNowStrict(new Date(sla!), { locale: ptBR })}`;
+      const atraso = formatDistanceToNowStrict(new Date(sla), { locale: ptBR });
+      slaShort = `Atrasado ${atraso}`;
+      slaDetail = `Prazo: ${prazoFmt}\nAtraso: ${atraso}`;
     } else if (diffMs < 2 * 60 * 60 * 1000) {
       slaColor = "border-warning/60 bg-warning/10 text-warning";
-      slaLabel = `SLA em ${formatDistanceToNowStrict(new Date(sla!), { locale: ptBR })}`;
+      const restante = formatDistanceToNowStrict(new Date(sla), { locale: ptBR });
+      slaShort = `SLA em ${restante}`;
+      slaDetail = `Prazo: ${prazoFmt}\nRestante: ${restante}`;
     } else {
-      slaLabel = `SLA em ${formatDistanceToNowStrict(new Date(sla!), { locale: ptBR })}`;
+      const restante = formatDistanceToNowStrict(new Date(sla), { locale: ptBR });
+      slaShort = `SLA em ${restante}`;
+      slaDetail = `Prazo: ${prazoFmt}\nRestante: ${restante}`;
     }
   }
 
@@ -61,10 +70,12 @@ export function ProcessoOperacionalBadge({ tag, compact }: Props) {
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`shrink-0 gap-1 text-[10px] h-5 px-1.5 ${slaColor}`}>
                 <AlarmClock className="h-3 w-3" />
-                {slaLabel.split(" ").slice(0, 3).join(" ")}
+                {slaShort}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="top">{slaLabel}</TooltipContent>
+            <TooltipContent side="top" className="whitespace-pre-line max-w-xs">
+              {slaDetail}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>

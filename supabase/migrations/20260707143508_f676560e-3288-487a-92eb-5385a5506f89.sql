@@ -1,0 +1,2 @@
+
+ALTER TABLE public.processo_tarefa_espelho DROP CONSTRAINT IF EXISTS processo_tarefa_espelho_etapa_id_fkey;

@@ -112,6 +112,7 @@ Deno.serve(
         const responsavelId =
           (papeisByEtapa.get(e.id) ?? []).find((p) => p.papel === "responsavel")?.user_id ?? null;
 
+        const dataPrazo = new Date(Date.now() + slaMin * 60_000).toISOString().slice(0, 10);
         const { data: tarefa, error: eT } = await sb
           .from("projeto_tarefas")
           .insert({
@@ -120,7 +121,8 @@ Deno.serve(
             descricao,
             status: "pendente",
             prioridade: "alta",
-            data_prazo: dataRef,
+            data_inicio: dataRef,
+            data_prazo: dataPrazo,
             responsavel_id: responsavelId,
             criador_id: userId,
             origem: "processo_operacional",

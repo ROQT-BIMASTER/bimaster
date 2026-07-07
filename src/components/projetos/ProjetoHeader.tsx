@@ -26,6 +26,7 @@ import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector"
 import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
 import { ProjetoSettingsMenu } from "./ProjetoSettingsMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ProjetoProcessoBanner } from "./ProjetoProcessoBanner";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -174,6 +175,8 @@ export function ProjetoHeader({
 
   return (
     <div className="space-y-5">
+      {/* Banner: processo operacional vinculado (se houver) */}
+      <ProjetoProcessoBanner projetoId={projeto.id} />
       {/* Hero banner */}
       <div
         className="relative rounded-xl overflow-hidden px-6 py-5"

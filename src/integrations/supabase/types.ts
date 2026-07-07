@@ -37228,7 +37228,7 @@ export type Database = {
           execucao_id: string | null
           exige_documentos: boolean
           id: string
-          instancia_id: string
+          instancia_id: string | null
           observacoes: string | null
           projeto_id: string | null
           projeto_secao_id: string | null
@@ -37253,7 +37253,7 @@ export type Database = {
           execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
-          instancia_id: string
+          instancia_id?: string | null
           observacoes?: string | null
           projeto_id?: string | null
           projeto_secao_id?: string | null
@@ -37278,7 +37278,7 @@ export type Database = {
           execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
-          instancia_id?: string
+          instancia_id?: string | null
           observacoes?: string | null
           projeto_id?: string | null
           projeto_secao_id?: string | null
@@ -37289,13 +37289,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "processo_tarefa_espelho_etapa_id_fkey"
-            columns: ["etapa_id"]
-            isOneToOne: false
-            referencedRelation: "processo_perfil_etapas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "processo_tarefa_espelho_evidencia_documento_id_fkey"
             columns: ["evidencia_documento_id"]
@@ -57830,6 +57823,10 @@ export type Database = {
       enqueue_webhook_event: {
         Args: { p_empresa_id?: number; p_evento: string; p_payload: Json }
         Returns: number
+      }
+      ensure_processo_execucao_dia: {
+        Args: { _data_ref?: string; _processo_id: string }
+        Returns: string
       }
       ensure_projeto_operacional: {
         Args: { _departamento_id: string }
