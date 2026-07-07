@@ -136,7 +136,6 @@ export default function SuporteProcessoDetalhe() {
             </Button>
           </div>
         )}
-        )}
 
         {selecionado ? (
           <Tabs defaultValue="canvas">
