@@ -10663,8 +10663,10 @@ export type Database = {
           data_previsao: string | null
           data_vencimento: string | null
           departamento_id: string | null
+          departamento_id_snapshot: string | null
           departamento_nome: string | null
           departamento_origem: string | null
+          departamento_origem_snapshot: string | null
           empresa_id: number
           empresa_nome: string | null
           erp_id: string
@@ -10684,9 +10686,12 @@ export type Database = {
           observacao: string | null
           operacao: string | null
           parcela: number | null
+          plano_contas_code_snapshot: string | null
           plano_contas_codigo: string | null
           plano_contas_id: string | null
+          plano_contas_id_snapshot: string | null
           plano_contas_nome: string | null
+          plano_snapshot_at: string | null
           pluggy_transaction_id: string | null
           portador: string | null
           portador_codigo_erp: string | null
@@ -10762,8 +10767,10 @@ export type Database = {
           data_previsao?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
+          departamento_id_snapshot?: string | null
           departamento_nome?: string | null
           departamento_origem?: string | null
+          departamento_origem_snapshot?: string | null
           empresa_id: number
           empresa_nome?: string | null
           erp_id: string
@@ -10783,9 +10790,12 @@ export type Database = {
           observacao?: string | null
           operacao?: string | null
           parcela?: number | null
+          plano_contas_code_snapshot?: string | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
+          plano_contas_id_snapshot?: string | null
           plano_contas_nome?: string | null
+          plano_snapshot_at?: string | null
           pluggy_transaction_id?: string | null
           portador?: string | null
           portador_codigo_erp?: string | null
@@ -10861,8 +10871,10 @@ export type Database = {
           data_previsao?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
+          departamento_id_snapshot?: string | null
           departamento_nome?: string | null
           departamento_origem?: string | null
+          departamento_origem_snapshot?: string | null
           empresa_id?: number
           empresa_nome?: string | null
           erp_id?: string
@@ -10882,9 +10894,12 @@ export type Database = {
           observacao?: string | null
           operacao?: string | null
           parcela?: number | null
+          plano_contas_code_snapshot?: string | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
+          plano_contas_id_snapshot?: string | null
           plano_contas_nome?: string | null
+          plano_snapshot_at?: string | null
           pluggy_transaction_id?: string | null
           portador?: string | null
           portador_codigo_erp?: string | null
@@ -11221,6 +11236,9 @@ export type Database = {
           operacao: string | null
           parcela: number | null
           plano_conta_id: string | null
+          plano_conta_id_snapshot: string | null
+          plano_contas_code_snapshot: string | null
+          plano_snapshot_at: string | null
           portador: string | null
           portador_id: string | null
           portador_nome: string | null
@@ -11330,6 +11348,9 @@ export type Database = {
           operacao?: string | null
           parcela?: number | null
           plano_conta_id?: string | null
+          plano_conta_id_snapshot?: string | null
+          plano_contas_code_snapshot?: string | null
+          plano_snapshot_at?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
@@ -11439,6 +11460,9 @@ export type Database = {
           operacao?: string | null
           parcela?: number | null
           plano_conta_id?: string | null
+          plano_conta_id_snapshot?: string | null
+          plano_contas_code_snapshot?: string | null
+          plano_snapshot_at?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
@@ -16411,6 +16435,45 @@ export type Database = {
           obs?: string | null
           plano_code?: string
           prioridade?: number
+        }
+        Relationships: []
+      }
+      erp_dre_mapa_backup_v1: {
+        Row: {
+          backup_at: string | null
+          ccusto_id: number | null
+          complemento_like: string | null
+          created_at: string | null
+          departamento: string | null
+          historico_id: number | null
+          id: number | null
+          obs: string | null
+          plano_code: string | null
+          prioridade: number | null
+        }
+        Insert: {
+          backup_at?: string | null
+          ccusto_id?: number | null
+          complemento_like?: string | null
+          created_at?: string | null
+          departamento?: string | null
+          historico_id?: number | null
+          id?: number | null
+          obs?: string | null
+          plano_code?: string | null
+          prioridade?: number | null
+        }
+        Update: {
+          backup_at?: string | null
+          ccusto_id?: number | null
+          complemento_like?: string | null
+          created_at?: string | null
+          departamento?: string | null
+          historico_id?: number | null
+          id?: number | null
+          obs?: string | null
+          plano_code?: string | null
+          prioridade?: number | null
         }
         Relationships: []
       }
@@ -33631,7 +33694,9 @@ export type Database = {
           created_at: string
           data_movimento: string
           departamento_id: string | null
+          departamento_id_snapshot: string | null
           departamento_origem: string | null
+          departamento_origem_snapshot: string | null
           documento: string | null
           empresa_id: number | null
           erp_id: string
@@ -33639,7 +33704,10 @@ export type Database = {
           historico_id: number | null
           historico_nome: string | null
           pedido: string | null
+          plano_contas_code_snapshot: string | null
           plano_contas_id: string | null
+          plano_contas_id_snapshot: string | null
+          plano_snapshot_at: string | null
           tesouraria: boolean
           tipo_mov: string
           updated_at: string
@@ -33655,7 +33723,9 @@ export type Database = {
           created_at?: string
           data_movimento: string
           departamento_id?: string | null
+          departamento_id_snapshot?: string | null
           departamento_origem?: string | null
+          departamento_origem_snapshot?: string | null
           documento?: string | null
           empresa_id?: number | null
           erp_id: string
@@ -33663,7 +33733,10 @@ export type Database = {
           historico_id?: number | null
           historico_nome?: string | null
           pedido?: string | null
+          plano_contas_code_snapshot?: string | null
           plano_contas_id?: string | null
+          plano_contas_id_snapshot?: string | null
+          plano_snapshot_at?: string | null
           tesouraria?: boolean
           tipo_mov: string
           updated_at?: string
@@ -33679,7 +33752,9 @@ export type Database = {
           created_at?: string
           data_movimento?: string
           departamento_id?: string | null
+          departamento_id_snapshot?: string | null
           departamento_origem?: string | null
+          departamento_origem_snapshot?: string | null
           documento?: string | null
           empresa_id?: number | null
           erp_id?: string
@@ -33687,7 +33762,10 @@ export type Database = {
           historico_id?: number | null
           historico_nome?: string | null
           pedido?: string | null
+          plano_contas_code_snapshot?: string | null
           plano_contas_id?: string | null
+          plano_contas_id_snapshot?: string | null
+          plano_snapshot_at?: string | null
           tesouraria?: boolean
           tipo_mov?: string
           updated_at?: string
@@ -34658,6 +34736,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plano_contas_backup_v1: {
+        Row: {
+          backup_at: string | null
+          codigo: string | null
+          conta_dre_id: string | null
+          conta_pai_id: string | null
+          created_at: string | null
+          descricao: string | null
+          empresa_id: number | null
+          id: string | null
+          is_active: boolean | null
+          natureza: string | null
+          nivel: number | null
+          status: string | null
+          tipo: string | null
+          tipo_categoria: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          backup_at?: string | null
+          codigo?: string | null
+          conta_dre_id?: string | null
+          conta_pai_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          natureza?: string | null
+          nivel?: number | null
+          status?: string | null
+          tipo?: string | null
+          tipo_categoria?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          backup_at?: string | null
+          codigo?: string | null
+          conta_dre_id?: string | null
+          conta_pai_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          natureza?: string | null
+          nivel?: number | null
+          status?: string | null
+          tipo?: string | null
+          tipo_categoria?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       plano_contas_mapeamento_categorias: {
         Row: {
@@ -51941,6 +52073,7 @@ export type Database = {
           departamento_confianca: number | null
           departamento_definido_manualmente: boolean | null
           departamento_id: string | null
+          deprecated_at: string | null
           descricao_padrao: string | null
           description: string | null
           erp_code: string | null
@@ -51977,6 +52110,7 @@ export type Database = {
           departamento_confianca?: number | null
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
+          deprecated_at?: string | null
           descricao_padrao?: string | null
           description?: string | null
           erp_code?: string | null
@@ -52013,6 +52147,7 @@ export type Database = {
           departamento_confianca?: number | null
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
+          deprecated_at?: string | null
           descricao_padrao?: string | null
           description?: string | null
           erp_code?: string | null
@@ -52059,6 +52194,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trade_chart_of_accounts_backup_v1: {
+        Row: {
+          account_type: string | null
+          backup_at: string | null
+          categoria_dre: string | null
+          centro_custo: string | null
+          code: string | null
+          codigo_dre: string | null
+          codigo_integracao: string | null
+          created_at: string | null
+          definida_pelo_usuario: string | null
+          departamento: string | null
+          departamento_confianca: number | null
+          departamento_definido_manualmente: boolean | null
+          departamento_id: string | null
+          descricao_padrao: string | null
+          description: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
+          excluir_dre: boolean | null
+          id: string | null
+          id_conta_contabil: number | null
+          is_active: boolean | null
+          is_group: boolean | null
+          name: string | null
+          nao_exibir: string | null
+          natureza: string | null
+          nivel: number | null
+          ordem: number | null
+          parent_account_id: string | null
+          permite_lancamento: boolean | null
+          tag_conta_contabil: string | null
+          tipo_categoria: string | null
+          transferencia: string | null
+          updated_at: string | null
+          versao: string | null
+        }
+        Insert: {
+          account_type?: string | null
+          backup_at?: string | null
+          categoria_dre?: string | null
+          centro_custo?: string | null
+          code?: string | null
+          codigo_dre?: string | null
+          codigo_integracao?: string | null
+          created_at?: string | null
+          definida_pelo_usuario?: string | null
+          departamento?: string | null
+          departamento_confianca?: number | null
+          departamento_definido_manualmente?: boolean | null
+          departamento_id?: string | null
+          descricao_padrao?: string | null
+          description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
+          excluir_dre?: boolean | null
+          id?: string | null
+          id_conta_contabil?: number | null
+          is_active?: boolean | null
+          is_group?: boolean | null
+          name?: string | null
+          nao_exibir?: string | null
+          natureza?: string | null
+          nivel?: number | null
+          ordem?: number | null
+          parent_account_id?: string | null
+          permite_lancamento?: boolean | null
+          tag_conta_contabil?: string | null
+          tipo_categoria?: string | null
+          transferencia?: string | null
+          updated_at?: string | null
+          versao?: string | null
+        }
+        Update: {
+          account_type?: string | null
+          backup_at?: string | null
+          categoria_dre?: string | null
+          centro_custo?: string | null
+          code?: string | null
+          codigo_dre?: string | null
+          codigo_integracao?: string | null
+          created_at?: string | null
+          definida_pelo_usuario?: string | null
+          departamento?: string | null
+          departamento_confianca?: number | null
+          departamento_definido_manualmente?: boolean | null
+          departamento_id?: string | null
+          descricao_padrao?: string | null
+          description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
+          excluir_dre?: boolean | null
+          id?: string | null
+          id_conta_contabil?: number | null
+          is_active?: boolean | null
+          is_group?: boolean | null
+          name?: string | null
+          nao_exibir?: string | null
+          natureza?: string | null
+          nivel?: number | null
+          ordem?: number | null
+          parent_account_id?: string | null
+          permite_lancamento?: boolean | null
+          tag_conta_contabil?: string | null
+          tipo_categoria?: string | null
+          transferencia?: string | null
+          updated_at?: string | null
+          versao?: string | null
+        }
+        Relationships: []
       }
       trade_displays: {
         Row: {
@@ -58549,6 +58798,10 @@ export type Database = {
             Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
             Returns: Json
           }
+      fn_snapshot_plano_contas_batch: {
+        Args: { p_batch?: number; p_tabela: string }
+        Returns: number
+      }
       fn_torre_centros_custo_disponiveis: {
         Args: { p_empresa_ids?: number[]; p_mes_ref?: string; p_meses?: number }
         Returns: Json
