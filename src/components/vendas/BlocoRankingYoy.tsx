@@ -22,6 +22,7 @@ interface Props {
   uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
+  source?: "futura" | "rubysp";
 }
 
 function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boolean }) {
