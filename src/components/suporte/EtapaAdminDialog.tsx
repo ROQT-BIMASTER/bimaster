@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, UserPlus, Users, AlertTriangle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { X, Plus, UserPlus, Users, AlertTriangle, ChevronDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,8 +23,11 @@ import {
   useAddEtapaPapel,
   useRemoveEtapaPapel,
   useSalvarParecerEtapa,
+  useSalvarDescritivoAtividades,
   type PapelEtapa,
+  type EtapaPapelRow,
 } from "@/hooks/suporte/useEtapaPapeis";
+
 
 interface Props {
   open: boolean;
