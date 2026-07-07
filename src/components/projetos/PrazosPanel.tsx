@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useFeriados } from "@/hooks/useFeriados";
+import { useTarefasComEspelho } from "@/hooks/useTarefasComEspelho";
 import { PrazoEditorPopover } from "./PrazoEditorPopover";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { Button } from "@/components/ui/button";
