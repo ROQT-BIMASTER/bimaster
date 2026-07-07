@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { X, Plus, Workflow, ArrowRight } from "lucide-react";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
-import { useCreateRotinaFixa, useUpdateRotinaFixa, type RotinaFixa } from "@/hooks/suporte/useRotinasFixas";
+import {
+  useCreateRotinaFixa,
+  useUpdateRotinaFixa,
+  useRotinasFixas,
+  type RotinaFixa,
+} from "@/hooks/suporte/useRotinasFixas";
+import {
+  useProcessos,
+  useEncadeamentoDaRotina,
+  useVincularRotinaAoProcesso,
+  useDesvincularRotinaDoProcesso,
+} from "@/hooks/suporte/useProcessos";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -39,8 +51,13 @@ interface Props {
 export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
   const { data: filas = [] } = useSuporteFilas();
   const { data: usuarios = [] } = useUsuarios();
+  const { data: todasRotinas = [] } = useRotinasFixas();
+  const { data: processos = [] } = useProcessos();
+  const { data: encadeamento } = useEncadeamentoDaRotina(rotina?.id);
   const create = useCreateRotinaFixa();
   const update = useUpdateRotinaFixa();
+  const vincular = useVincularRotinaAoProcesso();
+  const desvincular = useDesvincularRotinaDoProcesso();
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -55,6 +72,14 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
   const [novoItem, setNovoItem] = useState("");
   const [geraTarefa, setGeraTarefa] = useState(true);
   const [ativo, setAtivo] = useState(true);
+
+  // Encadeamento (Fase 3)
+  const NENHUM = "__nenhum";
+  const NOVO = "__novo";
+  const [processoOpt, setProcessoOpt] = useState<string>(NENHUM);
+  const [novoProcessoNome, setNovoProcessoNome] = useState("");
+  const [proximas, setProximas] = useState<string[]>([]);
+  const [slaHandoff, setSlaHandoff] = useState<string>("");
 
   useEffect(() => {
     if (rotina) {
@@ -74,8 +99,23 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
       setTitulo(""); setDescricao(""); setFilaId(""); setResponsavel(""); setLider("");
       setPrioridade("media"); setDias([1,2,3,4,5]); setHorario("07:00"); setSlaResMin("");
       setChecklist([]); setNovoItem(""); setGeraTarefa(true); setAtivo(true);
+      setProcessoOpt(NENHUM); setNovoProcessoNome(""); setProximas([]); setSlaHandoff("");
     }
   }, [rotina, open]);
+
+  // Hidrata seção de encadeamento quando a rotina existente já participa de um processo
+  useEffect(() => {
+    if (!encadeamento) return;
+    if (encadeamento.processo_id) {
+      setProcessoOpt(encadeamento.processo_id);
+      setProximas(encadeamento.proximas);
+      setSlaHandoff(encadeamento.sla_handoff != null ? String(encadeamento.sla_handoff) : "");
+    } else {
+      setProcessoOpt(NENHUM);
+      setProximas([]);
+      setSlaHandoff("");
+    }
+  }, [encadeamento?.processo_id, encadeamento?.etapa_id]);
 
   const toggleDia = (d: number) => {
     setDias((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
@@ -86,6 +126,20 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
     if (!t) return;
     setChecklist((prev) => [...prev, { texto: t }]);
     setNovoItem("");
+  };
+
+  const filaNomePorId = useMemo(() => {
+    const m = new Map<string, { nome: string; cor: string | null }>();
+    for (const f of filas as any[]) m.set(f.id, { nome: f.nome, cor: f.cor ?? null });
+    return m;
+  }, [filas]);
+
+  const rotinasDisponiveis = useMemo(() => {
+    return (todasRotinas as RotinaFixa[]).filter((r) => r.ativo && r.id !== rotina?.id);
+  }, [todasRotinas, rotina?.id]);
+
+  const toggleProxima = (id: string) => {
+    setProximas((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
   const salvar = async () => {
@@ -104,8 +158,31 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
       gera_tarefa_projeto: geraTarefa,
       ativo,
     };
-    if (rotina) await update.mutateAsync({ id: rotina.id, ...payload });
-    else await create.mutateAsync(payload);
+    let rotinaId: string;
+    if (rotina) {
+      await update.mutateAsync({ id: rotina.id, ...payload });
+      rotinaId = rotina.id;
+    } else {
+      const criada = await create.mutateAsync(payload);
+      rotinaId = (criada as any)?.id ?? (criada as any);
+    }
+
+    // Persistir encadeamento
+    if (rotinaId) {
+      if (processoOpt === NENHUM) {
+        if (encadeamento?.etapa_id) await desvincular.mutateAsync(rotinaId);
+      } else {
+        await vincular.mutateAsync({
+          rotina_id: rotinaId,
+          fila_id: filaId,
+          processo_id: processoOpt === NOVO ? null : processoOpt,
+          novo_processo_nome: processoOpt === NOVO ? novoProcessoNome : null,
+          proximas_rotinas: proximas,
+          sla_handoff_minutos: slaHandoff ? Number(slaHandoff) : null,
+        });
+      }
+    }
+
     onOpenChange(false);
   };
 
@@ -226,6 +303,97 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
               <p className="text-xs text-muted-foreground">Se desligada, deixa de gerar novos tickets</p>
             </div>
             <Switch checked={ativo} onCheckedChange={setAtivo} />
+          </div>
+
+          {/* ==================== Encadeamento (BPMN) ==================== */}
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <Workflow className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-semibold">Encadeamento de processo</Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Vincule esta rotina a um processo operacional e defina quais rotinas de outros
+              departamentos são disparadas após a sua conclusão. Fica visível no fluxograma do processo.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Faz parte do processo</Label>
+                <Select value={processoOpt} onValueChange={setProcessoOpt}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NENHUM}>— Nenhum (rotina avulsa) —</SelectItem>
+                    <SelectItem value={NOVO}>+ Criar novo processo</SelectItem>
+                    {(processos as any[]).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">SLA de handoff (minutos)</Label>
+                <Input
+                  type="number"
+                  placeholder="Tempo entre esta etapa e a próxima"
+                  value={slaHandoff}
+                  onChange={(e) => setSlaHandoff(e.target.value)}
+                  disabled={processoOpt === NENHUM}
+                />
+              </div>
+            </div>
+
+            {processoOpt === NOVO && (
+              <div>
+                <Label className="text-xs">Nome do novo processo</Label>
+                <Input
+                  value={novoProcessoNome}
+                  onChange={(e) => setNovoProcessoNome(e.target.value)}
+                  placeholder="Ex: Emissão fiscal - Romaneio - Embarque"
+                />
+              </div>
+            )}
+
+            {processoOpt !== NENHUM && (
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Próximas etapas (rotinas disparadas após concluir esta)
+                </Label>
+                <div className="mt-1 max-h-48 overflow-y-auto border rounded-md divide-y">
+                  {rotinasDisponiveis.length === 0 ? (
+                    <div className="text-xs text-muted-foreground p-3">
+                      Não há outras rotinas ativas para encadear.
+                    </div>
+                  ) : rotinasDisponiveis.map((r) => {
+                    const fila = filaNomePorId.get(r.fila_id);
+                    const checked = proximas.includes(r.id);
+                    return (
+                      <label
+                        key={r.id}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 cursor-pointer"
+                      >
+                        <Checkbox checked={checked} onCheckedChange={() => toggleProxima(r.id)} />
+                        <span className="flex-1 truncate">{r.titulo}</span>
+                        {fila && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px]"
+                            style={fila.cor ? { backgroundColor: `${fila.cor}22`, color: fila.cor } : undefined}
+                          >
+                            {fila.nome}
+                          </Badge>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                {proximas.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {proximas.length} próxima(s) etapa(s) selecionada(s).
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
