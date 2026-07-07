@@ -987,25 +987,7 @@ export function ContasPagarDREView({
         </DialogContent>
       </Dialog>
 
-      {/* Dialogs at root level for correct z-index */}
-      {selectedConta && (
-        <EditarClassificacaoRapidaDialog
-          open={editarOpen}
-          onOpenChange={setEditarOpen}
-          conta={selectedConta}
-          onSuccess={handleSuccess}
-        />
-      )}
-
-      {selectedFornecedor && (
-        <TransferirFornecedorDialog
-          open={transferirOpen}
-          onOpenChange={setTransferirOpen}
-          fornecedorNome={selectedFornecedor.nome}
-          lancamentosIds={selectedFornecedor.lancamentosIds}
-          onSuccess={handleSuccess}
-        />
-      )}
+      {/* Lançamentos do extrato ERP (pagamentos_caixa) são imutáveis — sem dialogs de edição/transferência. */}
     </>
   );
 }
