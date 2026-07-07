@@ -10,6 +10,7 @@ import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
 
 export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
