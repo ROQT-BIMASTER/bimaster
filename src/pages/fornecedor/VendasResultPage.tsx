@@ -54,7 +54,7 @@ export default function VendasResultPage() {
           </div>
 
           <div className="pt-6">
-            <BlocoRankingVendedor filters={rangeFilters} />
+            <BlocoRankingVendedor filters={rangeFilters} source="rubysp" />
           </div>
 
           <BlocoScatterClientes
@@ -62,11 +62,12 @@ export default function VendasResultPage() {
             ate={rangeFilters.ate!}
             empresa={empresa}
             vendedorId={vendedorId}
+            source="rubysp"
           />
 
-          <BlocoMensalYoY ano={ano} empresa={empresa} vendedorId={vendedorId} />
+          <BlocoMensalYoY ano={ano} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
 
-          <BlocoRankingYoy ano={ano} empresa={empresa} vendedorId={vendedorId} />
+          <BlocoRankingYoy ano={ano} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
 
           <div className="pt-14">
             <NotasPeriodoResultTable
