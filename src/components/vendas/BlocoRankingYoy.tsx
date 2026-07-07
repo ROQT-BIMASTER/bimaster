@@ -17,6 +17,7 @@ export type SortState = { key: SortKey; dir: SortDir };
 
 interface Props {
   ano: number;
+  mes?: number | null;
   empresa: number | null;
   tabelaPrecoId?: number | null;
   uf?: string | null;
