@@ -22,6 +22,7 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 import { TarefaEspelhoBadge } from "./TarefaEspelhoBadge";
+import { SLACountdownPill } from "./SLACountdownPill";
 
 import {
   STATUS_LABELS, STATUS_OPTIONS, STATUS_COLORS_LIST as STATUS_COLORS, STATUS_COLORS_LIST_DARK as STATUS_COLORS_DARK,
@@ -186,6 +187,15 @@ function ProjetoTarefaRowImpl({
             compact
           />
           <TarefaEspelhoBadge tarefaId={tarefa.id} status={tarefa.status} />
+          {!isCompleted && (tarefa.data_prazo || (tarefa as any).sla_limite) && (
+            <SLACountdownPill
+              deadline={(tarefa as any).sla_limite ?? tarefa.data_prazo}
+              size="sm"
+              frozen={isCompleted}
+              sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
+              className="flex-shrink-0"
+            />
+          )}
           {!isCompleted && !tarefa.data_prazo && (
             <Badge
               variant="outline"
