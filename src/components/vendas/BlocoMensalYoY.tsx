@@ -67,13 +67,14 @@ export function BlocoMensalYoY({ ano, mes, empresa, tabelaPrecoId, uf, clienteId
       const m = parseLocalDate(d.mes).getMonth() + 1;
       mapAnt.set(m, (mapAnt.get(m) ?? 0) + d.faturamento);
     });
-    return Array.from({ length: 12 }, (_, i) => {
-      const mes = i + 1;
-      const future = isCurrentYear && mes > currentM;
-      const at = future ? null : (mapAtual.get(mes) ?? 0);
-      const an = mapAnt.get(mes) ?? 0;
+    const all = Array.from({ length: 12 }, (_, i) => {
+      const mm = i + 1;
+      const future = isCurrentYear && mm > currentM;
+      const at = future ? null : (mapAtual.get(mm) ?? 0);
+      const an = mapAnt.get(mm) ?? 0;
       const varr = at != null && an > 0 ? at / an - 1 : null;
       return {
+        mesIdx: mm,
         label: MESES[i],
         atual: at,
         anterior: an,
@@ -81,7 +82,8 @@ export function BlocoMensalYoY({ ano, mes, empresa, tabelaPrecoId, uf, clienteId
         varrLabel: varr == null ? "" : formatVarPct(varr),
       };
     });
-  }, [atual.data, anterior.data, isCurrentYear, currentM]);
+    return mes != null ? all.filter((r) => r.mesIdx === mes) : all;
+  }, [atual.data, anterior.data, isCurrentYear, currentM, mes]);
 
   const varPeriodo = useMemo(() => {
     const upto = isCurrentYear ? currentM : 12;
