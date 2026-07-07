@@ -1,0 +1,1 @@
+DELETE FROM public.processos_operacionais WHERE id <> 'c1ffcb49-a195-4424-a9cf-0383142503d0';
