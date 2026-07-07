@@ -12,6 +12,7 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 
 interface Props {
   ano: number;
+  mes?: number | null;
   empresa: number | null;
   tabelaPrecoId?: number | null;
   uf?: string | null;
@@ -20,17 +21,28 @@ interface Props {
   source?: "futura" | "rubysp";
 }
 
-export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
+export function BlocoMensalYoY({ ano, mes, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
   const anoAnterior = ano - 1;
 
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const rangeFor = (y: number): { de: string; ate: string } => {
+    if (mes != null) {
+      const lastDay = new Date(y, mes, 0).getDate();
+      return { de: `${y}-${pad(mes)}-01`, ate: `${y}-${pad(mes)}-${pad(lastDay)}` };
+    }
+    return { de: `${y}-01-01`, ate: `${y}-12-31` };
+  };
+  const rAtual = rangeFor(ano);
+  const rAnt = rangeFor(anoAnterior);
+
   const filtroAtual: VendasFilters = {
-    de: `${ano}-01-01`, ate: `${ano}-12-31`,
+    de: rAtual.de, ate: rAtual.ate,
     empresa, vendedor: null, coordenador: null,
     tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
     clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
   };
   const filtroAnt: VendasFilters = {
-    de: `${anoAnterior}-01-01`, ate: `${anoAnterior}-12-31`,
+    de: rAnt.de, ate: rAnt.ate,
     empresa, vendedor: null, coordenador: null,
     tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
     clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
@@ -55,13 +67,14 @@ export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, ven
       const m = parseLocalDate(d.mes).getMonth() + 1;
       mapAnt.set(m, (mapAnt.get(m) ?? 0) + d.faturamento);
     });
-    return Array.from({ length: 12 }, (_, i) => {
-      const mes = i + 1;
-      const future = isCurrentYear && mes > currentM;
-      const at = future ? null : (mapAtual.get(mes) ?? 0);
-      const an = mapAnt.get(mes) ?? 0;
+    const all = Array.from({ length: 12 }, (_, i) => {
+      const mm = i + 1;
+      const future = isCurrentYear && mm > currentM;
+      const at = future ? null : (mapAtual.get(mm) ?? 0);
+      const an = mapAnt.get(mm) ?? 0;
       const varr = at != null && an > 0 ? at / an - 1 : null;
       return {
+        mesIdx: mm,
         label: MESES[i],
         atual: at,
         anterior: an,
@@ -69,14 +82,16 @@ export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, ven
         varrLabel: varr == null ? "" : formatVarPct(varr),
       };
     });
-  }, [atual.data, anterior.data, isCurrentYear, currentM]);
+    return mes != null ? all.filter((r) => r.mesIdx === mes) : all;
+  }, [atual.data, anterior.data, isCurrentYear, currentM, mes]);
 
   const varPeriodo = useMemo(() => {
-    const upto = isCurrentYear ? currentM : 12;
     let a = 0, b = 0;
-    for (let i = 0; i < upto; i++) {
-      if (rows[i].atual != null) a += rows[i].atual as number;
-      b += rows[i].anterior;
+    for (const r of rows) {
+      const upto = isCurrentYear ? currentM : 12;
+      if (r.mesIdx > upto) continue;
+      if (r.atual != null) a += r.atual as number;
+      b += r.anterior;
     }
     return b > 0 ? a / b - 1 : null;
   }, [rows, isCurrentYear, currentM]);

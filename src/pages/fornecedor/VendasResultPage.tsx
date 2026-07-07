@@ -69,9 +69,9 @@ export default function VendasResultPage() {
             source="rubysp"
           />
 
-          <BlocoMensalYoY ano={ano} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
+          <BlocoMensalYoY ano={ano} mes={mes} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
 
-          <BlocoRankingYoy ano={ano} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
+          <BlocoRankingYoy ano={ano} mes={mes} empresa={empresa} vendedorId={vendedorId} source="rubysp" />
 
           <div className="pt-14">
             <NotasPeriodoResultTable

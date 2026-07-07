@@ -64,7 +64,7 @@ export default function ResultadosVendas() {
           <div className="grid md:grid-cols-12 gap-10">
             <div className="md:col-span-7">
               <BlocoMensalYoY
-                ano={ano} empresa={empresa}
+                ano={ano} mes={mes} empresa={empresa}
                 tabelaPrecoId={tabelaPrecoId} uf={uf}
                 clienteId={clienteId} vendedorId={vendedorId}
               />
@@ -80,13 +80,13 @@ export default function ResultadosVendas() {
           </div>
 
           <BlocoUfYoY
-            ano={ano} empresa={empresa}
+            ano={ano} mes={mes} empresa={empresa}
             tabelaPrecoId={tabelaPrecoId}
             clienteId={clienteId} vendedorId={vendedorId}
           />
 
           <BlocoRankingYoy
-            ano={ano} empresa={empresa}
+            ano={ano} mes={mes} empresa={empresa}
             tabelaPrecoId={tabelaPrecoId} uf={uf}
             clienteId={clienteId} vendedorId={vendedorId}
           />
