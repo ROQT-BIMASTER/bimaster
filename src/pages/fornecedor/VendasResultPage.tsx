@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { HeaderResult } from "@/components/vendas/result/HeaderResult";
 import { FiltrosGlobaisResult, type ResultFilters } from "@/components/vendas/result/FiltrosGlobaisResult";
@@ -10,6 +9,7 @@ import { BlocoScatterClientes } from "@/components/vendas/BlocoScatterClientes";
 import { BlocoMensalYoY } from "@/components/vendas/BlocoMensalYoY";
 import { BlocoRankingYoy } from "@/components/vendas/BlocoRankingYoy";
 import { useVendasKpis, type VendasFilters } from "@/hooks/useVendasAnalise";
+import { computeVendasRange } from "@/hooks/vendas/vendasFilters";
 
 const nowY = new Date().getFullYear();
 
@@ -17,23 +17,27 @@ export default function VendasResultPage() {
   const anos = [nowY, nowY - 1, nowY - 2];
   const [filters, setFilters] = useState<ResultFilters>({
     ano: nowY,
+    mes: null,
     empresa: null,
     vendedorId: null,
   });
 
-  const { ano, empresa, vendedorId } = filters;
+  const { ano, mes, empresa, vendedorId } = filters;
 
-  const rangeFilters: VendasFilters = useMemo(() => ({
-    de: `${ano}-01-01`,
-    ate: ano === nowY ? format(new Date(), "yyyy-MM-dd") : `${ano}-12-31`,
-    empresa,
-    vendedor: null,
-    coordenador: null,
-    tabelaPrecoId: null,
-    uf: null,
-    clienteId: null,
-    vendedorId,
-  }), [ano, empresa, vendedorId]);
+  const rangeFilters: VendasFilters = useMemo(() => {
+    const { de, ate } = computeVendasRange(ano, mes);
+    return {
+      de,
+      ate,
+      empresa,
+      vendedor: null,
+      coordenador: null,
+      tabelaPrecoId: null,
+      uf: null,
+      clienteId: null,
+      vendedorId,
+    };
+  }, [ano, mes, empresa, vendedorId]);
 
   const kpis = useVendasKpis(rangeFilters, "rubysp");
 
