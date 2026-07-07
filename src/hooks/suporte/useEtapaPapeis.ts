@@ -9,6 +9,7 @@ export interface EtapaPapelRow {
   etapa_id: string;
   user_id: string;
   papel: PapelEtapa;
+  descritivo_atividades?: string | null;
   profile?: { nome: string | null; avatar_url: string | null } | null;
 }
 
@@ -19,7 +20,7 @@ export function useEtapaPapeis(etapaId: string | null | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("processo_etapa_responsaveis")
-        .select("id, etapa_id, user_id, papel")
+        .select("id, etapa_id, user_id, papel, descritivo_atividades")
         .eq("etapa_id", etapaId!);
       if (error) throw error;
       const rows = (data ?? []) as EtapaPapelRow[];
@@ -35,6 +36,7 @@ export function useEtapaPapeis(etapaId: string | null | undefined) {
     },
   });
 }
+
 
 export function useAddEtapaPapel() {
   const qc = useQueryClient();
