@@ -112,6 +112,38 @@ export function PrazoEditorPopover({
     return [...(feriados ?? []), ...(feriadosProx ?? [])].find((f) => f.data === key)?.nome;
   };
 
+  if (locked) {
+    const reason =
+      lockedReason ??
+      "Prazo definido pelo processo operacional. Ajuste o SLA da etapa no cadastro do processo.";
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              {children ?? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs cursor-not-allowed opacity-70"
+                  disabled
+                  aria-disabled="true"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  {prazo ? format(prazo, "dd/MM/yyyy", { locale: ptBR }) : "Prazo do processo"}
+                </Button>
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs text-xs">
+            {reason}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
