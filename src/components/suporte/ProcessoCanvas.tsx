@@ -116,14 +116,22 @@ export function ProcessoCanvas({ processoId }: Props) {
       },
     }));
 
-    const etapaNodes: Node[] = (data?.etapas ?? []).map((e) => {
+    const NODE_WIDTH = 220;
+    const NODE_STEP_X = NODE_WIDTH + 120; // 340px
+    const SAFE_X = NODE_MIN_X + 20;
+
+    const etapasSorted = [...(data?.etapas ?? [])].sort((a, b) => a.ordem - b.ordem);
+    const etapaNodes: Node[] = etapasSorted.map((e, idx) => {
       const r = rotinaById.get(e.rotina_fixa_id);
       const lane = r ? laneById.get(r.fila_id) : null;
       const laneY = lane?.laneY ?? 0;
       const label = e.nome_override ?? r?.titulo ?? "Etapa";
-      // garante posição dentro da swimlane
-      const px = Math.max(NODE_MIN_X, e.posicao_x || NODE_MIN_X + 20);
-      const py = laneY + 40 + ((e.posicao_y || 0) % 80);
+      // Se posicao_x estiver ausente ou dentro/próximo do header (< SAFE_X), auto-espaça por ordem.
+      const rawX = e.posicao_x || 0;
+      const px = rawX >= SAFE_X ? rawX : SAFE_X + idx * NODE_STEP_X;
+      // posicao_y funciona como offset dentro da lane (evita sobreposição vertical entre etapas na mesma fila).
+      const rawY = e.posicao_y || 0;
+      const py = laneY + 40 + (rawY > 0 && rawY < LANE_HEIGHT - 60 ? rawY % 60 : 0);
       return {
         id: e.id,
         position: { x: px, y: py },
@@ -142,7 +150,7 @@ export function ProcessoCanvas({ processoId }: Props) {
           color: "hsl(var(--card-foreground))",
           border: `2px solid ${lane?.cor ?? "hsl(var(--border))"}`,
           borderRadius: 8,
-          width: 200,
+          width: NODE_WIDTH,
           padding: 10,
         },
       };
