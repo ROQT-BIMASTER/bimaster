@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarIcon, Calculator } from "lucide-react";
+import { CalendarIcon, Calculator, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,11 @@ interface PrazoEditorPopoverProps {
   }) => Promise<void> | void;
   /** Trigger custom; se omitido, renderiza um botão padrão. */
   children?: React.ReactNode;
+  /** Quando `true`, o botão fica desabilitado e o popover não abre. Usado para
+   *  tarefas cujo prazo é definido por um processo operacional. */
+  locked?: boolean;
+  /** Motivo exibido no tooltip quando `locked=true`. */
+  lockedReason?: string;
 }
 
 export function PrazoEditorPopover({
@@ -55,6 +60,8 @@ export function PrazoEditorPopover({
   limiteInferior,
   onSave,
   children,
+  locked = false,
+  lockedReason,
 }: PrazoEditorPopoverProps) {
   const [open, setOpen] = useState(false);
   const ano = new Date().getFullYear();
@@ -104,6 +111,38 @@ export function PrazoEditorPopover({
     const key = toISODateLocal(d);
     return [...(feriados ?? []), ...(feriadosProx ?? [])].find((f) => f.data === key)?.nome;
   };
+
+  if (locked) {
+    const reason =
+      lockedReason ??
+      "Prazo definido pelo processo operacional. Ajuste o SLA da etapa no cadastro do processo.";
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              {children ?? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs cursor-not-allowed opacity-70"
+                  disabled
+                  aria-disabled="true"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  {prazo ? format(prazo, "dd/MM/yyyy", { locale: ptBR }) : "Prazo do processo"}
+                </Button>
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs text-xs">
+            {reason}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

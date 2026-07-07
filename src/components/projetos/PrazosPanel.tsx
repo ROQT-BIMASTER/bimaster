@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useFeriados } from "@/hooks/useFeriados";
+import { useTarefasComEspelho } from "@/hooks/useTarefasComEspelho";
 import { PrazoEditorPopover } from "./PrazoEditorPopover";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const fmt = (iso: string | null | undefined) =>
 export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
   const { data: projeto } = useProjeto(projetoId);
   const { secoes, tarefas, tarefasPorSecao, updateSecao } = useProjetoTarefas(projetoId);
+  const { data: espelhoSet } = useTarefasComEspelho(projetoId);
   const queryClient = useQueryClient();
   const ano = new Date().getFullYear();
   const { feriados } = useFeriados(ano);
@@ -229,6 +231,7 @@ export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
                           regime={regime}
                           limiteSuperior={secao.data_prazo ?? projeto.data_fim_alvo ?? null}
                           limiteInferior={secao.data_inicio ?? projeto.data_inicio ?? null}
+                          locked={espelhoSet?.has(tar.id) ?? false}
                           onSave={async (next) => {
                             await updateTarefaPrazo(tar.id, {
                               data_inicio_planejada: next.data_inicio,
@@ -278,6 +281,7 @@ export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
                               regime={regime}
                               limiteSuperior={tar.data_prazo ?? secao.data_prazo ?? projeto.data_fim_alvo ?? null}
                               limiteInferior={(tar as any).data_inicio_planejada ?? secao.data_inicio ?? projeto.data_inicio ?? null}
+                              locked={espelhoSet?.has(sub.id) ?? false}
                               onSave={async (next) => {
                                 await updateTarefaPrazo(sub.id, {
                                   data_inicio_planejada: next.data_inicio,
