@@ -43,6 +43,11 @@ interface PrazoEditorPopoverProps {
   }) => Promise<void> | void;
   /** Trigger custom; se omitido, renderiza um botão padrão. */
   children?: React.ReactNode;
+  /** Quando `true`, o botão fica desabilitado e o popover não abre. Usado para
+   *  tarefas cujo prazo é definido por um processo operacional. */
+  locked?: boolean;
+  /** Motivo exibido no tooltip quando `locked=true`. */
+  lockedReason?: string;
 }
 
 export function PrazoEditorPopover({
