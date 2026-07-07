@@ -688,14 +688,15 @@ export default function DREAnalitico() {
     // Receita da visão "Competência (Faturamento)" vem do agregado validado (faturamento_mensal).
     // Fonte: NF-e de venda (op. 1/15/55/57/68) menos devolução (85), por data da nota, reconciliada
     // contra o BI/ERP filial-a-filial e item-a-item na tela de Rentabilidade.
-    const usarFaturamento = regimeAnalise === 'competencia' && faturamentoMensal && faturamentoMensal.length > 0;
-
-    if (usarFaturamento) {
+    // Regime Competência: SEMPRE usa faturamento_mensal (agregado validado). Sem fallback silencioso.
+    // Regime Caixa: usa contas_receber por data_recebimento.
+    if (regimeAnalise === 'competencia') {
+      const rows = (faturamentoMensal as any[]) ?? [];
       let totalBruta = 0;
       let totalDev = 0;
       const brutaPorMes: Record<string, number> = {};
       const devPorMes: Record<string, number> = {};
-      (faturamentoMensal as any[]).forEach((row) => {
+      rows.forEach((row) => {
         const bruta = Number(row.vendas_brutas ?? 0);
         const dev = Number(row.devolucoes ?? 0);
         const mesKey = row.ano_mes as string;
@@ -710,11 +711,10 @@ export default function DREAnalitico() {
         receitaBruta.valoresMensais![m.key] = brutaPorMes[m.key] ?? 0;
       });
 
-      // Subconta única (sem drill-down por cliente nesta visão — o agregado é por empresa×mês)
       const vendasSubconta: DRENode = {
         id: 'vendas-faturamento',
         codigo: '01.01',
-        nome: 'NF-e de venda (bruto)',
+        nome: rows.length > 0 ? 'NF-e de venda (bruto)' : 'NF-e de venda (bruto) — sem dados carregados',
         tipo: 'conta',
         nivel: 1,
         valor: totalBruta,
@@ -725,7 +725,6 @@ export default function DREAnalitico() {
       };
       receitaBruta.children?.push(vendasSubconta);
 
-      // Devoluções vão para "Deduções e Abatimentos" (NF-e de devolução, op. 85)
       if (totalDev > 0) {
         const devMensais = initValoresMensais();
         mesesPeriodo.forEach(m => {
