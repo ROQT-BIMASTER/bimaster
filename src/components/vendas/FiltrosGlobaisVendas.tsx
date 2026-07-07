@@ -43,17 +43,21 @@ function useTabelasOptions() {
 
 function useUfOptions() {
   return useQuery({
-    queryKey: ["opts_ufs"],
+    queryKey: ["opts_ufs_clientes"],
     staleTime: 60 * 60 * 1000,
     queryFn: async (): Promise<Opt<string>[]> => {
+      // v_vendas.cliente_uf ainda não é populado; a fonte de verdade da UF é a tabela clientes.
       const { data, error } = await sb
-        .from("v_vendas")
-        .select("cliente_uf")
-        .not("cliente_uf", "is", null)
-        .limit(20000);
+        .from("clientes")
+        .select("uf")
+        .not("uf", "is", null)
+        .limit(50000);
       if (error) throw error;
       const set = new Set<string>();
-      (data || []).forEach((r: any) => { if (r.cliente_uf) set.add(r.cliente_uf); });
+      (data || []).forEach((r: any) => {
+        const uf = (r.uf ?? "").toString().trim().toUpperCase();
+        if (uf && uf !== "-" && uf.length === 2) set.add(uf);
+      });
       return [...set].sort().map((uf) => ({ value: uf, label: uf }));
     },
   });
