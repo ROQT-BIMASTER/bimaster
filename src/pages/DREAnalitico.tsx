@@ -1345,7 +1345,14 @@ export default function DREAnalitico() {
               <span className={`font-mono ${formatConfig.fontSize} text-muted-foreground mr-2 flex-shrink-0`}>{node.codigo}</span>
             )}
             
-            <span className={`truncate ${isSubtotal ? 'text-sm font-bold' : node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground hover:text-foreground` : formatConfig.fontSize}`}>
+            <span
+              className={`truncate ${isSubtotal ? 'text-sm font-bold' : node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground hover:text-foreground` : formatConfig.fontSize}`}
+              title={
+                node.id === 'receita-bruta' && regimeAnalise === 'competencia'
+                  ? 'Faturamento validado contra o BI/ERP: NF-e de venda menos devoluções, por data da nota (fonte ERP Result, atualizado de hora em hora).'
+                  : undefined
+              }
+            >
               {node.nome}
             </span>
 
