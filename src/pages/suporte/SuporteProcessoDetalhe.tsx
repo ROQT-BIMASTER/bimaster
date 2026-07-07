@@ -97,7 +97,18 @@ export default function SuporteProcessoDetalhe() {
         )}
 
         {selecionado ? (
-          <ProcessoCanvas processoId={selecionado} />
+          <Tabs defaultValue="canvas">
+            <TabsList>
+              <TabsTrigger value="canvas">Canvas</TabsTrigger>
+              <TabsTrigger value="execucao">Execução do dia</TabsTrigger>
+            </TabsList>
+            <TabsContent value="canvas" className="mt-3">
+              <ProcessoCanvas processoId={selecionado} />
+            </TabsContent>
+            <TabsContent value="execucao" className="mt-3">
+              <ProcessoExecucaoDia processoId={selecionado} />
+            </TabsContent>
+          </Tabs>
         ) : (
           <Card>
             <CardContent className="p-10 text-center text-sm text-muted-foreground">
