@@ -96,7 +96,8 @@ export function FiltrosGlobaisResult({ filters, onChange, anos }: Props) {
   const patch = (p: Partial<ResultFilters>) => onChange({ ...filters, ...p });
 
   const anoOpts: Opt<number>[] = anos.map((a) => ({ value: a, label: String(a) }));
-  const hasAny = filters.empresa != null || filters.vendedorId != null || filters.ano !== anos[0];
+  const mesOpts: Opt<number>[] = MESES_PT;
+  const hasAny = filters.empresa != null || filters.vendedorId != null || filters.mes != null || filters.ano !== anos[0];
 
   return (
     <div className="sticky top-0 z-30 -mx-6 md:-mx-10 px-6 md:px-10 py-4 bg-rv-bg/95 backdrop-blur border-b border-rv-linha">
@@ -108,6 +109,14 @@ export function FiltrosGlobaisResult({ filters, onChange, anos }: Props) {
           options={anoOpts}
           onChange={(v) => patch({ ano: v ?? anos[0] })}
           width="min-w-[120px]"
+        />
+        <EditorialCombo
+          label="Mês"
+          placeholder="Todos"
+          value={filters.mes}
+          options={mesOpts}
+          onChange={(v) => patch({ mes: v })}
+          width="min-w-[150px]"
         />
         <EditorialCombo
           label="Empresa"
@@ -129,7 +138,7 @@ export function FiltrosGlobaisResult({ filters, onChange, anos }: Props) {
         {hasAny && (
           <button
             type="button"
-            onClick={() => onChange({ ano: anos[0], empresa: null, vendedorId: null })}
+            onClick={() => onChange({ ano: anos[0], mes: null, empresa: null, vendedorId: null })}
             className="h-[38px] px-4 text-[11px] uppercase tracking-wider text-rv-text-suave border border-rv-linha hover:text-rv-ink hover:border-rv-ink transition-colors self-end"
           >
             Limpar
