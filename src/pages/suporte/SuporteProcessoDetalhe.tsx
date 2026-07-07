@@ -50,6 +50,11 @@ export default function SuporteProcessoDetalhe() {
           </div>
         </div>
 
+        {(!isLoading && processos.length === 0) && (
+          <ProcessoOnboardingGuide persistent />
+        )}
+
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Processos ativos</CardTitle>
