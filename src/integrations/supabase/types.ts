@@ -16527,6 +16527,36 @@ export type Database = {
           },
         ]
       }
+      erp_faturamento_rubysp: {
+        Row: {
+          ano_mes: string
+          devolucoes: number | null
+          empresa_id: number
+          faturamento_liquido: number | null
+          n_notas: number | null
+          staged_at: string
+          vendas_brutas: number | null
+        }
+        Insert: {
+          ano_mes: string
+          devolucoes?: number | null
+          empresa_id: number
+          faturamento_liquido?: number | null
+          n_notas?: number | null
+          staged_at?: string
+          vendas_brutas?: number | null
+        }
+        Update: {
+          ano_mes?: string
+          devolucoes?: number | null
+          empresa_id?: number
+          faturamento_liquido?: number | null
+          n_notas?: number | null
+          staged_at?: string
+          vendas_brutas?: number | null
+        }
+        Relationships: []
+      }
       erp_fornecedores_rubysp: {
         Row: {
           agencia: string | null
@@ -24940,6 +24970,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      faturamento_mensal: {
+        Row: {
+          ano_mes: string
+          created_at: string
+          devolucoes: number | null
+          empresa_id: number
+          faturamento_liquido: number | null
+          n_notas: number | null
+          updated_at: string
+          vendas_brutas: number | null
+        }
+        Insert: {
+          ano_mes: string
+          created_at?: string
+          devolucoes?: number | null
+          empresa_id: number
+          faturamento_liquido?: number | null
+          n_notas?: number | null
+          updated_at?: string
+          vendas_brutas?: number | null
+        }
+        Update: {
+          ano_mes?: string
+          created_at?: string
+          devolucoes?: number | null
+          empresa_id?: number
+          faturamento_liquido?: number | null
+          n_notas?: number | null
+          updated_at?: string
+          vendas_brutas?: number | null
+        }
+        Relationships: []
       }
       feature_flags: {
         Row: {
@@ -58382,6 +58445,13 @@ export type Database = {
           atualizados: number
           com_centro: number
           com_plano: number
+          inseridos: number
+        }[]
+      }
+      fn_transform_faturamento_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
           inseridos: number
         }[]
       }
