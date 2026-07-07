@@ -417,25 +417,35 @@ export default function DREAnalitico() {
   const { data: lancamentosAnoAnterior } = useSupabaseQuery(
     ['lancamentos-dre-yoy', anoAnteriorInicio, anoAnteriorFim, filterEmpresa, regimeAnalise],
     async () => {
+      if (regimeAnalise === 'caixa') {
+        const rows = await fetchAllRows<any>(
+          'pagamentos_caixa',
+          'erp_id, valor, data_movimento, tipo_mov, historico_nome, ccusto_nome, plano_contas_id',
+          (query: any) => query
+            .eq('tipo_mov', 'saida')
+            .gte('data_movimento', anoAnteriorInicio)
+            .lte('data_movimento', anoAnteriorFim)
+            .not('historico_nome', 'ilike', '%TRANSFER%')
+            .not('ccusto_nome', 'ilike', '%APLICA%')
+            .not('ccusto_nome', 'ilike', '%AJUSTE DE SALDO%')
+        );
+        return rows.map((r: any) => ({
+          id: r.erp_id,
+          valor_pago: Math.abs(Number(r.valor || 0)),
+          valor_original: Math.abs(Number(r.valor || 0)),
+          plano_contas_id: r.plano_contas_id,
+        }));
+      }
       const data = await fetchAllRows<any>(
         'contas_pagar',
         '*, plano_contas_id',
         (query: any) => {
-          if (regimeAnalise === 'caixa') {
-            query = query
-              .eq('status', 'pago')
-              .gte('data_pagamento', anoAnteriorInicio)
-              .lte('data_pagamento', anoAnteriorFim);
-          } else {
-            query = query
-              .gte('data_vencimento', anoAnteriorInicio)
-              .lte('data_vencimento', anoAnteriorFim);
-          }
-          
+          query = query
+            .gte('data_emissao', anoAnteriorInicio)
+            .lte('data_emissao', anoAnteriorFim);
           if (filterEmpresa !== 'todas') {
             query = query.eq('empresa_nome', filterEmpresa);
           }
-          
           return query;
         }
       );
