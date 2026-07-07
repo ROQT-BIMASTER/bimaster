@@ -315,6 +315,10 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
               Vincule esta rotina a um processo operacional e defina quais rotinas de outros
               departamentos são disparadas após a sua conclusão. Fica visível no fluxograma do processo.
             </p>
+            <p className="text-[11px] text-primary/80 bg-primary/5 border border-primary/20 rounded px-2 py-1">
+              Dica: uma rotina só entra no fluxo depois de vinculada a um processo. Se a fila
+              que executa a próxima rotina for outra, o handoff gera alerta automático caso atrase.
+            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
