@@ -61751,41 +61751,80 @@ export type Database = {
           qtd_un: number
         }[]
       }
-      vendas_uf_yoy: {
-        Args: {
-          p_ano?: number
-          p_cliente?: number
-          p_empresa?: number
-          p_tabela_preco?: number
-          p_vendedor?: number
-        }
-        Returns: {
-          fat_anterior: number
-          fat_atual: number
-          notas_atual: number
-          uf: string
-        }[]
-      }
-      vendas_yoy_por_dimensao: {
-        Args: {
-          p_ano?: number
-          p_cliente?: number
-          p_dim?: string
-          p_empresa?: number
-          p_tabela_preco?: number
-          p_uf?: string
-          p_vendedor?: number
-        }
-        Returns: {
-          chave: number
-          fat_anterior: number
-          fat_atual: number
-          nome: string
-          notas_atual: number
-          novo: boolean
-          variacao: number
-        }[]
-      }
+      vendas_uf_yoy:
+        | {
+            Args: {
+              p_ano?: number
+              p_cliente?: number
+              p_empresa?: number
+              p_tabela_preco?: number
+              p_vendedor?: number
+            }
+            Returns: {
+              fat_anterior: number
+              fat_atual: number
+              notas_atual: number
+              uf: string
+            }[]
+          }
+        | {
+            Args: {
+              p_ano?: number
+              p_cliente?: number
+              p_empresa?: number
+              p_mes?: number
+              p_tabela_preco?: number
+              p_vendedor?: number
+            }
+            Returns: {
+              fat_anterior: number
+              fat_atual: number
+              notas_atual: number
+              uf: string
+            }[]
+          }
+      vendas_yoy_por_dimensao:
+        | {
+            Args: {
+              p_ano?: number
+              p_cliente?: number
+              p_dim?: string
+              p_empresa?: number
+              p_tabela_preco?: number
+              p_uf?: string
+              p_vendedor?: number
+            }
+            Returns: {
+              chave: number
+              fat_anterior: number
+              fat_atual: number
+              nome: string
+              notas_atual: number
+              novo: boolean
+              variacao: number
+            }[]
+          }
+        | {
+            Args: {
+              p_ano?: number
+              p_cliente?: number
+              p_dim?: string
+              p_empresa?: number
+              p_mes?: number
+              p_tabela_preco?: number
+              p_uf?: string
+              p_vendedor?: number
+            }
+            Returns: {
+              chave: number
+              fat_anterior: number
+              fat_atual: number
+              nome: string
+              notas_atual: number
+              novo: boolean
+              variacao: number
+            }[]
+          }
       vendas_yoy_por_dimensao_rubysp: {
         Args: { p_ano: number; p_dim: string; p_empresa?: number }
         Returns: {
