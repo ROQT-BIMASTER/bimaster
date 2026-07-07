@@ -37228,7 +37228,7 @@ export type Database = {
           execucao_id: string | null
           exige_documentos: boolean
           id: string
-          instancia_id: string
+          instancia_id: string | null
           observacoes: string | null
           projeto_id: string | null
           projeto_secao_id: string | null
@@ -37253,7 +37253,7 @@ export type Database = {
           execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
-          instancia_id: string
+          instancia_id?: string | null
           observacoes?: string | null
           projeto_id?: string | null
           projeto_secao_id?: string | null
@@ -37278,7 +37278,7 @@ export type Database = {
           execucao_id?: string | null
           exige_documentos?: boolean
           id?: string
-          instancia_id?: string
+          instancia_id?: string | null
           observacoes?: string | null
           projeto_id?: string | null
           projeto_secao_id?: string | null
