@@ -994,7 +994,7 @@ export function ContasPagarDREView({
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               DRE Gerencial (Base Caixa) - Modo Foco
               <Badge variant="secondary" className="ml-2">
-                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos
+                {lancamentos?.length?.toLocaleString('pt-BR')} movimentos do extrato
               </Badge>
             </DialogTitle>
             <div className="flex items-center gap-2">
