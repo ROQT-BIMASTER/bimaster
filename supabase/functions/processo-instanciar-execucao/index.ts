@@ -63,7 +63,7 @@ Deno.serve(
       const dataRef = data_ref ?? new Date().toISOString().slice(0, 10);
       const { data: exec, error: e2 } = await sb
         .from("processo_execucoes")
-        .insert({ processo_id, data_ref, status: "em_andamento", iniciado_em: new Date().toISOString() })
+        .insert({ processo_id, data_ref: dataRef, status: "em_andamento", iniciado_em: new Date().toISOString() })
         .select()
         .single();
       if (e2) return json(500, { error: e2.message }, cors);
