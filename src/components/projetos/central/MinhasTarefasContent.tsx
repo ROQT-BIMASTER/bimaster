@@ -126,6 +126,7 @@ const ListRow = memo(function ListRow({
         <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
           {tarefa.titulo}
         </span>
+        {processoTag && <ProcessoOperacionalBadge tag={processoTag} compact />}
         {tarefa.papel === "responsavel" && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
