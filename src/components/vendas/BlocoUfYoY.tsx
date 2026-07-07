@@ -107,8 +107,8 @@ function GrupoRegiaoBlock({ grupo, ano }: { grupo: GrupoRegiao; ano: number }) {
   );
 }
 
-export function BlocoUfYoY({ ano, empresa, tabelaPrecoId, clienteId, vendedorId }: Props) {
-  const { data, isLoading } = useVendasUfYoy({ ano, empresa, tabelaPrecoId, clienteId, vendedorId });
+export function BlocoUfYoY({ ano, mes, empresa, tabelaPrecoId, clienteId, vendedorId }: Props) {
+  const { data, isLoading } = useVendasUfYoy({ ano, mes: mes ?? null, empresa, tabelaPrecoId, clienteId, vendedorId });
 
   const grupos = useMemo(() => agruparPorRegiao(data ?? []), [data]);
 
