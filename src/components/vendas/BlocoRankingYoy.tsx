@@ -92,13 +92,13 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return dir === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />;
 }
 
-export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
+export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source = "futura" }: Props) {
   const [dim, setDim] = useState<YoyDim>("cliente");
   const [sort, setSort] = useState<SortState>({ key: "faturamento", dir: "desc" });
   const [foco, setFoco] = useState(false);
   const [query, setQuery] = useState("");
   const [selecionada, setSelecionada] = useState<VendasYoyRow | null>(null);
-  const { data, isLoading } = useVendasYoy({ dim, ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
+  const { data, isLoading } = useVendasYoy({ dim, ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId, source });
 
   // reset sort ao trocar dimensão
   useEffect(() => {
