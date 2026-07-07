@@ -8,6 +8,8 @@ import { Workflow, ArrowLeft, Info } from "lucide-react";
 import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
+import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
