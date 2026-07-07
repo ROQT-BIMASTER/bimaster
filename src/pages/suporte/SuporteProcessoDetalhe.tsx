@@ -14,6 +14,8 @@ import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboarding
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { toast } from "sonner";
 
+import { supabase } from "@/integrations/supabase/client";
+
 export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
