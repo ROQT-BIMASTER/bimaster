@@ -432,6 +432,7 @@ const CadastroTituloAP = lazyWithRetry(() => import("./pages/financeiro/Cadastro
 const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadastrosAP"));
 const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
 const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
+const PlanoContasAuditoria = lazyWithRetry(() => import("./pages/financeiro/PlanoContasAuditoria"));
 const RelatorioPlanoReducao = lazyWithRetry(() => import("./pages/RelatorioPlanoReducao"));
 const RelatorioConsolidadoPlanoReducao = lazyWithRetry(() => import("./pages/financeiro/RelatorioConsolidadoPlanoReducao"));
 
