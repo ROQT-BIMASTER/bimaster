@@ -224,6 +224,23 @@ export function ProcessoCanvas({ processoId }: Props) {
     [processoId, removerLig],
   );
 
+  // Double-click abre painel administrativo da etapa (parecer + papéis + escalação).
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminEtapa, setAdminEtapa] = useState<{ id: string; nome: string; parecer?: string | null } | null>(null);
+  const handleNodeDoubleClick = useCallback(
+    (_e: React.MouseEvent, node: Node) => {
+      if (node.id.startsWith("lane-")) return;
+      const etapa = (data?.etapas ?? []).find((x) => x.id === node.id);
+      if (!etapa) return;
+      const r = rotinaById.get(etapa.rotina_fixa_id);
+      const nome = etapa.nome_override ?? r?.titulo ?? "Etapa";
+      setAdminEtapa({ id: etapa.id, nome, parecer: (etapa as any).parecer_administrativo ?? null });
+      setAdminOpen(true);
+    },
+    [data?.etapas, rotinaById],
+  );
+
+
   if (isLoading || !data) {
     return (
       <Card className="h-[600px] flex items-center justify-center text-sm text-muted-foreground">
