@@ -85,6 +85,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/google.maps": "^3.58.1",
     "@vis.gl/react-google-maps": "^1.7.1",
+    "@xyflow/react": "^12.11.2",
     "ai": "^6.0.185",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

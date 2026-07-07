@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Repeat, Plus, Play, Pencil, Trash2, Clock, AlertTriangle } from "lucide-react";
+import { Repeat, Plus, Play, Pencil, Trash2, Clock, AlertTriangle, Workflow } from "lucide-react";
 import { useRotinasFixas, useDeleteRotinaFixa, useGerarRotinasManual, useRotinasEmAtraso, type RotinaFixa } from "@/hooks/suporte/useRotinasFixas";
 import { RotinaFixaDialog } from "@/components/suporte/RotinaFixaDialog";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
@@ -39,6 +40,11 @@ export default function SuporteRotinasFixas() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/suporte/processos">
+                <Workflow className="h-4 w-4 mr-1" /> Processos
+              </Link>
+            </Button>
             <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
               <Play className="h-4 w-4 mr-1" /> Gerar agora
             </Button>
