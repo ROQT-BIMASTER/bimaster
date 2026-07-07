@@ -26,6 +26,7 @@ import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector"
 import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
 import { ProjetoSettingsMenu } from "./ProjetoSettingsMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ProjetoProcessoBanner } from "./ProjetoProcessoBanner";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
