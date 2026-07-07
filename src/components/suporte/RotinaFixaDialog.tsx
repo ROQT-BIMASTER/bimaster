@@ -51,8 +51,13 @@ interface Props {
 export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
   const { data: filas = [] } = useSuporteFilas();
   const { data: usuarios = [] } = useUsuarios();
+  const { data: todasRotinas = [] } = useRotinasFixas();
+  const { data: processos = [] } = useProcessos();
+  const { data: encadeamento } = useEncadeamentoDaRotina(rotina?.id);
   const create = useCreateRotinaFixa();
   const update = useUpdateRotinaFixa();
+  const vincular = useVincularRotinaAoProcesso();
+  const desvincular = useDesvincularRotinaDoProcesso();
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -67,6 +72,14 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
   const [novoItem, setNovoItem] = useState("");
   const [geraTarefa, setGeraTarefa] = useState(true);
   const [ativo, setAtivo] = useState(true);
+
+  // Encadeamento (Fase 3)
+  const NENHUM = "__nenhum";
+  const NOVO = "__novo";
+  const [processoOpt, setProcessoOpt] = useState<string>(NENHUM);
+  const [novoProcessoNome, setNovoProcessoNome] = useState("");
+  const [proximas, setProximas] = useState<string[]>([]);
+  const [slaHandoff, setSlaHandoff] = useState<string>("");
 
   useEffect(() => {
     if (rotina) {
