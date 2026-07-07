@@ -4675,6 +4675,71 @@ export type Database = {
           },
         ]
       }
+      chart_of_accounts_v2: {
+        Row: {
+          analitica: boolean
+          ativo: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          deprecated_at: string | null
+          funcao_operacional: string | null
+          grupo_ifrs18: string | null
+          id: string
+          name: string
+          natureza: string | null
+          nivel: number
+          ordem: number | null
+          parent_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          analitica?: boolean
+          ativo?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deprecated_at?: string | null
+          funcao_operacional?: string | null
+          grupo_ifrs18?: string | null
+          id?: string
+          name: string
+          natureza?: string | null
+          nivel: number
+          ordem?: number | null
+          parent_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          analitica?: boolean
+          ativo?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deprecated_at?: string | null
+          funcao_operacional?: string | null
+          grupo_ifrs18?: string | null
+          id?: string
+          name?: string
+          natureza?: string | null
+          nivel?: number
+          ordem?: number | null
+          parent_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_v2_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_v2"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_anexo_arquivamentos: {
         Row: {
           anexo_id: string
@@ -16476,6 +16541,76 @@ export type Database = {
           prioridade?: number | null
         }
         Relationships: []
+      }
+      erp_dre_mapa_v2: {
+        Row: {
+          ativo: boolean
+          auditado_em: string | null
+          auditor_id: string | null
+          complemento_like: string | null
+          created_at: string
+          custo_tpg: number | null
+          departamento_id: string | null
+          historico_tpg: number | null
+          id: string
+          origem: string
+          plano_code_v2: string
+          prioridade: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auditado_em?: string | null
+          auditor_id?: string | null
+          complemento_like?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          departamento_id?: string | null
+          historico_tpg?: number | null
+          id?: string
+          origem?: string
+          plano_code_v2: string
+          prioridade?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auditado_em?: string | null
+          auditor_id?: string | null
+          complemento_like?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          departamento_id?: string | null
+          historico_tpg?: number | null
+          id?: string
+          origem?: string
+          plano_code_v2?: string
+          prioridade?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_dre_mapa_v2_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "erp_dre_mapa_v2_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "erp_dre_mapa_v2_plano_code_v2_fkey"
+            columns: ["plano_code_v2"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_v2"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       erp_estoque_distribuidora: {
         Row: {
@@ -33013,6 +33148,111 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      natureza_erp_classificacao_ia: {
+        Row: {
+          auditado_em: string | null
+          auditor_id: string | null
+          auditor_nota: string | null
+          categoria_dominante: string | null
+          ccusto_nome: string | null
+          confidence: number | null
+          conta_code_v2: string | null
+          conta_final_code: string | null
+          conta_final_dept_id: string | null
+          conta_name_v2: string | null
+          created_at: string
+          custo_tpg: number | null
+          funcao_operacional: string | null
+          historico_nome: string | null
+          historico_tpg: number | null
+          ia_run_id: string | null
+          id: string
+          model: string | null
+          natureza: string | null
+          qtd_titulos: number | null
+          rationale: string | null
+          setor_erp: string | null
+          status: string
+          tipo: string | null
+          top_fornecedores: string | null
+          updated_at: string
+          volume_12m: number | null
+        }
+        Insert: {
+          auditado_em?: string | null
+          auditor_id?: string | null
+          auditor_nota?: string | null
+          categoria_dominante?: string | null
+          ccusto_nome?: string | null
+          confidence?: number | null
+          conta_code_v2?: string | null
+          conta_final_code?: string | null
+          conta_final_dept_id?: string | null
+          conta_name_v2?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          funcao_operacional?: string | null
+          historico_nome?: string | null
+          historico_tpg?: number | null
+          ia_run_id?: string | null
+          id?: string
+          model?: string | null
+          natureza?: string | null
+          qtd_titulos?: number | null
+          rationale?: string | null
+          setor_erp?: string | null
+          status?: string
+          tipo?: string | null
+          top_fornecedores?: string | null
+          updated_at?: string
+          volume_12m?: number | null
+        }
+        Update: {
+          auditado_em?: string | null
+          auditor_id?: string | null
+          auditor_nota?: string | null
+          categoria_dominante?: string | null
+          ccusto_nome?: string | null
+          confidence?: number | null
+          conta_code_v2?: string | null
+          conta_final_code?: string | null
+          conta_final_dept_id?: string | null
+          conta_name_v2?: string | null
+          created_at?: string
+          custo_tpg?: number | null
+          funcao_operacional?: string | null
+          historico_nome?: string | null
+          historico_tpg?: number | null
+          ia_run_id?: string | null
+          id?: string
+          model?: string | null
+          natureza?: string | null
+          qtd_titulos?: number | null
+          rationale?: string | null
+          setor_erp?: string | null
+          status?: string
+          tipo?: string | null
+          top_fornecedores?: string | null
+          updated_at?: string
+          volume_12m?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "natureza_erp_classificacao_ia_conta_final_dept_id_fkey"
+            columns: ["conta_final_dept_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "natureza_erp_classificacao_ia_conta_final_dept_id_fkey"
+            columns: ["conta_final_dept_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
       }
       notificacoes: {
         Row: {
@@ -58707,6 +58947,20 @@ export type Database = {
           score_agregado: number
           total_municipios: number
           uf: string
+        }[]
+      }
+      fn_naturezas_erp_para_classificacao: {
+        Args: never
+        Returns: {
+          categoria_dominante: string
+          ccusto_nome: string
+          custo_tpg: number
+          historico_nome: string
+          historico_tpg: number
+          qtd_titulos: number
+          setor_erp: string
+          top_fornecedores: string
+          volume_12m: number
         }[]
       }
       fn_normalizar_municipios_clientes: { Args: never; Returns: Json }

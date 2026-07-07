@@ -432,6 +432,7 @@ const CadastroTituloAP = lazyWithRetry(() => import("./pages/financeiro/Cadastro
 const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadastrosAP"));
 const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
 const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
+const PlanoContasAuditoria = lazyWithRetry(() => import("./pages/financeiro/PlanoContasAuditoria"));
 const RelatorioPlanoReducao = lazyWithRetry(() => import("./pages/RelatorioPlanoReducao"));
 const RelatorioConsolidadoPlanoReducao = lazyWithRetry(() => import("./pages/financeiro/RelatorioConsolidadoPlanoReducao"));
 
@@ -883,6 +884,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar/sync-cadastros" element={<ScreenRoute screenCode="admin"><SyncCadastrosAP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/conciliacao" element={<ScreenRoute screenCode="admin"><ConciliacaoManualAP /></ScreenRoute>} />
             <Route path="/configuracoes/admin/relatorio-ap-erp" element={<ScreenRoute screenCode="admin"><RelatorioAPxERP /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/plano-contas-v2/auditoria" element={<ScreenRoute screenCode="admin"><PlanoContasAuditoria /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_receber"><ContasAReceber /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_receber"><ContasReceberAuditoria /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ScreenRoute screenCode="admin"><ContasReceberSyncPage /></ScreenRoute>} />
