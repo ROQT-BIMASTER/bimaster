@@ -14,6 +14,7 @@ const sb = supabase as any;
 
 export function useVendasUfYoy(p: {
   ano: number;
+  mes?: number | null;
   empresa?: number | null;
   tabelaPrecoId?: number | null;
   clienteId?: number | null;
@@ -21,7 +22,7 @@ export function useVendasUfYoy(p: {
 }) {
   return useQuery({
     queryKey: [
-      "vendas_uf_yoy", p.ano, p.empresa ?? null,
+      "vendas_uf_yoy", p.ano, p.mes ?? null, p.empresa ?? null,
       p.tabelaPrecoId ?? null, p.clienteId ?? null, p.vendedorId ?? null,
     ],
     staleTime: 5 * 60 * 1000,
@@ -32,6 +33,7 @@ export function useVendasUfYoy(p: {
         p_tabela_preco: p.tabelaPrecoId ?? null,
         p_cliente: p.clienteId ?? null,
         p_vendedor: p.vendedorId ?? null,
+        p_mes: p.mes ?? null,
       });
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => {
