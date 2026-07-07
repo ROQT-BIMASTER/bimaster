@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle, CircleDashed, Timer } from "lucide-react";
 import { useProcessoExecucaoDia, type EtapaExecucaoDia } from "@/hooks/suporte/useProcessoExecucao";
+import { ProcessoHandoffAlertas } from "./ProcessoHandoffAlertas";
 
 interface Props {
   processoId: string;
@@ -80,6 +81,7 @@ export function ProcessoExecucaoDia({ processoId }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
+      <ProcessoHandoffAlertas processoId={processoId} />
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{totals.total} etapas</Badge>
         <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
