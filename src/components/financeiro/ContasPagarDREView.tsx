@@ -859,17 +859,17 @@ export function ContasPagarDREView({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="text-xs font-normal text-muted-foreground border border-border rounded px-1.5 py-0.5 cursor-help">
-                          só pagas
+                          base caixa (extrato ERP)
                         </span>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        Considera apenas contas com pagamento confirmado (valor_pago &gt; 0 e data_pagamento no período do filtro). Bate com o Calendário de Pagos e a coluna Valor Pago da tabela. Para o regime de competência (data de vencimento), utilize os relatórios de Plano de Redução e Auditoria AP.
+                        Base caixa oficial: extrato bancário lançado no ERP (MovimentoConta), validado contra o Relatório Analítico de Custo. Exclui transferências entre contas, aplicações e ajustes de saldo (tesouraria).
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos pagos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
+                  {lancamentos?.length?.toLocaleString('pt-BR')} movimentos do extrato • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
                 </p>
               </div>
             </div>
