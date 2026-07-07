@@ -168,9 +168,10 @@ export function ContasPagarDREView({
     );
   }, [centrosCusto, centrosSearch]);
 
-  // Fetch lancamentos
+  // Fetch lancamentos — base CAIXA oficial: extrato bancário do ERP (pagamentos_caixa / MovimentoConta).
+  // Exclui tesouraria (transferências entre contas, aplicações, ajustes de saldo) — não é custo.
   const { data: lancamentos, isLoading: isLoadingLancamentos } = useQuery({
-    queryKey: ['contas-pagar-dre-view', filterAno, filterMes, filterEmpresas.join(','), filterDepartamento, effectiveCentroCustoIds.join(',')],
+    queryKey: ['contas-pagar-dre-view-caixa', filterAno, filterMes, filterEmpresas.join(','), effectiveCentroCustoIds.join(',')],
     queryFn: async (): Promise<ContaPagar[]> => {
       const PAGE_SIZE = 1000;
       let allData: ContaPagar[] = [];
@@ -179,19 +180,18 @@ export function ContasPagarDREView({
 
       while (hasMore) {
         let query = supabase
-          .from('contas_pagar')
-          .select('id, fornecedor_nome, categoria_nome, valor_original, valor_pago, data_vencimento, data_pagamento, departamento_id, departamento_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome, classificado_automaticamente, classificacao_manual')
-          .not('data_pagamento', 'is', null)
-          .gt('valor_pago', 0)
-          .gte('data_pagamento', dateRange.start)
-          .lte('data_pagamento', dateRange.end);
+          .from('pagamentos_caixa')
+          .select('erp_id, empresa_id, conta_id, conta_nome, data_movimento, valor, tipo_mov, ccusto_id, ccusto_nome, historico_id, historico_nome, complemento, documento, centro_custo_id, plano_contas_id')
+          .eq('tipo_mov', 'saida')
+          .gte('data_movimento', dateRange.start)
+          .lte('data_movimento', dateRange.end)
+          // Exclusão de tesouraria (não entra no DRE)
+          .not('historico_nome', 'ilike', '%TRANSFER%')
+          .not('ccusto_nome', 'ilike', '%APLICA%')
+          .not('ccusto_nome', 'ilike', '%AJUSTE DE SALDO%');
 
         if (filterEmpresas.length > 0) {
           query = query.in('empresa_id', filterEmpresas);
-        }
-
-        if (filterDepartamento !== 'all') {
-          query = query.eq('departamento_id', filterDepartamento);
         }
 
         if (effectiveCentroCustoIds.length > 0) {
@@ -202,7 +202,30 @@ export function ContasPagarDREView({
         if (error) throw error;
 
         if (data && data.length > 0) {
-          allData = [...allData, ...(data as unknown as ContaPagar[])];
+          // Mapear pagamentos_caixa → shape ContaPagar consumido pela árvore da DRE.
+          // fornecedor_nome ← historico_nome (nível "fornecedor" da árvore)
+          // categoria_nome  ← "complemento — conta_nome" (nível "lançamento")
+          const mapped = data.map((r: any) => {
+            const valorAbs = Math.abs(Number(r.valor || 0));
+            const complementoLabel = [r.complemento, r.conta_nome].filter(Boolean).join(' — ') || (r.documento ? `Doc ${r.documento}` : 'Lançamento');
+            return {
+              id: r.erp_id,
+              fornecedor_nome: r.historico_nome || 'Sem histórico',
+              categoria_nome: complementoLabel,
+              valor_original: valorAbs,
+              valor_pago: valorAbs,
+              data_vencimento: r.data_movimento,
+              data_pagamento: r.data_movimento,
+              departamento_id: null,
+              departamento_nome: null,
+              plano_contas_id: r.plano_contas_id,
+              plano_contas_codigo: null,
+              plano_contas_nome: null,
+              classificado_automaticamente: false,
+              classificacao_manual: false,
+            } as unknown as ContaPagar;
+          });
+          allData = [...allData, ...mapped];
           from += PAGE_SIZE;
           hasMore = data.length === PAGE_SIZE;
         } else {
