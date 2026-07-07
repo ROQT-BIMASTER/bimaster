@@ -181,9 +181,11 @@ export function FiltrosGlobaisVendas({ filters, onChange, anos }: Props) {
   const hasAny =
     filters.tabelaPrecoId != null || filters.uf != null ||
     filters.clienteId != null || filters.vendedorId != null ||
+    filters.mes != null ||
     filters.ano !== anos[0];
 
   const anoOpts: Opt<number>[] = anos.map((a) => ({ value: a, label: String(a) }));
+  const mesOpts: Opt<number>[] = MESES_PT;
 
   return (
     <div className="sticky top-0 z-30 -mx-6 md:-mx-10 px-6 md:px-10 py-4 bg-rv-bg/95 backdrop-blur border-b border-rv-linha">
@@ -195,6 +197,14 @@ export function FiltrosGlobaisVendas({ filters, onChange, anos }: Props) {
           options={anoOpts}
           onChange={(v) => patch({ ano: v ?? anos[0] })}
           width="min-w-[120px]"
+        />
+        <EditorialCombo
+          label="Mês"
+          placeholder="Todos"
+          value={filters.mes}
+          options={mesOpts}
+          onChange={(v) => patch({ mes: v })}
+          width="min-w-[150px]"
         />
         <EditorialCombo
           label="Tabela de preço"
@@ -233,6 +243,7 @@ export function FiltrosGlobaisVendas({ filters, onChange, anos }: Props) {
             type="button"
             onClick={() => onChange({
               ano: anos[0],
+              mes: null,
               empresa: filters.empresa,
               tabelaPrecoId: null, uf: null, clienteId: null, vendedorId: null,
             })}
