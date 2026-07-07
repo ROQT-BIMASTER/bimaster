@@ -304,45 +304,90 @@ export default function DREAnalitico() {
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
 
-  // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
+  // Buscar lançamentos do período.
+  // - Caixa: pagamentos_caixa (extrato ERP) — exclui tesouraria (transfer/aplicação/ajuste).
+  // - Competência: contas_pagar por data_emissao (padrão Apuração de Custo do ERP).
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
     ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, regimeAnalise],
     async () => {
+      if (regimeAnalise === 'caixa') {
+        const rows = await fetchAllRows<any>(
+          'pagamentos_caixa',
+          'erp_id, empresa_id, conta_id, conta_nome, data_movimento, valor, tipo_mov, ccusto_id, ccusto_nome, historico_id, historico_nome, complemento, documento, centro_custo_id, plano_contas_id',
+          (query: any) => {
+            query = query
+              .eq('tipo_mov', 'saida')
+              .gte('data_movimento', dataInicio)
+              .lte('data_movimento', dataFim)
+              // Excluir tesouraria (não é custo).
+              .not('historico_nome', 'ilike', '%TRANSFER%')
+              .not('ccusto_nome', 'ilike', '%APLICA%')
+              .not('ccusto_nome', 'ilike', '%AJUSTE DE SALDO%');
+
+            if (filterConta !== 'todas') {
+              query = query.eq('plano_contas_id', filterConta);
+            }
+            return query;
+          }
+        );
+
+        // Mapear pagamentos_caixa → shape usado pelas hierarquias abaixo.
+        return rows.map((r: any) => {
+          const valorAbs = Math.abs(Number(r.valor || 0));
+          const complementoLabel = [r.complemento, r.conta_nome].filter(Boolean).join(' — ')
+            || (r.documento ? `Doc ${r.documento}` : 'Lançamento');
+          return {
+            id: r.erp_id,
+            empresa_id: r.empresa_id,
+            empresa_nome: null,
+            fornecedor_codigo: null,
+            fornecedor_nome: r.historico_nome || 'Sem histórico',
+            categoria_nome: complementoLabel,
+            numero_documento: r.documento,
+            valor_original: valorAbs,
+            valor_pago: valorAbs,
+            data_emissao: r.data_movimento,
+            data_vencimento: r.data_movimento,
+            data_pagamento: r.data_movimento,
+            departamento_id: null,
+            departamento: null,
+            plano_contas_id: r.plano_contas_id,
+            plano_contas_nome: null,
+            status: 'pago',
+            ativo_dre: true,
+          };
+        });
+      }
+
+      // Regime de competência: contas_pagar por data_emissao.
       const data = await fetchAllRows<any>(
         'contas_pagar',
         '*, departamento:departamentos(id, nome)',
         (query: any) => {
-          if (regimeAnalise === 'caixa') {
-            query = query
-              .eq('status', 'pago')
-              .gte('data_pagamento', dataInicio)
-              .lte('data_pagamento', dataFim);
-          } else {
-            query = query
-              .gte('data_vencimento', dataInicio)
-              .lte('data_vencimento', dataFim);
-          }
-          
+          query = query
+            .gte('data_emissao', dataInicio)
+            .lte('data_emissao', dataFim);
+
           if (filterEmpresa !== 'todas') {
             query = query.eq('empresa_nome', filterEmpresa);
           }
-          
+
           if (filterDepartamento !== 'todos') {
             query = query.eq('departamento_id', filterDepartamento);
           }
-          
+
           if (filterConta !== 'todas') {
             query = query.eq('plano_contas_id', filterConta);
           }
-          
+
           if (!mostrarInativos) {
             query = query.neq('ativo_dre', false);
           }
-          
+
           return query;
         }
       );
-      
+
       return data;
     },
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
