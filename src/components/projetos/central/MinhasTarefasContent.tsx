@@ -2120,4 +2120,3 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     </ProcessoTagMapCtx.Provider>
   );
 }
-}
