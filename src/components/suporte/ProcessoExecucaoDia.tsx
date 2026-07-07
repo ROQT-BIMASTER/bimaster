@@ -81,6 +81,7 @@ export function ProcessoExecucaoDia({ processoId }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
+      <ProcessoHandoffAlertas processoId={processoId} />
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{totals.total} etapas</Badge>
         <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
