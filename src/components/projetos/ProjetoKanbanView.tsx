@@ -589,14 +589,13 @@ function DraggableKanbanCard({
                 />
               </div>
             )}
-            {tarefa.data_prazo ? (
-              <span className={cn(
-                "text-[10px] flex items-center gap-1",
-                isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
-              )}>
-                <Calendar className="h-3 w-3" />
-                {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-              </span>
+            {(tarefa.data_prazo || (tarefa as any).sla_limite) ? (
+              <SLACountdownPill
+                deadline={(tarefa as any).sla_limite ?? tarefa.data_prazo}
+                size="sm"
+                frozen={isCompleted}
+                sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
+              />
             ) : null}
           </div>
         </div>
