@@ -304,6 +304,97 @@ export function RotinaFixaDialog({ open, onOpenChange, rotina }: Props) {
             </div>
             <Switch checked={ativo} onCheckedChange={setAtivo} />
           </div>
+
+          {/* ==================== Encadeamento (BPMN) ==================== */}
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <Workflow className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-semibold">Encadeamento de processo</Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Vincule esta rotina a um processo operacional e defina quais rotinas de outros
+              departamentos são disparadas após a sua conclusão. Fica visível no fluxograma do processo.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Faz parte do processo</Label>
+                <Select value={processoOpt} onValueChange={setProcessoOpt}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NENHUM}>— Nenhum (rotina avulsa) —</SelectItem>
+                    <SelectItem value={NOVO}>+ Criar novo processo</SelectItem>
+                    {(processos as any[]).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">SLA de handoff (minutos)</Label>
+                <Input
+                  type="number"
+                  placeholder="Tempo entre esta etapa e a próxima"
+                  value={slaHandoff}
+                  onChange={(e) => setSlaHandoff(e.target.value)}
+                  disabled={processoOpt === NENHUM}
+                />
+              </div>
+            </div>
+
+            {processoOpt === NOVO && (
+              <div>
+                <Label className="text-xs">Nome do novo processo</Label>
+                <Input
+                  value={novoProcessoNome}
+                  onChange={(e) => setNovoProcessoNome(e.target.value)}
+                  placeholder="Ex: Emissão fiscal - Romaneio - Embarque"
+                />
+              </div>
+            )}
+
+            {processoOpt !== NENHUM && (
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Próximas etapas (rotinas disparadas após concluir esta)
+                </Label>
+                <div className="mt-1 max-h-48 overflow-y-auto border rounded-md divide-y">
+                  {rotinasDisponiveis.length === 0 ? (
+                    <div className="text-xs text-muted-foreground p-3">
+                      Não há outras rotinas ativas para encadear.
+                    </div>
+                  ) : rotinasDisponiveis.map((r) => {
+                    const fila = filaNomePorId.get(r.fila_id);
+                    const checked = proximas.includes(r.id);
+                    return (
+                      <label
+                        key={r.id}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 cursor-pointer"
+                      >
+                        <Checkbox checked={checked} onCheckedChange={() => toggleProxima(r.id)} />
+                        <span className="flex-1 truncate">{r.titulo}</span>
+                        {fila && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px]"
+                            style={fila.cor ? { backgroundColor: `${fila.cor}22`, color: fila.cor } : undefined}
+                          >
+                            {fila.nome}
+                          </Badge>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                {proximas.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {proximas.length} próxima(s) etapa(s) selecionada(s).
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
