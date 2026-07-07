@@ -59,14 +59,26 @@ Deno.serve(
         .in("id", filaIds);
       const filaById = new Map((filas ?? []).map((f) => [f.id, f]));
 
-      // 2) create execucao
+      // 2) create execucao (reutiliza se já existir para o dia)
       const dataRef = data_ref ?? new Date().toISOString().slice(0, 10);
-      const { data: exec, error: e2 } = await sb
+      let exec: any = null;
+      const { data: existing } = await sb
         .from("processo_execucoes")
-        .insert({ processo_id, data_ref: dataRef, status: "em_andamento", iniciado_em: new Date().toISOString() })
-        .select()
-        .single();
-      if (e2) return json(500, { error: e2.message }, cors);
+        .select("id")
+        .eq("processo_id", processo_id)
+        .eq("data_ref", dataRef)
+        .maybeSingle();
+      if (existing) {
+        exec = existing;
+      } else {
+        const { data: novaExec, error: e2 } = await sb
+          .from("processo_execucoes")
+          .insert({ processo_id, data_ref: dataRef, status: "em_andamento", iniciado_em: new Date().toISOString() })
+          .select()
+          .single();
+        if (e2) return json(500, { error: e2.message }, cors);
+        exec = novaExec;
+      }
 
       // 3) execucao_etapas
       const execEtapas = etapas.map((e) => ({
