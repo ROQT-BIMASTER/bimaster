@@ -36277,6 +36277,7 @@ export type Database = {
         Row: {
           created_at: string
           criado_por: string | null
+          descritivo_atividades: string | null
           etapa_id: string
           id: string
           papel: string
@@ -36285,6 +36286,7 @@ export type Database = {
         Insert: {
           created_at?: string
           criado_por?: string | null
+          descritivo_atividades?: string | null
           etapa_id: string
           id?: string
           papel: string
@@ -36293,6 +36295,7 @@ export type Database = {
         Update: {
           created_at?: string
           criado_por?: string | null
+          descritivo_atividades?: string | null
           etapa_id?: string
           id?: string
           papel?: string
