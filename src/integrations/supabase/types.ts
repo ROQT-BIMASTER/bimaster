@@ -36144,6 +36144,57 @@ export type Database = {
           },
         ]
       }
+      processo_etapa_pareceres: {
+        Row: {
+          anexos: Json | null
+          autor_id: string
+          created_at: string
+          etapa_id: string
+          id: string
+          processo_id: string
+          texto: string
+          tipo: Database["public"]["Enums"]["processo_parecer_tipo"]
+          versao_processo: number
+        }
+        Insert: {
+          anexos?: Json | null
+          autor_id: string
+          created_at?: string
+          etapa_id: string
+          id?: string
+          processo_id: string
+          texto: string
+          tipo?: Database["public"]["Enums"]["processo_parecer_tipo"]
+          versao_processo?: number
+        }
+        Update: {
+          anexos?: Json | null
+          autor_id?: string
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          processo_id?: string
+          texto?: string
+          tipo?: Database["public"]["Enums"]["processo_parecer_tipo"]
+          versao_processo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_pareceres_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_pareceres_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_operacionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_etapa_projeto_refs: {
         Row: {
           bloqueia_avanco: boolean
@@ -36339,6 +36390,63 @@ export type Database = {
           },
         ]
       }
+      processo_etapas: {
+        Row: {
+          created_at: string
+          horario_corte: string | null
+          id: string
+          nome_override: string | null
+          ordem: number
+          posicao_x: number
+          posicao_y: number
+          processo_id: string
+          rotina_fixa_id: string
+          sla_minutos: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          horario_corte?: string | null
+          id?: string
+          nome_override?: string | null
+          ordem?: number
+          posicao_x?: number
+          posicao_y?: number
+          processo_id: string
+          rotina_fixa_id: string
+          sla_minutos?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          horario_corte?: string | null
+          id?: string
+          nome_override?: string | null
+          ordem?: number
+          posicao_x?: number
+          posicao_y?: number
+          processo_id?: string
+          rotina_fixa_id?: string
+          sla_minutos?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_operacionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapas_rotina_fixa_id_fkey"
+            columns: ["rotina_fixa_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_rotinas_fixas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_evidencia_audit: {
         Row: {
           acao: string
@@ -36437,6 +36545,108 @@ export type Database = {
             columns: ["projeto_tarefa_id"]
             isOneToOne: false
             referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_execucao_etapas: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          etapa_id: string
+          execucao_id: string
+          id: string
+          iniciado_em: string | null
+          rotina_execucao_id: string | null
+          sla_estourado_em: string | null
+          status: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          etapa_id: string
+          execucao_id: string
+          id?: string
+          iniciado_em?: string | null
+          rotina_execucao_id?: string | null
+          sla_estourado_em?: string | null
+          status?: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          etapa_id?: string
+          execucao_id?: string
+          id?: string
+          iniciado_em?: string | null
+          rotina_execucao_id?: string | null
+          sla_estourado_em?: string | null
+          status?: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_execucao_etapas_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_execucao_etapas_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "processo_execucoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_execucao_etapas_rotina_execucao_id_fkey"
+            columns: ["rotina_execucao_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_rotina_execucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_execucoes: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          data_ref: string
+          id: string
+          iniciado_em: string | null
+          processo_id: string
+          status: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          data_ref: string
+          id?: string
+          iniciado_em?: string | null
+          processo_id: string
+          status?: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          data_ref?: string
+          id?: string
+          iniciado_em?: string | null
+          processo_id?: string
+          status?: Database["public"]["Enums"]["processo_execucao_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_execucoes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_operacionais"
             referencedColumns: ["id"]
           },
         ]
@@ -36630,6 +36840,61 @@ export type Database = {
             columns: ["perfil_id"]
             isOneToOne: false
             referencedRelation: "processo_perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_ligacoes: {
+        Row: {
+          condicao: Database["public"]["Enums"]["processo_ligacao_condicao"]
+          created_at: string
+          de_etapa_id: string
+          id: string
+          para_etapa_id: string
+          processo_id: string
+          rotulo: string | null
+          sla_handoff_minutos: number | null
+        }
+        Insert: {
+          condicao?: Database["public"]["Enums"]["processo_ligacao_condicao"]
+          created_at?: string
+          de_etapa_id: string
+          id?: string
+          para_etapa_id: string
+          processo_id: string
+          rotulo?: string | null
+          sla_handoff_minutos?: number | null
+        }
+        Update: {
+          condicao?: Database["public"]["Enums"]["processo_ligacao_condicao"]
+          created_at?: string
+          de_etapa_id?: string
+          id?: string
+          para_etapa_id?: string
+          processo_id?: string
+          rotulo?: string | null
+          sla_handoff_minutos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_ligacoes_de_etapa_id_fkey"
+            columns: ["de_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_ligacoes_para_etapa_id_fkey"
+            columns: ["para_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_ligacoes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_operacionais"
             referencedColumns: ["id"]
           },
         ]
@@ -36942,6 +37207,53 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "processo_etapa_tarefas_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processos_operacionais: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          criador_id: string | null
+          descricao: string | null
+          fila_dona_id: string
+          id: string
+          nome: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          criador_id?: string | null
+          descricao?: string | null
+          fila_dona_id: string
+          id?: string
+          nome: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          criador_id?: string | null
+          descricao?: string | null
+          fila_dona_id?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_operacionais_fila_dona_id_fkey"
+            columns: ["fila_dona_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
             referencedColumns: ["id"]
           },
         ]
@@ -56541,6 +56853,14 @@ export type Database = {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
       }
+      _processo_usuario_edita: {
+        Args: { _processo_id: string; _uid: string }
+        Returns: boolean
+      }
+      _processo_usuario_envolvido: {
+        Args: { _processo_id: string; _uid: string }
+        Returns: boolean
+      }
       _set_internal_cron_secret: {
         Args: { p_name: string; p_value: string }
         Returns: undefined
@@ -61397,6 +61717,14 @@ export type Database = {
         | "amostras"
       kanban_template_escopo: "pessoal" | "equipe" | "departamento" | "sistema"
       meeting_risk_level: "low" | "medium" | "high" | "critical"
+      processo_execucao_status:
+        | "pendente"
+        | "em_execucao"
+        | "concluida"
+        | "atrasada"
+        | "cancelada"
+      processo_ligacao_condicao: "sempre" | "se_concluida" | "em_excecao"
+      processo_parecer_tipo: "parecer" | "decisao" | "adaptacao" | "observacao"
       projeto_convite_status:
         | "pending"
         | "accepted"
@@ -61668,6 +61996,15 @@ export const Constants = {
       ],
       kanban_template_escopo: ["pessoal", "equipe", "departamento", "sistema"],
       meeting_risk_level: ["low", "medium", "high", "critical"],
+      processo_execucao_status: [
+        "pendente",
+        "em_execucao",
+        "concluida",
+        "atrasada",
+        "cancelada",
+      ],
+      processo_ligacao_condicao: ["sempre", "se_concluida", "em_excecao"],
+      processo_parecer_tipo: ["parecer", "decisao", "adaptacao", "observacao"],
       projeto_convite_status: [
         "pending",
         "accepted",
