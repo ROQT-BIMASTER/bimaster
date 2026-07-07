@@ -666,63 +666,12 @@ export function ContasPagarDREView({
             
             <span className="truncate">{node.nome}</span>
             
-            {node.tipo === 'lancamento' && node.conta && (
-              <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                {node.conta.classificado_automaticamente && (
-                  <span title="Classificado por IA">
-                    <Bot className="h-3 w-3 text-primary" />
-                  </span>
-                )}
-                {node.conta.classificacao_manual && (
-                  <span title="Classificação manual bloqueada">
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                  </span>
-                )}
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedConta(node.conta!);
-                          setEditarOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top"><p>Editar classificação</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
-            
+            {/* Lançamentos vindos do extrato (pagamentos_caixa) são imutáveis — sem botões de editar/transferir. */}
             {node.tipo === 'fornecedor' && (
               <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                 <Badge variant="outline" className="text-[10px] px-1 py-0">
                   {node.children.length} lanç.
                 </Badge>
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedFornecedor({
-                            nome: node.nome,
-                            lancamentosIds: node.lancamentosIds
-                          });
-                          setTransferirOpen(true);
-                        }}
-                      >
-                        <ArrowRightLeft className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top"><p>Transferir fornecedor</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             )}
           </div>
