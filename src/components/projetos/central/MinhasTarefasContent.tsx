@@ -102,6 +102,7 @@ const ListRow = memo(function ListRow({
 }) {
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const processoTag = useProcessoTag(tarefa.id);
 
   return (
     <div
