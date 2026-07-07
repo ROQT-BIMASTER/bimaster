@@ -118,10 +118,24 @@ export default function SuporteProcessoDetalhe() {
             <Badge variant="outline">{proc.etapas.length} etapa(s)</Badge>
             <Badge variant="outline">{proc.ligacoes.length} ligação(ões)</Badge>
             <span className="inline-flex items-center gap-1 ml-2">
-              <Info className="h-3 w-3" /> Arraste para reposicionar. Conecte etapas ligando os
-              pontos das bordas. Pressione Delete sobre uma ligação para removê-la.
+              <Info className="h-3 w-3" /> Arraste para reposicionar. Duplo-clique em uma etapa
+              para editar parecer, responsáveis e escalação. Delete remove ligações.
             </span>
+            <Button
+              size="sm"
+              className="ml-auto"
+              onClick={iniciarExecucao}
+              disabled={instanciando}
+            >
+              {instanciando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              Iniciar execução em Projetos
+            </Button>
           </div>
+        )}
         )}
 
         {selecionado ? (
