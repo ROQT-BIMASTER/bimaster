@@ -60,6 +60,8 @@ export function PrazoEditorPopover({
   limiteInferior,
   onSave,
   children,
+  locked = false,
+  lockedReason,
 }: PrazoEditorPopoverProps) {
   const [open, setOpen] = useState(false);
   const ano = new Date().getFullYear();
