@@ -86,6 +86,7 @@ import {
   type ProcessoOperacionalTag,
 } from "@/hooks/suporte/useProcessoOperacionalMap";
 import { ProcessoOperacionalBadge } from "@/components/suporte/ProcessoOperacionalBadge";
+import { SLACountdownPill } from "@/components/projetos/SLACountdownPill";
 
 const ProcessoTagMapCtx = createContext<Map<string, ProcessoOperacionalTag> | null>(null);
 const useProcessoTag = (id: string) => useContext(ProcessoTagMapCtx)?.get(id) ?? null;
