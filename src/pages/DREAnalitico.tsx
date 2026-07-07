@@ -254,7 +254,8 @@ export default function DREAnalitico() {
     }
   });
 
-  // Funções para obter a data de referência baseado no regime de análise
+  // Funções para obter a data de referência baseado no regime de análise.
+  // Competência = emissão (padrão Apuração ERP); Caixa = movimento bancário.
   const getDataRefReceber = (registro: any): string | null => {
     if (regimeAnalise === 'caixa') {
       return registro.data_recebimento || registro.data_vencimento;
@@ -264,11 +265,12 @@ export default function DREAnalitico() {
 
   const getDataRefPagar = (registro: any): string | null => {
     if (regimeAnalise === 'caixa') {
-      // Regime de caixa usa data_pagamento
+      // Base CAIXA: pagamentos_caixa (extrato bancário do ERP).
+      // O fetch já mapeia data_movimento em data_pagamento.
       return registro.data_pagamento || registro.data_vencimento;
     }
-    // Regime de competência usa data de vencimento
-    return registro.data_vencimento;
+    // Regime de competência: data de emissão (padrão Apuração de Custo do ERP).
+    return registro.data_emissao || registro.data_vencimento;
   };
   
   // Buscar totais de contas a receber por mês via RPC (max ~12 linhas)
