@@ -60590,6 +60590,42 @@ export type Database = {
           mp_id: string
         }[]
       }
+      rpc_processo_execucao_dia: {
+        Args: { _data_ref?: string; _processo_id: string }
+        Returns: {
+          concluida_em: string
+          etapa_id: string
+          execucao_id: string
+          fila_cor: string
+          fila_id: string
+          fila_nome: string
+          handoff_pendente_de_etapa_id: string
+          handoff_sla_minutos: number
+          minutos_para_deadline: number
+          ordem: number
+          responsavel_user_id: string
+          rotina_fixa_id: string
+          rotina_titulo: string
+          sla_deadline: string
+          sla_estourado: boolean
+          sla_minutos: number
+          status: string
+          ticket_id: string
+        }[]
+      }
+      rpc_processos_saude_dia: {
+        Args: { _data_ref?: string }
+        Returns: {
+          atrasadas: number
+          concluidas: number
+          em_andamento: number
+          fila_dona_id: string
+          nao_geradas: number
+          processo_id: string
+          processo_nome: string
+          total_etapas: number
+        }[]
+      }
       rpc_projeto_marcar_lido: {
         Args: { p_projeto_id: string }
         Returns: undefined
