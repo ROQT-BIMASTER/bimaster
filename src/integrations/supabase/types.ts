@@ -57831,6 +57831,10 @@ export type Database = {
         Args: { p_empresa_id?: number; p_evento: string; p_payload: Json }
         Returns: number
       }
+      ensure_processo_execucao_dia: {
+        Args: { _data_ref?: string; _processo_id: string }
+        Returns: string
+      }
       ensure_projeto_operacional: {
         Args: { _departamento_id: string }
         Returns: string
