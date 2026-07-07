@@ -3,9 +3,12 @@ import { Check, ChevronDown, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useEmpresasResult, useVendedoresResult } from "@/hooks/vendas/useVendasResult";
+import { MESES_PT } from "@/hooks/vendas/vendasFilters";
 
 export interface ResultFilters {
   ano: number;
+  /** 1..12 ou null = todos os meses */
+  mes: number | null;
   empresa: number | null;
   vendedorId: number | null;
 }
