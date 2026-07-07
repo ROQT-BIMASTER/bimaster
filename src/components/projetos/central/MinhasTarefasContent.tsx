@@ -2117,5 +2117,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         })}
       />
     </div>
+    </ProcessoTagMapCtx.Provider>
   );
+}
 }
