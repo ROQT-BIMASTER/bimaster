@@ -16282,6 +16282,8 @@ export type Database = {
           parcela: number | null
           portador: string | null
           raw: Json | null
+          setor_nome: string | null
+          setor_tpg: number | null
           sincronizado_em: string | null
           status_tpg: number | null
           tipo_documento: string | null
@@ -16308,6 +16310,8 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           raw?: Json | null
+          setor_nome?: string | null
+          setor_tpg?: number | null
           sincronizado_em?: string | null
           status_tpg?: number | null
           tipo_documento?: string | null
@@ -16334,6 +16338,8 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           raw?: Json | null
+          setor_nome?: string | null
+          setor_tpg?: number | null
           sincronizado_em?: string | null
           status_tpg?: number | null
           tipo_documento?: string | null
