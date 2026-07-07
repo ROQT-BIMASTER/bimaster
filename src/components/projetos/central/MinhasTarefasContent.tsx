@@ -1437,10 +1437,15 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     };
   }, [tarefas]);
 
+  const tarefaIdList = useMemo(() => tarefas.map((t) => t.id), [tarefas]);
+  const { data: processoTagMap } = useProcessoOperacionalMap(tarefaIdList);
+
   return (
+    <ProcessoTagMapCtx.Provider value={processoTagMap ?? null}>
     <div className="space-y-4">
       <PapelExplicativoBanner />
       <PapelChangeBanner />
+
       {showRoleOverview && tarefas.length > 0 && (
         <RoleOverviewCard
           tarefas={tarefas}
