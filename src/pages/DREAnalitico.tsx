@@ -685,19 +685,81 @@ export default function DREAnalitico() {
       children: []
     };
 
-    // Processar totais mensais de contas a receber (RECEITAS) — dados precisos
-    if (contasReceberTotais && contasReceberTotais.length > 0) {
+    // Receita da visão "Competência (Faturamento)" vem do agregado validado (faturamento_mensal).
+    // Fonte: NF-e de venda (op. 1/15/55/57/68) menos devolução (85), por data da nota, reconciliada
+    // contra o BI/ERP filial-a-filial e item-a-item na tela de Rentabilidade.
+    const usarFaturamento = regimeAnalise === 'competencia' && faturamentoMensal && faturamentoMensal.length > 0;
+
+    if (usarFaturamento) {
+      let totalBruta = 0;
+      let totalDev = 0;
+      const brutaPorMes: Record<string, number> = {};
+      const devPorMes: Record<string, number> = {};
+      (faturamentoMensal as any[]).forEach((row) => {
+        const bruta = Number(row.vendas_brutas ?? 0);
+        const dev = Number(row.devolucoes ?? 0);
+        const mesKey = row.ano_mes as string;
+        totalBruta += bruta;
+        totalDev += dev;
+        brutaPorMes[mesKey] = (brutaPorMes[mesKey] ?? 0) + bruta;
+        devPorMes[mesKey] = (devPorMes[mesKey] ?? 0) + dev;
+      });
+
+      receitaBruta.valor = totalBruta;
+      mesesPeriodo.forEach(m => {
+        receitaBruta.valoresMensais![m.key] = brutaPorMes[m.key] ?? 0;
+      });
+
+      // Subconta única (sem drill-down por cliente nesta visão — o agregado é por empresa×mês)
+      const vendasSubconta: DRENode = {
+        id: 'vendas-faturamento',
+        codigo: '01.01',
+        nome: 'NF-e de venda (bruto)',
+        tipo: 'conta',
+        nivel: 1,
+        valor: totalBruta,
+        valoresMensais: { ...receitaBruta.valoresMensais! },
+        natureza: 'C',
+        accountType: 'revenue',
+        children: []
+      };
+      receitaBruta.children?.push(vendasSubconta);
+
+      // Devoluções vão para "Deduções e Abatimentos" (NF-e de devolução, op. 85)
+      if (totalDev > 0) {
+        const devMensais = initValoresMensais();
+        mesesPeriodo.forEach(m => {
+          devMensais[m.key] = devPorMes[m.key] ?? 0;
+        });
+        const devNode: DRENode = {
+          id: 'deducoes-devolucoes-nfe',
+          codigo: '02.01.90',
+          nome: 'Devoluções (NF-e de devolução)',
+          tipo: 'conta',
+          nivel: 1,
+          valor: totalDev,
+          valoresMensais: devMensais,
+          natureza: 'D',
+          accountType: 'expense',
+        };
+        deducoes.children?.push(devNode);
+        deducoes.valor += totalDev;
+        mesesPeriodo.forEach(m => {
+          deducoes.valoresMensais![m.key] = (deducoes.valoresMensais![m.key] ?? 0) + (devPorMes[m.key] ?? 0);
+        });
+      }
+    } else if (contasReceberTotais && contasReceberTotais.length > 0) {
+      // Regime Caixa: receita continua vindo de contas_receber por data_recebimento.
       contasReceberTotais.forEach(row => {
         const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
         const mesKey = row.mes;
-        
+
         receitaBruta.valor += valor;
         if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
           receitaBruta.valoresMensais![mesKey] += valor;
         }
       });
-      
-      // Criar subconta "Vendas / Faturamento" com drill-down por cliente (top 50)
+
       const vendasSubconta: DRENode = {
         id: 'vendas-faturamento',
         codigo: '01.01',
@@ -710,7 +772,7 @@ export default function DREAnalitico() {
         accountType: 'revenue',
         children: []
       };
-      
+
       if (contasReceberClientes && contasReceberClientes.length > 0) {
         contasReceberClientes.forEach(row => {
           const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
@@ -728,7 +790,7 @@ export default function DREAnalitico() {
           vendasSubconta.children?.push(nodoCliente);
         });
       }
-      
+
       vendasSubconta.children?.sort((a, b) => b.valor - a.valor);
       receitaBruta.children?.push(vendasSubconta);
     }
