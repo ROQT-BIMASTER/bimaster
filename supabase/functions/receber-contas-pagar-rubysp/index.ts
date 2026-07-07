@@ -119,6 +119,8 @@ Deno.serve(secureHandler(
           status_tpg: t.status_tpg ?? null,
           custo_tpg: t.custo_tpg ?? null,
           historico_tpg: t.historico_tpg ?? null,
+          setor_tpg: t.setor_tpg ?? null,
+          setor_nome: t.setor_nome ?? null,
           raw: t,
           sincronizado_em: now,
         }));
