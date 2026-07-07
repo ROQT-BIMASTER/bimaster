@@ -4,13 +4,15 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Workflow, ArrowLeft, Info } from "lucide-react";
+import { Workflow, ArrowLeft, Info, Play, Loader2 } from "lucide-react";
 import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
+import { invokeChat } from "@/lib/ai/invokeChat";
+import { toast } from "sonner";
 
 export default function SuporteProcessoDetalhe() {
   const { id } = useParams<{ id: string }>();
