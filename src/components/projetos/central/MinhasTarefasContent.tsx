@@ -208,10 +208,17 @@ const ListRow = memo(function ListRow({
           avatarUrl={tarefa.responsavel_avatar_url}
           size="xs"
         />
-        {tarefa.data_prazo && (
-          <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-            {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
-          </span>
+        {(processoTag?.sla_limite || tarefa.data_prazo) && (
+          <SLACountdownPill
+            deadline={processoTag?.sla_limite ?? tarefa.data_prazo}
+            size="sm"
+            frozen={isDone}
+            sourceLabel={
+              processoTag
+                ? `Definido pelo processo: ${processoTag.processo_nome}`
+                : "Prazo do projeto"
+            }
+          />
         )}
         <QuickCommentPopover tarefaId={tarefa.id} count={messageCount} />
       </div>
