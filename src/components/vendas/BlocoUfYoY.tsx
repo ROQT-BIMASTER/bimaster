@@ -6,6 +6,7 @@ import { agruparPorRegiao, type GrupoRegiao } from "@/lib/vendas/regioes";
 
 interface Props {
   ano: number;
+  mes?: number | null;
   empresa: number | null;
   tabelaPrecoId?: number | null;
   clienteId?: number | null;
