@@ -208,8 +208,14 @@ export default function SuporteCentralOperacional() {
           )}
           {!isLoading && saude.length === 0 && (
             <Card className="md:col-span-2 xl:col-span-3">
-              <CardContent className="p-8 text-center text-sm text-muted-foreground">
-                Nenhum processo com etapas na data selecionada.
+              <CardContent className="p-8 text-center text-sm text-muted-foreground space-y-2">
+                <p>Nenhum processo com etapas na data selecionada.</p>
+                <p className="text-xs">
+                  Siga os 3 passos do guia acima para montar seu primeiro processo, ou abra
+                  os exemplos <strong>Fechamento diário financeiro</strong> e{" "}
+                  <strong>Expedição diária</strong> em Rotinas fixas → Processos para ver como
+                  ficam.
+                </p>
               </CardContent>
             </Card>
           )}
