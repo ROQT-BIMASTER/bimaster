@@ -24,6 +24,8 @@ interface SLACountdownPillProps {
   className?: string;
   /** Não mostrar a tarefa como "ao vivo" (tarefa concluída/arquivada). */
   frozen?: boolean;
+  /** Data de conclusão da tarefa. Quando `frozen=true`, é usada como referência ("agora congelado") para decidir se foi entregue no prazo ou em atraso. */
+  completedAt?: string | Date | null;
 }
 
 type Bucket = "distant" | "near" | "critical" | "overdue" | "empty";
