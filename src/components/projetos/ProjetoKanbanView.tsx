@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { SLACountdownPill } from "./SLACountdownPill";
+import { SlaProtocoloBadge } from "./SlaProtocoloBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
