@@ -62,18 +62,22 @@ export async function buildIpaperRows(supabase: any): Promise<IpaperLinha[]> {
     }
   }
 
-  return produtos.map((p) => {
-    const cod = (p.codhb ?? "").trim().toUpperCase();
-    const saldo = cod ? saldoPorCodigo.get(cod) : undefined;
-    const precoLive = cod && !p.preco_fixo ? precoPorCodigo.get(cod) : undefined;
-    return {
-      ID: p.ipaper_id,
-      NAME: p.nome,
-      STOCK: saldo === undefined ? 0 : Math.max(0, Math.floor(saldo)),
-      DESCRIPTION: "",
-      CODHB: p.codhb ?? "",
-      PRICE: precoLive ?? p.preco,
-      "PACKAGE SIZE": p.package_size,
-    };
-  });
+  return produtos
+    .map((p) => {
+      const cod = (p.codhb ?? "").trim().toUpperCase();
+      const saldo = cod ? saldoPorCodigo.get(cod) : undefined;
+      const precoLive = cod && !p.preco_fixo ? precoPorCodigo.get(cod) : undefined;
+      return {
+        ID: p.ipaper_id,
+        NAME: p.nome,
+        STOCK: saldo === undefined ? 0 : Math.max(0, Math.floor(saldo)),
+        DESCRIPTION: "",
+        CODHB: p.codhb ?? "",
+        PRICE: precoLive ?? p.preco,
+        "PACKAGE SIZE": p.package_size,
+      };
+    })
+    // Regra do catálogo: item zerado NÃO vai no arquivo (mesma prática das
+    // planilhas manuais "SEM ITENS ZERADOS") — o iPaper só recebe estoque ≥ 1.
+    .filter((l) => l.STOCK >= 1);
 }

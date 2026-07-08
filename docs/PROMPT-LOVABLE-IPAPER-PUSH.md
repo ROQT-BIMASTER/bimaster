@@ -38,7 +38,7 @@ Aplique a fase 2 da integração iPaper que chegou na main. Não altere nenhum o
    ```
    POST /ipaper-push  body: {}
    ```
-   Esperado: `success: true`, `arquivo: ESTOQUE-CATALOGOS-HUUGS-AUTO.xlsx`, `linhas: ~1534`, `fileId` numérico.
+   Esperado: `success: true`, `arquivo: ESTOQUE-CATALOGOS-HUUGS-AUTO.xlsx`, `linhas: ~1200` (regra do catálogo: só itens com estoque ≥ 1 entram no arquivo, como nas planilhas manuais "SEM ITENS ZERADOS"), `fileId` numérico.
 
 7. Me reporte: counts do passo 5, resposta completa do passo 6, e status dos crons (`SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE '%estoque-live%' OR jobname LIKE '%ipaper%';`).
 
