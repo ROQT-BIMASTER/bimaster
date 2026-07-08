@@ -42486,6 +42486,7 @@ export type Database = {
         Row: {
           conteudo: string
           created_at: string
+          edited_at: string | null
           id: string
           mentions: string[] | null
           metadata: Json
@@ -42495,6 +42496,7 @@ export type Database = {
         Insert: {
           conteudo: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           mentions?: string[] | null
           metadata?: Json
@@ -42504,6 +42506,7 @@ export type Database = {
         Update: {
           conteudo?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           mentions?: string[] | null
           metadata?: Json
