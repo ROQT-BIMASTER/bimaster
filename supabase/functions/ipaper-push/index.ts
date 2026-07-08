@@ -80,6 +80,29 @@ Deno.serve(secureHandler(
     const apiKey = Deno.env.get("IPAPER_API_KEY");
     if (!apiKey) return json(500, { error: "server_misconfigured", details: "IPAPER_API_KEY ausente" });
 
+    // Diagnóstico: valida acesso Backend API com uma chamada de leitura pura.
+    let diagnose = false;
+    try {
+      const body = await req.clone().json();
+      diagnose = body?.action === "diagnose";
+    } catch (_) { /* body vazio ok */ }
+    if (diagnose) {
+      try {
+        const xml = await ipaperCall("Paper.GetAllPapers", apiKey, {});
+        const code = xml.match(/<code[^>]*>(?:<!\[CDATA\[)?([^<\]]*)/i)?.[1]?.trim() ?? "";
+        return json(200, {
+          diagnose: true,
+          endpoint: "Paper.GetAllPapers",
+          code,
+          backend_api_ativo: !code || code === "OK",
+          resposta: xml.slice(0, 1200),
+        });
+      } catch (e) {
+        return json(200, { diagnose: true, endpoint: "Paper.GetAllPapers", erro: String(e) });
+      }
+    }
+
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
