@@ -1,0 +1,1 @@
+SELECT public._trigger_ipaper_push_manual() AS req_id;
