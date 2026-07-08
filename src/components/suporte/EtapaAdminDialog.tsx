@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { X, Plus, UserPlus, Users, AlertTriangle, ChevronDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import {
   useEtapaPapeis,
   useAddEtapaPapel,
@@ -37,17 +38,31 @@ interface Props {
   parecerAtual?: string | null;
 }
 
-function useProfilesSearch(q: string) {
+/**
+ * Descobre o projeto vinculado à etapa (via rotina_fixa → projeto_id_espelho).
+ * Assim o picker de responsáveis lista TODOS os colaboradores do projeto,
+ * independente do papel do usuário logado (antes só admins conseguiam ver a
+ * lista completa porque a busca em profiles é limitada por RLS).
+ */
+function useProjetoDaEtapa(etapaId: string | null) {
   return useQuery({
-    queryKey: ["profiles-search-etapa", q],
-    enabled: q.length >= 1,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .ilike("nome", `%${q}%`)
-        .limit(20);
-      return (data ?? []) as { id: string; nome: string | null; avatar_url: string | null }[];
+    queryKey: ["projeto-da-etapa", etapaId],
+    enabled: !!etapaId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<string | null> => {
+      const { data: etapa } = await (supabase as any)
+        .from("processo_etapas")
+        .select("rotina_fixa_id")
+        .eq("id", etapaId!)
+        .maybeSingle();
+      const rotinaId = etapa?.rotina_fixa_id;
+      if (!rotinaId) return null;
+      const { data: rotina } = await (supabase as any)
+        .from("suporte_rotinas_fixas")
+        .select("projeto_id_espelho")
+        .eq("id", rotinaId)
+        .maybeSingle();
+      return (rotina?.projeto_id_espelho as string | null) ?? null;
     },
   });
 }
@@ -82,7 +97,27 @@ function PapelSection({
 
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const { data: results = [] } = useProfilesSearch(q);
+  const { data: projetoId } = useProjetoDaEtapa(etapaId);
+  const { membros } = useProjetoMembros(projetoId ?? undefined);
+
+  const jaAdicionados = useMemo(
+    () => new Set(filtrados.map((p) => p.user_id)),
+    [filtrados],
+  );
+
+  const opcoes = useMemo(() => {
+    const list = (membros ?? [])
+      .filter((m: any) => !jaAdicionados.has(m.user_id))
+      .map((m: any) => ({
+        id: m.user_id,
+        nome: (m.profile?.nome as string | null) ?? null,
+        avatar_url: (m.profile?.avatar_url as string | null) ?? null,
+        papel: m.papel as string | undefined,
+      }));
+    const needle = q.trim().toLowerCase();
+    if (!needle) return list;
+    return list.filter((r) => (r.nome ?? "").toLowerCase().includes(needle));
+  }, [membros, jaAdicionados, q]);
 
   return (
     <div className="space-y-3">
@@ -111,11 +146,19 @@ function PapelSection({
           </PopoverTrigger>
           <PopoverContent className="p-0 w-[300px]" align="start">
             <Command shouldFilter={false}>
-              <CommandInput placeholder="Buscar usuário…" value={q} onValueChange={setQ} />
+              <CommandInput
+                placeholder={projetoId ? "Filtrar colaboradores do projeto…" : "Buscar usuário…"}
+                value={q}
+                onValueChange={setQ}
+              />
               <CommandList>
-                <CommandEmpty>Digite para buscar.</CommandEmpty>
+                <CommandEmpty>
+                  {projetoId
+                    ? "Nenhum colaborador do projeto corresponde."
+                    : "Nenhum projeto vinculado a esta etapa."}
+                </CommandEmpty>
                 <CommandGroup>
-                  {results.map((r) => (
+                  {opcoes.map((r) => (
                     <CommandItem
                       key={r.id}
                       value={r.id}
@@ -135,7 +178,12 @@ function PapelSection({
                         <AvatarImage src={r.avatar_url ?? undefined} />
                         <AvatarFallback className="text-[10px]">{iniciais(r.nome)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{r.nome ?? r.id.slice(0, 8)}</span>
+                      <span className="text-sm flex-1 truncate">{r.nome ?? r.id.slice(0, 8)}</span>
+                      {r.papel && (
+                        <span className="text-[10px] text-muted-foreground capitalize ml-2">
+                          {r.papel}
+                        </span>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
