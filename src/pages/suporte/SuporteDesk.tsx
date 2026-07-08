@@ -76,6 +76,7 @@ import type {
 const TODOS = "__todos__";
 
 const CATEGORIA_LABEL: Record<string, string> = {
+  sla_projeto: "SLA de Projetos",
   bug: "Bug",
   duvida_uso: "Dúvida de uso",
   solicitacao_acesso: "Acesso",
