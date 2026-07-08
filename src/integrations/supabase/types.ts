@@ -16709,6 +16709,8 @@ export type Database = {
         Row: {
           cod_fabricante: string | null
           cod_produto: number
+          empresa: number
+          erp_id: string
           estoque_disponivel: number
           nome_prod: string | null
           preco_venda: number | null
@@ -16717,6 +16719,8 @@ export type Database = {
         Insert: {
           cod_fabricante?: string | null
           cod_produto: number
+          empresa: number
+          erp_id: string
           estoque_disponivel?: number
           nome_prod?: string | null
           preco_venda?: number | null
@@ -16725,6 +16729,8 @@ export type Database = {
         Update: {
           cod_fabricante?: string | null
           cod_produto?: number
+          empresa?: number
+          erp_id?: string
           estoque_disponivel?: number
           nome_prod?: string | null
           preco_venda?: number | null
