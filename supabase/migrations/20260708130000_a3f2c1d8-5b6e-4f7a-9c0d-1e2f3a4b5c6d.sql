@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS public.erp_estoque_live (
   cod_fabricante text,
   nome_prod text,
   estoque_disponivel numeric(18,4) NOT NULL DEFAULT 0,
+  -- pcvenda_infpro (empresa 6) do Result: bate com o preço do catálogo iPaper
+  -- em 99,5% dos itens (validado contra a planilha manual em 08/07/2026)
+  preco_venda numeric(18,4),
   sincronizado_em timestamptz NOT NULL DEFAULT now()
 );
 

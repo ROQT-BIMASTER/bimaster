@@ -1211,13 +1211,18 @@ async function handleSyncEstoqueIncremental(req: Request, startMs: number) {
 // então o número aqui é idêntico ao que o vendedor vê. Alimenta o feed do iPaper.
 
 const ESTOQUE_LIVE_TABLE = "erp_estoque_live";
+// Preço: pcvenda_infpro da empresa 6 (mesma do força de vendas) bate com o preço
+// do catálogo iPaper em 99,5% dos itens (validado contra a planilha em 08/07/2026).
 const ESTOQUE_LIVE_QUERY = `
   SELECT l.id_pro AS cod_produto,
          l.estoque AS estoque_disponivel,
+         i.pcvenda_infpro AS preco_venda,
          LTRIM(RTRIM(p.codfor_pro)) AS cod_fabricante,
          LTRIM(RTRIM(p.descricao_pro)) AS nome_prod
   FROM dbo.Live_function_EstoqueProdutos() l
   JOIN dbo.Produtos p ON p.Id_Pro = l.id_pro
+  LEFT JOIN dbo.InformacoesProdutos i
+    ON i.Produto_InfPro = l.id_pro AND i.Empresa_InfPro = 6
 `;
 
 async function syncEstoqueLiveCore(startMs: number) {
@@ -1239,6 +1244,7 @@ async function syncEstoqueLiveCore(startMs: number) {
   const transformed = rows.map((row) => ({
     cod_produto: parseInteger(row["cod_produto"]) ?? 0,
     estoque_disponivel: parseAmount(row["estoque_disponivel"]),
+    preco_venda: row["preco_venda"] == null ? null : parseAmount(row["preco_venda"]),
     cod_fabricante: row["cod_fabricante"] ? String(row["cod_fabricante"]).toUpperCase() : null,
     nome_prod: row["nome_prod"] ?? null,
     sincronizado_em: syncStamp,

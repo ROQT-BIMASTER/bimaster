@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS public.ipaper_produtos (
   codhb text,
   preco numeric(18,4),
   package_size integer,
+  -- true = feed usa o preco daqui (seed/manual); false = usa pcvenda do Result
+  preco_fixo boolean NOT NULL DEFAULT false,
   ativo boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -1567,3 +1569,9 @@ ON CONFLICT (ipaper_id) DO UPDATE SET
   codhb = EXCLUDED.codhb,
   preco = EXCLUDED.preco,
   package_size = EXCLUDED.package_size;
+
+-- Itens internos (displays/insumos) e caixas com granularidade própria: o preço
+-- do catálogo não segue o pcvenda do Result — mantém o preço fixo do seed.
+UPDATE public.ipaper_produtos
+SET preco_fixo = true
+WHERE upper(trim(codhb)) IN ('INSUMO', 'INSUMOI', 'INSUMO PR', 'HB8080G1BX', 'HB566S14', 'HB566S22', 'RR24021BX');

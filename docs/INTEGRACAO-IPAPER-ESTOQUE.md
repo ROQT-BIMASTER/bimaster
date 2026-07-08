@@ -29,6 +29,12 @@ força de vendas mostra aos vendedores.
 - De-para catálogo ↔ Result: `CODHB` da planilha = `Produtos.codfor_pro`
   (código de fábrica). **1.494 de 1.496** códigos casam direto (exceções:
   HBF5823, INSUMOI). 1.480 têm linha no Live.
+- **Preço do catálogo = `InformacoesProdutos.pcvenda_infpro`** (empresa 6,
+  a mesma do força de vendas): **1.495 de 1.496 preços da planilha batem
+  exatos** ("qualquer empresa"; por empresa: 1.489 — preço é praticamente
+  idêntico nas 11). Os 7 divergentes são INSUMO* (itens internos) e
+  caixas/BX com granularidade própria → marcados `preco_fixo = true` no
+  seed (feed mantém o preço da planilha para eles).
 - Acesso 100% leitura: login `db_datareader`; nada é alterado no Result.
 
 ## Arquitetura
@@ -84,13 +90,14 @@ tabela ipaper_produtos (seed da planilha)                   │
 |---|---------|----------|
 | 1 | STOCK = disponível do força de vendas | pedido do negócio: catálogo mostra o mesmo saldo que o vendedor vê |
 | 2 | Consumir a função Live, não replicar fórmula | definição criptografada; réplica teria drift (reserva, bloqueio, empresa dona) |
-| 3 | Preço congelado no seed (editável em `ipaper_produtos.preco`) | fase 2: preço automático da tabela do Result |
+| 3 | PRICE = `pcvenda_infpro` (empresa 6) do Result, com `preco_fixo` por item para exceções | 99,5% de bate exato com a planilha; ERP vira fonte de verdade do preço; seed fica como fallback/override |
 | 4 | Atualização junto do sync de estoque do ERP | mesma cadência da tela Visão de Estoque; iPaper relê via feed URL |
 
 ## Fase 2 (não incluída)
 
-- Tela no Huugs para gerenciar `ipaper_produtos` (produto novo, preço, inativar).
-- Preço automático do Result.
+- Tela no Huugs para gerenciar `ipaper_produtos` (produto novo, preço fixo, inativar).
 - Alerta se o feed for consultado com sync velho (>2h).
 - Cobrir os 2 códigos sem match (HBF5823, INSUMOI) — cadastro no Result ou
   correção do código no catálogo.
+- Revisar os 4 itens BX/S14/S22 com `preco_fixo` (granularidade caixa×unidade
+  difere entre catálogo e ERP — confirmar preço certo com o time do catálogo).

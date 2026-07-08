@@ -42,10 +42,14 @@ SELECT count(*) AS produtos_catalogo,
        count(*) FILTER (WHERE EXISTS (
          SELECT 1 FROM public.erp_estoque_live e
          WHERE e.cod_fabricante = upper(trim(p.codhb))
-       )) AS com_saldo_live
+       )) AS com_saldo_live,
+       count(*) FILTER (WHERE EXISTS (
+         SELECT 1 FROM public.erp_estoque_live e
+         WHERE e.cod_fabricante = upper(trim(p.codhb)) AND e.preco_venda > 0
+       )) AS com_preco_live
 FROM public.ipaper_produtos p
 WHERE p.codhb IS NOT NULL;
--- esperado: ~1480 de 1533 com saldo live
+-- esperado: ~1480 de 1533 com saldo e preço live
 ```
 
 **4. Smoke test do feed**
