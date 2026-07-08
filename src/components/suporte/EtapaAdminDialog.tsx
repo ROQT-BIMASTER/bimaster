@@ -97,7 +97,27 @@ function PapelSection({
 
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const { data: results = [] } = useProfilesSearch(q);
+  const { data: projetoId } = useProjetoDaEtapa(etapaId);
+  const { membros } = useProjetoMembros(projetoId ?? undefined);
+
+  const jaAdicionados = useMemo(
+    () => new Set(filtrados.map((p) => p.user_id)),
+    [filtrados],
+  );
+
+  const opcoes = useMemo(() => {
+    const list = (membros ?? [])
+      .filter((m: any) => !jaAdicionados.has(m.user_id))
+      .map((m: any) => ({
+        id: m.user_id,
+        nome: (m.profile?.nome as string | null) ?? null,
+        avatar_url: (m.profile?.avatar_url as string | null) ?? null,
+        papel: m.papel as string | undefined,
+      }));
+    const needle = q.trim().toLowerCase();
+    if (!needle) return list;
+    return list.filter((r) => (r.nome ?? "").toLowerCase().includes(needle));
+  }, [membros, jaAdicionados, q]);
 
   return (
     <div className="space-y-3">
@@ -126,11 +146,19 @@ function PapelSection({
           </PopoverTrigger>
           <PopoverContent className="p-0 w-[300px]" align="start">
             <Command shouldFilter={false}>
-              <CommandInput placeholder="Buscar usuário…" value={q} onValueChange={setQ} />
+              <CommandInput
+                placeholder={projetoId ? "Filtrar colaboradores do projeto…" : "Buscar usuário…"}
+                value={q}
+                onValueChange={setQ}
+              />
               <CommandList>
-                <CommandEmpty>Digite para buscar.</CommandEmpty>
+                <CommandEmpty>
+                  {projetoId
+                    ? "Nenhum colaborador do projeto corresponde."
+                    : "Nenhum projeto vinculado a esta etapa."}
+                </CommandEmpty>
                 <CommandGroup>
-                  {results.map((r) => (
+                  {opcoes.map((r) => (
                     <CommandItem
                       key={r.id}
                       value={r.id}
@@ -150,7 +178,12 @@ function PapelSection({
                         <AvatarImage src={r.avatar_url ?? undefined} />
                         <AvatarFallback className="text-[10px]">{iniciais(r.nome)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{r.nome ?? r.id.slice(0, 8)}</span>
+                      <span className="text-sm flex-1 truncate">{r.nome ?? r.id.slice(0, 8)}</span>
+                      {r.papel && (
+                        <span className="text-[10px] text-muted-foreground capitalize ml-2">
+                          {r.papel}
+                        </span>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
