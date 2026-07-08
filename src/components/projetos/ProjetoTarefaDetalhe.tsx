@@ -168,9 +168,10 @@ export function ProjetoTarefaDetalhe({
   const { isAdmin } = useUserRole();
   const { user } = useAuth();
   const {
-    comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
+    comentarios, addComentario, editComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, removeFromCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
