@@ -598,6 +598,14 @@ function DraggableKanbanCard({
                 sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
               />
             ) : null}
+            {(tarefa as any).sla_protocolo && (tarefa as any).sla_status ? (
+              <SlaProtocoloBadge
+                protocolo={(tarefa as any).sla_protocolo}
+                status={(tarefa as any).sla_status}
+                ticketId={(tarefa as any).sla_ticket_id}
+                size="sm"
+              />
+            ) : null}
           </div>
         </div>
       </div>
