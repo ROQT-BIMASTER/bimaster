@@ -7,12 +7,15 @@ import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { KANBAN_COLUNAS, type KanbanColuna } from "./etapaTheme";
 import { PedidoCard } from "./PedidoCard";
 
+export type PedidosKanbanOrdem = "parado" | "recente" | "valor";
+
 interface PedidosKanbanProps {
   pedidos: PedidoFornecedor[];
   limiarParado: number;
   onPedidoClick?: (pedido: PedidoFornecedor) => void;
   /** Override de colunas (ex.: Result inclui "Entregue"). Default: KANBAN_COLUNAS. */
   colunas?: KanbanColuna[];
+  ordem?: PedidosKanbanOrdem;
 }
 
 const ETAPAS_EM_ANDAMENTO = new Set(["digitacao", "separacao", "separado", "conferido"]);
@@ -22,22 +25,35 @@ export function PedidosKanban({
   limiarParado,
   onPedidoClick,
   colunas: colunasProp,
+  ordem = "parado",
 }: PedidosKanbanProps) {
   const colunasBase = colunasProp ?? KANBAN_COLUNAS;
   const colunas = useMemo(() => {
     return colunasBase.map((c) => {
       const pedidosCol = pedidos
         .filter((p) => c.etapas.includes(p.etapa as any))
-        .sort((a, b) =>
-          c.id === "entregue"
-            ? (new Date(b.data_movimentacao ?? 0).getTime()) -
-              (new Date(a.data_movimentacao ?? 0).getTime())
-            : (b.dias_na_etapa ?? 0) - (a.dias_na_etapa ?? 0),
-        );
+        .sort((a, b) => {
+          if (c.id === "entregue") {
+            return (
+              new Date(b.data_movimentacao ?? 0).getTime() -
+              new Date(a.data_movimentacao ?? 0).getTime()
+            );
+          }
+          if (ordem === "recente") {
+            return (
+              new Date(b.data_emissao ?? 0).getTime() -
+              new Date(a.data_emissao ?? 0).getTime()
+            );
+          }
+          if (ordem === "valor") {
+            return (b.total_pedido ?? 0) - (a.total_pedido ?? 0);
+          }
+          return (b.dias_na_etapa ?? 0) - (a.dias_na_etapa ?? 0);
+        });
       const total = pedidosCol.reduce((s, p) => s + (p.total_pedido ?? 0), 0);
       return { ...c, pedidos: pedidosCol, total };
     });
-  }, [pedidos, colunasBase]);
+  }, [pedidos, colunasBase, ordem]);
 
   const { totalEmAndamento, countEmAndamento } = useMemo(() => {
     const cols = colunas.filter((c) => ETAPAS_EM_ANDAMENTO.has(c.id));
