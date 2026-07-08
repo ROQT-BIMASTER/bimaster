@@ -24,9 +24,11 @@ interface SLACountdownPillProps {
   className?: string;
   /** Não mostrar a tarefa como "ao vivo" (tarefa concluída/arquivada). */
   frozen?: boolean;
+  /** Data de conclusão da tarefa. Quando `frozen=true`, é usada como referência ("agora congelado") para decidir se foi entregue no prazo ou em atraso. */
+  completedAt?: string | Date | null;
 }
 
-type Bucket = "distant" | "near" | "critical" | "overdue" | "empty";
+type Bucket = "distant" | "near" | "critical" | "overdue" | "empty" | "done_on_time" | "done_late";
 
 function resolveDate(deadline: SLACountdownPillProps["deadline"]): Date | null {
   if (!deadline) return null;
@@ -100,6 +102,14 @@ const BUCKET_STYLES: Record<
     className: "bg-muted/40 text-muted-foreground border border-dashed border-border/60",
     Icon: Clock,
   },
+  done_on_time: {
+    className: "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40",
+    Icon: Clock,
+  },
+  done_late: {
+    className: "bg-destructive/15 text-destructive border border-destructive/60",
+    Icon: AlertCircle,
+  },
 };
 
 export function SLACountdownPill({
@@ -109,8 +119,10 @@ export function SLACountdownPill({
   hideWhenEmpty = true,
   className,
   frozen = false,
+  completedAt,
 }: SLACountdownPillProps) {
   const target = useMemo(() => resolveDate(deadline), [deadline]);
+  const completedDate = useMemo(() => resolveDate(completedAt ?? null), [completedAt]);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -137,11 +149,35 @@ export function SLACountdownPill({
     );
   }
 
-  const diffMs = target.getTime() - now;
-  const bucket = bucketize(diffMs);
+  // Referência de tempo: se a tarefa está congelada e temos data de conclusão,
+  // usamos ela em vez de "agora" — assim uma tarefa entregue no prazo nunca
+  // muda para "Atrasado" com o passar do tempo.
+  const reference = frozen && completedDate ? completedDate.getTime() : now;
+  const diffMs = target.getTime() - reference;
+
+  let bucket: Bucket;
+  let text: string;
+  if (frozen && completedDate) {
+    if (diffMs >= 0) {
+      bucket = "done_on_time";
+      text = "No prazo";
+    } else {
+      bucket = "done_late";
+      const abs = Math.abs(diffMs);
+      const h = Math.floor(abs / (60 * 60 * 1000));
+      const d = Math.floor(h / 24);
+      text = d >= 1 ? `Entregue ${d}d após prazo` : `Entregue ${h}h após prazo`;
+    }
+  } else {
+    bucket = bucketize(diffMs);
+    text = formatDelta(diffMs);
+  }
+
   const styles = BUCKET_STYLES[bucket];
-  const text = formatDelta(diffMs);
   const absolute = format(target, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const completedAbsolute = completedDate
+    ? format(completedDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+    : null;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -162,15 +198,20 @@ export function SLACountdownPill({
         </TooltipTrigger>
         <TooltipContent side="top" className="whitespace-pre-line max-w-xs text-xs">
           <div className="font-semibold">
-            {bucket === "overdue"
-              ? "Prazo excedido"
-              : bucket === "critical"
-                ? "Prazo crítico"
-                : bucket === "near"
-                  ? "Prazo próximo"
-                  : "Prazo em dia"}
+            {bucket === "done_on_time"
+              ? "Entregue no prazo"
+              : bucket === "done_late"
+                ? "Entregue após o prazo"
+                : bucket === "overdue"
+                  ? "Prazo excedido"
+                  : bucket === "critical"
+                    ? "Prazo crítico"
+                    : bucket === "near"
+                      ? "Prazo próximo"
+                      : "Prazo em dia"}
           </div>
           <div>Limite: {absolute}</div>
+          {completedAbsolute && <div>Concluída em: {completedAbsolute}</div>}
           {sourceLabel && <div className="text-muted-foreground">{sourceLabel}</div>}
         </TooltipContent>
       </Tooltip>

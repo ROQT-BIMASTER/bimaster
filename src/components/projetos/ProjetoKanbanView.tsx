@@ -594,6 +594,7 @@ function DraggableKanbanCard({
                 deadline={(tarefa as any).sla_limite ?? tarefa.data_prazo}
                 size="sm"
                 frozen={isCompleted}
+                completedAt={(tarefa as any).data_conclusao ?? null}
                 sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
               />
             ) : null}

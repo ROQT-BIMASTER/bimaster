@@ -213,6 +213,7 @@ const ListRow = memo(function ListRow({
             deadline={processoTag?.sla_limite ?? tarefa.data_prazo}
             size="sm"
             frozen={isDone}
+            completedAt={(tarefa as any).data_conclusao ?? null}
             sourceLabel={
               processoTag
                 ? `Definido pelo processo: ${processoTag.processo_nome}`
