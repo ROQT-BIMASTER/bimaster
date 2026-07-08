@@ -10,7 +10,10 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { buildIpaperRows } from "../_shared/ipaper-data.ts";
 
-const IPAPER_API_BASE = "https://ipaper.api.ipapercms.dk";
+// Endpoints reais são web services .NET: /V2/<Serviço>.asmx/<Método> (a doc
+// omite o caminho — verificado empiricamente em 08/07/2026: POST form-encoded
+// em /V2/Media.asmx/UploadFile responde XML; na raiz dá 404).
+const IPAPER_API_BASE = "https://ipaper.api.ipapercms.dk/V2";
 const ARQUIVO_NOME = "ESTOQUE-CATALOGOS-HUUGS-AUTO.xlsx";
 const PASTA_NOME = "Data"; // pasta da Media library onde vivem os arquivos de dados
 
@@ -22,8 +25,9 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 async function ipaperCall(method: string, apiKey: string, params: Record<string, string>): Promise<string> {
+  const [servico, metodo] = method.split("."); // "Media.UploadFile" → /Media.asmx/UploadFile
   const form = new URLSearchParams({ Username: "APIKey", Password: apiKey, ...params });
-  const resp = await fetch(`${IPAPER_API_BASE}/${method}`, {
+  const resp = await fetch(`${IPAPER_API_BASE}/${servico}.asmx/${metodo}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: form.toString(),
