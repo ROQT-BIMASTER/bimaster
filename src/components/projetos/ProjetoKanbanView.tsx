@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { SLACountdownPill } from "./SLACountdownPill";
+import { SlaProtocoloBadge } from "./SlaProtocoloBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
@@ -596,6 +597,14 @@ function DraggableKanbanCard({
                 frozen={isCompleted}
                 completedAt={(tarefa as any).data_conclusao ?? null}
                 sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
+              />
+            ) : null}
+            {(tarefa as any).sla_protocolo && (tarefa as any).sla_status ? (
+              <SlaProtocoloBadge
+                protocolo={(tarefa as any).sla_protocolo}
+                status={(tarefa as any).sla_status}
+                ticketId={(tarefa as any).sla_ticket_id}
+                size="sm"
               />
             ) : null}
           </div>

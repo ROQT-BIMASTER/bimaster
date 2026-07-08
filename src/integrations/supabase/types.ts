@@ -43042,6 +43042,9 @@ export type Database = {
           rr_variante_notion_id: string | null
           rrtask_page_id: string | null
           secao_id: string
+          sla_protocolo: string | null
+          sla_status: string | null
+          sla_ticket_id: string | null
           sprint: string | null
           status: string | null
           tem_briefing: boolean
@@ -43087,6 +43090,9 @@ export type Database = {
           rr_variante_notion_id?: string | null
           rrtask_page_id?: string | null
           secao_id: string
+          sla_protocolo?: string | null
+          sla_status?: string | null
+          sla_ticket_id?: string | null
           sprint?: string | null
           status?: string | null
           tem_briefing?: boolean
@@ -43132,6 +43138,9 @@ export type Database = {
           rr_variante_notion_id?: string | null
           rrtask_page_id?: string | null
           secao_id?: string
+          sla_protocolo?: string | null
+          sla_status?: string | null
+          sla_ticket_id?: string | null
           sprint?: string | null
           status?: string | null
           tem_briefing?: boolean
@@ -43203,6 +43212,13 @@ export type Database = {
             columns: ["secao_id"]
             isOneToOne: false
             referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_sla_ticket_id_fkey"
+            columns: ["sla_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -57661,6 +57677,10 @@ export type Database = {
         Args: { _value: string }
         Returns: undefined
       }
+      abrir_ticket_sla_tarefa: {
+        Args: { _sla_status: string; _tarefa_id: string }
+        Returns: string
+      }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
       access_review_decide: {
         Args: { _decision: string; _item_id: string; _notes?: string }
@@ -61978,6 +61998,7 @@ export type Database = {
         Args: { p_ator?: string; p_status: string; p_ticket_id: string }
         Returns: undefined
       }
+      suporte_gerar_protocolo: { Args: { prefix?: string }; Returns: string }
       suporte_horas_comerciais_entre: {
         Args: { p_ate: string; p_calendario_id?: string; p_de: string }
         Returns: number
