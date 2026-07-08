@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { X, Plus, UserPlus, Users, AlertTriangle, ChevronDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import {
   useEtapaPapeis,
   useAddEtapaPapel,
@@ -37,17 +38,31 @@ interface Props {
   parecerAtual?: string | null;
 }
 
-function useProfilesSearch(q: string) {
+/**
+ * Descobre o projeto vinculado à etapa (via rotina_fixa → projeto_id_espelho).
+ * Assim o picker de responsáveis lista TODOS os colaboradores do projeto,
+ * independente do papel do usuário logado (antes só admins conseguiam ver a
+ * lista completa porque a busca em profiles é limitada por RLS).
+ */
+function useProjetoDaEtapa(etapaId: string | null) {
   return useQuery({
-    queryKey: ["profiles-search-etapa", q],
-    enabled: q.length >= 1,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .ilike("nome", `%${q}%`)
-        .limit(20);
-      return (data ?? []) as { id: string; nome: string | null; avatar_url: string | null }[];
+    queryKey: ["projeto-da-etapa", etapaId],
+    enabled: !!etapaId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<string | null> => {
+      const { data: etapa } = await (supabase as any)
+        .from("processo_etapas")
+        .select("rotina_fixa_id")
+        .eq("id", etapaId!)
+        .maybeSingle();
+      const rotinaId = etapa?.rotina_fixa_id;
+      if (!rotinaId) return null;
+      const { data: rotina } = await (supabase as any)
+        .from("suporte_rotinas_fixas")
+        .select("projeto_id_espelho")
+        .eq("id", rotinaId)
+        .maybeSingle();
+      return (rotina?.projeto_id_espelho as string | null) ?? null;
     },
   });
 }
