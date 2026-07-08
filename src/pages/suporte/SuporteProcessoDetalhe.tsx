@@ -9,6 +9,7 @@ import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
+import { ProcessoConfigSLA } from "@/components/suporte/ProcessoConfigSLA";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
 import { toast } from "sonner";
@@ -141,12 +142,16 @@ export default function SuporteProcessoDetalhe() {
             <TabsList>
               <TabsTrigger value="canvas">Canvas</TabsTrigger>
               <TabsTrigger value="execucao">Execução do dia</TabsTrigger>
+              <TabsTrigger value="config-sla">Configuração SLA</TabsTrigger>
             </TabsList>
             <TabsContent value="canvas" className="mt-3">
               <ProcessoCanvas processoId={selecionado} />
             </TabsContent>
             <TabsContent value="execucao" className="mt-3">
               <ProcessoExecucaoDia processoId={selecionado} />
+            </TabsContent>
+            <TabsContent value="config-sla" className="mt-3">
+              <ProcessoConfigSLA processoId={selecionado} />
             </TabsContent>
           </Tabs>
         ) : (

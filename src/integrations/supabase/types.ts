@@ -36964,6 +36964,9 @@ export type Database = {
       processo_etapas: {
         Row: {
           created_at: string
+          escalonamento_assignee_id: string | null
+          escalonamento_ativo: boolean
+          fila_escalonamento_id: string | null
           horario_corte: string | null
           id: string
           nome_override: string | null
@@ -36971,13 +36974,18 @@ export type Database = {
           parecer_administrativo: string | null
           posicao_x: number
           posicao_y: number
+          prioridade_escalonamento: string | null
           processo_id: string
+          risco_percent: number
           rotina_fixa_id: string
           sla_minutos: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          escalonamento_assignee_id?: string | null
+          escalonamento_ativo?: boolean
+          fila_escalonamento_id?: string | null
           horario_corte?: string | null
           id?: string
           nome_override?: string | null
@@ -36985,13 +36993,18 @@ export type Database = {
           parecer_administrativo?: string | null
           posicao_x?: number
           posicao_y?: number
+          prioridade_escalonamento?: string | null
           processo_id: string
+          risco_percent?: number
           rotina_fixa_id: string
           sla_minutos?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          escalonamento_assignee_id?: string | null
+          escalonamento_ativo?: boolean
+          fila_escalonamento_id?: string | null
           horario_corte?: string | null
           id?: string
           nome_override?: string | null
@@ -36999,12 +37012,21 @@ export type Database = {
           parecer_administrativo?: string | null
           posicao_x?: number
           posicao_y?: number
+          prioridade_escalonamento?: string | null
           processo_id?: string
+          risco_percent?: number
           rotina_fixa_id?: string
           sla_minutos?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processo_etapas_fila_escalonamento_id_fkey"
+            columns: ["fila_escalonamento_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processo_etapas_processo_id_fkey"
             columns: ["processo_id"]
