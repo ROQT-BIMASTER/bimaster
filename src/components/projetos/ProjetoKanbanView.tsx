@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { SLACountdownPill } from "./SLACountdownPill";
 import { SlaProtocoloBadge } from "./SlaProtocoloBadge";
+import { SlaStatusBadge, derivarSlaStatus } from "./SlaStatusBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
@@ -538,6 +539,21 @@ function DraggableKanbanCard({
             diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
             compact
           />
+          {(() => {
+            const slaMark = derivarSlaStatus({
+              status: tarefa.status,
+              data_prazo: tarefa.data_prazo,
+              data_conclusao: (tarefa as any).data_conclusao,
+              created_at: (tarefa as any).created_at,
+              sla_status: (tarefa as any).sla_status,
+              sla_limite: (tarefa as any).sla_limite,
+            });
+            if (slaMark !== "em_risco" && slaMark !== "violado") return null;
+            const contexto = tarefa.estagio
+              ? ESTAGIO_LABELS[tarefa.estagio] ?? tarefa.estagio
+              : STATUS_LABELS[tarefa.status ?? ""] ?? tarefa.status ?? undefined;
+            return <SlaStatusBadge status={slaMark} contexto={contexto} />;
+          })()}
         </div>
 
         {/* Footer */}
