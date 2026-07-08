@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { RefreshCw, Search, ShoppingCart, KanbanSquare, Table as TableIcon } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { RefreshCw, Search, ShoppingCart, KanbanSquare, Table as TableIcon, AlertTriangle, ArrowUpDown } from "lucide-react";
 import { subDays } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,9 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { useRubyspPedidos } from "@/hooks/fornecedor/useRubyspPedidos";
-import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
+import { useDimEmpresas } from "@/hooks/useDimEmpresas";
+import { PedidosKanban, type PedidosKanbanOrdem } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoResultDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoResultDetalheDrawer";
 import { LeadTimeKpisCard } from "@/components/fornecedor/pedidos/LeadTimeKpisCard";
@@ -20,6 +23,9 @@ import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 import { SyncStatusBarResult } from "@/components/fornecedor/pedidos/SyncStatusBarResult";
 import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 
+const ORDEM_KEY = "pedidos-result:ordem";
+const FILIAL_KEY = "pedidos-result:filial";
+
 export default function PedidosResultPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(() => subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date | undefined>(() => new Date());
@@ -27,20 +33,56 @@ export default function PedidosResultPage() {
   const [limiarParado, setLimiarParado] = useState(2);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoRubyspExt | null>(null);
   const [view, setView] = useState<"kanban" | "tabela">("kanban");
+  const [filialId, setFilialId] = useState<string>(() => {
+    try { return localStorage.getItem(FILIAL_KEY) ?? "all"; } catch { return "all"; }
+  });
+  const [ordem, setOrdem] = useState<PedidosKanbanOrdem>(() => {
+    try {
+      const v = localStorage.getItem(ORDEM_KEY);
+      return v === "recente" || v === "valor" ? v : "parado";
+    } catch { return "parado"; }
+  });
+  const [apenasParados, setApenasParados] = useState(false);
+
+  useEffect(() => { try { localStorage.setItem(FILIAL_KEY, filialId); } catch { /* ignore */ } }, [filialId]);
+  useEffect(() => { try { localStorage.setItem(ORDEM_KEY, ordem); } catch { /* ignore */ } }, [ordem]);
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
+  const { data: filiais = [] } = useDimEmpresas();
+
+  // Somente filiais realmente presentes nos dados atuais aparecem no dropdown,
+  // mantendo o resto disponível apenas quando existir pedido.
+  const filiaisAtivas = useMemo(() => {
+    const ids = new Set<number>();
+    for (const p of data ?? []) if (p.empresa_id != null) ids.add(p.empresa_id);
+    return filiais.filter((f) => ids.has(f.id_empresa));
+  }, [filiais, data]);
 
   const pedidos = useMemo(() => {
-    const arr = data ?? [];
+    let arr = data ?? [];
+    if (filialId !== "all") {
+      const idNum = Number(filialId);
+      arr = arr.filter((p) => p.empresa_id === idNum);
+    }
+    if (apenasParados) {
+      arr = arr.filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado);
+    }
     const q = busca.trim().toLowerCase();
-    if (!q) return arr;
-    return arr.filter(
-      (p) =>
-        p.cliente_nome?.toLowerCase().includes(q) ||
-        p.nro_pedido?.toLowerCase().includes(q) ||
-        String(p.futura_pedido_id).includes(q),
-    );
-  }, [data, busca]);
+    if (q) {
+      arr = arr.filter(
+        (p) =>
+          p.cliente_nome?.toLowerCase().includes(q) ||
+          p.nro_pedido?.toLowerCase().includes(q) ||
+          String(p.futura_pedido_id).includes(q),
+      );
+    }
+    return arr;
+  }, [data, busca, filialId, apenasParados, limiarParado]);
+
+  const paradosCount = useMemo(
+    () => (data ?? []).filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado).length,
+    [data, limiarParado],
+  );
 
   return (
     <DashboardLayout>
@@ -58,10 +100,24 @@ export default function PedidosResultPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            {paradosCount > 0 && (
+              <Button
+                variant={apenasParados ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setApenasParados((v) => !v)}
+                className="gap-2"
+                title={apenasParados ? "Mostrar todos" : "Filtrar apenas pedidos parados"}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {paradosCount} parado{paradosCount === 1 ? "" : "s"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         <SyncStatusBarResult />
@@ -77,6 +133,22 @@ export default function PedidosResultPage() {
                 onDateToChange={setDateTo}
               />
             </div>
+            <div className="flex flex-col gap-1 min-w-[220px]">
+              <Label className="text-xs text-muted-foreground">Filial</Label>
+              <Select value={filialId} onValueChange={setFilialId}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todas as filiais" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as filiais</SelectItem>
+                  {filiaisAtivas.map((f) => (
+                    <SelectItem key={f.id_empresa} value={String(f.id_empresa)}>
+                      {f.nome_empresa}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
               <Label className="text-xs text-muted-foreground">Buscar</Label>
               <div className="relative">
@@ -88,6 +160,20 @@ export default function PedidosResultPage() {
                   className="pl-8 h-9"
                 />
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Ordenação (kanban)</Label>
+              <Select value={ordem} onValueChange={(v) => setOrdem(v as PedidosKanbanOrdem)}>
+                <SelectTrigger className="h-9 w-[170px]">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="parado">Mais parado</SelectItem>
+                  <SelectItem value="recente">Mais recente</SelectItem>
+                  <SelectItem value="valor">Maior valor</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">Alerta parado (dias)</Label>
@@ -104,6 +190,22 @@ export default function PedidosResultPage() {
         </Card>
 
         <LeadTimeKpisCard />
+
+        {(filialId !== "all" || apenasParados) && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Filtros ativos:</span>
+            {filialId !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                {filiaisAtivas.find((f) => String(f.id_empresa) === filialId)?.nome_empresa ?? `Filial ${filialId}`}
+              </Badge>
+            )}
+            {apenasParados && (
+              <Badge variant="destructive" className="gap-1">
+                Apenas parados
+              </Badge>
+            )}
+          </div>
+        )}
 
         <Tabs value={view} onValueChange={(v) => setView(v as "kanban" | "tabela")}>
           <TabsList>
@@ -127,7 +229,7 @@ export default function PedidosResultPage() {
             ) : pedidos.length === 0 ? (
               <EmptyState
                 title="Nenhum pedido no período"
-                description="Backfill em andamento ou nenhum pedido no intervalo selecionado — o painel popula automaticamente conforme a sincronização avança."
+                description="Ajuste o período, a filial ou o filtro de parados. O painel popula automaticamente conforme a sincronização avança."
               />
             ) : (
               <PedidosKanban
@@ -135,6 +237,7 @@ export default function PedidosResultPage() {
                 limiarParado={limiarParado}
                 onPedidoClick={(p) => setPedidoSelecionado(p as PedidoRubyspExt)}
                 colunas={KANBAN_COLUNAS_RESULT}
+                ordem={ordem}
               />
             )}
           </TabsContent>

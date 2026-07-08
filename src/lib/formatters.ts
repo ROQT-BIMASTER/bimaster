@@ -229,3 +229,20 @@ export function formatDuration(minutes: number): string {
   const mins = minutes % 60;
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 }
+
+/**
+ * Duração humana ultra-curta para caber em pílulas/cards.
+ * < 60min → "45m", < 24h → "2.3h", caso contrário → "1.4d".
+ * Retorna "—" quando entrada é inválida ou <= 0.
+ */
+export function formatDuracaoCurta(minutes: number | null | undefined): string {
+  if (minutes == null || Number.isNaN(minutes) || minutes <= 0) return "—";
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hours = minutes / 60;
+  if (hours < 24) {
+    return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`;
+  }
+  const days = hours / 24;
+  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+}
+
