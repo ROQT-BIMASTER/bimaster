@@ -123,6 +123,8 @@ export default function Projetos() {
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
   const { startTour } = useTour();
+  const projetoIds = useMemo(() => projetos.map(p => p.id), [projetos]);
+  const { data: processosPorProjeto } = useProjetosProcessosVinculados(projetoIds);
 
   const toggleVerTodos = () => {
     setVerTodos((prev) => {
