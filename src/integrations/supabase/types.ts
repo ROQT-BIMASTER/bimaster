@@ -61848,6 +61848,7 @@ export type Database = {
         Args: { _avatar_url: string; _member_id: string }
         Returns: undefined
       }
+      rpc_validar_processo: { Args: { _processo_id: string }; Returns: Json }
       rpc_vincular_aprovacao_briefing: {
         Args: {
           p_briefing_id: string
