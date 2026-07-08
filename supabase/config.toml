@@ -25,3 +25,6 @@ verify_jwt = false
 
 [functions.ipaper-feed]
 verify_jwt = false
+
+[functions.ipaper-push]
+verify_jwt = false

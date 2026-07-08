@@ -1205,25 +1205,44 @@ async function handleSyncEstoqueIncremental(req: Request, startMs: number) {
   return handleSyncEstoqueFull(req, startMs);
 }
 
-// ─── Estoque Live (Live_function_EstoqueProdutos → erp_estoque_live) ───
-// Saldo DISPONÍVEL que o força de vendas mostra aos vendedores (estoque − bloqueado −
-// reserva, já resolvido pela função do próprio Result). Consome a mesma função do app,
-// então o número aqui é idêntico ao que o vendedor vê. Alimenta o feed do iPaper.
+// ─── Estoque Live (disponível por filial → erp_estoque_live) ───
+// Saldo DISPONÍVEL no modelo do força de vendas (Estoque − Bloqueado − reserva),
+// calculado POR FILIAL para permitir limitar quais empresas alimentam o catálogo
+// iPaper. Fórmula validada contra Live_function_EstoqueProdutos em 08/07/2026:
+// 96% dos produtos a ≤5 unidades; diferenças = efeito do filtro de filial.
+// Preço: pcvenda_infpro (99,5% idêntico ao catálogo, praticamente igual nas filiais).
 
 const ESTOQUE_LIVE_TABLE = "erp_estoque_live";
-// Preço: pcvenda_infpro da empresa 6 (mesma do força de vendas) bate com o preço
-// do catálogo iPaper em 99,5% dos itens (validado contra a planilha em 08/07/2026).
-const ESTOQUE_LIVE_QUERY = `
-  SELECT l.id_pro AS cod_produto,
-         l.estoque AS estoque_disponivel,
+const ESTOQUE_LIVE_EMPRESAS_DEFAULT = [6, 9, 10, 11]; // GLASS, NEW COSMIC, MIDDAY, A GENTE
+
+function estoqueLiveEmpresas(): number[] {
+  const env = Deno.env.get("IPAPER_EMPRESAS");
+  if (env) {
+    const ids = env.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isInteger(n) && n > 0);
+    if (ids.length > 0) return ids;
+  }
+  return ESTOQUE_LIVE_EMPRESAS_DEFAULT;
+}
+
+function estoqueLiveQuery(empresas: number[]): string {
+  return `
+  SELECT i.Empresa_InfPro AS empresa,
+         i.Produto_InfPro AS cod_produto,
+         CAST(i.Estoque_InfPro - COALESCE(b.bloq, 0) - COALESCE(i.reserva_Infpro, 0) AS float) AS estoque_disponivel,
          i.pcvenda_infpro AS preco_venda,
          LTRIM(RTRIM(p.codfor_pro)) AS cod_fabricante,
          LTRIM(RTRIM(p.descricao_pro)) AS nome_prod
-  FROM dbo.Live_function_EstoqueProdutos() l
-  JOIN dbo.Produtos p ON p.Id_Pro = l.id_pro
-  LEFT JOIN dbo.InformacoesProdutos i
-    ON i.Produto_InfPro = l.id_pro AND i.Empresa_InfPro = 6
+  FROM dbo.InformacoesProdutos i
+  JOIN dbo.Produtos p ON p.Id_Pro = i.Produto_InfPro
+  LEFT JOIN (
+    SELECT [Empresa_Par] AS e, [Cod Produto] AS c, MAX([Estoque Bloqueado Produto]) AS bloq
+    FROM dbo.Cust_EstoqueDistribuidora
+    GROUP BY [Empresa_Par], [Cod Produto]
+  ) b ON b.e = i.Empresa_InfPro AND b.c = i.Produto_InfPro
+  WHERE i.Empresa_InfPro IN (${empresas.join(", ")})
+    AND (i.Estoque_InfPro <> 0 OR COALESCE(i.reserva_Infpro, 0) <> 0 OR COALESCE(b.bloq, 0) <> 0)
 `;
+}
 
 async function syncEstoqueLiveCore(startMs: number) {
   const supabase = createClient(
@@ -1231,27 +1250,35 @@ async function syncEstoqueLiveCore(startMs: number) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  const empresas = estoqueLiveEmpresas();
   let connection: Connection | null = null;
   let rows: SqlRow[];
   try {
     connection = await connectToSqlServer();
-    rows = await executeSqlQuery(connection, ESTOQUE_LIVE_QUERY);
+    rows = await executeSqlQuery(connection, estoqueLiveQuery(empresas));
   } finally {
     if (connection) try { connection.close(); } catch (_) {}
   }
 
   const syncStamp = new Date().toISOString();
-  const transformed = rows.map((row) => ({
-    cod_produto: parseInteger(row["cod_produto"]) ?? 0,
-    estoque_disponivel: parseAmount(row["estoque_disponivel"]),
-    preco_venda: row["preco_venda"] == null ? null : parseAmount(row["preco_venda"]),
-    cod_fabricante: row["cod_fabricante"] ? String(row["cod_fabricante"]).toUpperCase() : null,
-    nome_prod: row["nome_prod"] ?? null,
-    sincronizado_em: syncStamp,
-  })).filter((r) => r.cod_produto > 0);
+  const transformed = rows.map((row) => {
+    const empresa = parseInteger(row["empresa"]) ?? 0;
+    const codProduto = parseInteger(row["cod_produto"]) ?? 0;
+    return {
+      erp_id: `${empresa}-${codProduto}`,
+      empresa,
+      cod_produto: codProduto,
+      // disponível nunca negativo — filial com bloqueio/reserva acima do físico não desconta das outras
+      estoque_disponivel: Math.max(0, parseAmount(row["estoque_disponivel"])),
+      preco_venda: row["preco_venda"] == null ? null : parseAmount(row["preco_venda"]),
+      cod_fabricante: row["cod_fabricante"] ? String(row["cod_fabricante"]).toUpperCase() : null,
+      nome_prod: row["nome_prod"] ?? null,
+      sincronizado_em: syncStamp,
+    };
+  }).filter((r) => r.cod_produto > 0 && r.empresa > 0);
 
   const { inserted, errors, deadlockRetries } = await batchUpsert(
-    supabase, ESTOQUE_LIVE_TABLE, transformed, "cod_produto",
+    supabase, ESTOQUE_LIVE_TABLE, transformed, "erp_id",
   );
 
   // Produto que saiu da função Live (descontinuado/zerado no app) some do feed também.
@@ -1279,7 +1306,8 @@ async function handleSyncEstoqueLive(req: Request, startMs: number) {
     return jsonResponse({
       success: true,
       entity: "estoque_live",
-      source: "Live_function_EstoqueProdutos",
+      source: "InformacoesProdutos por filial (modelo força de vendas)",
+      empresas: estoqueLiveEmpresas(),
       totalRows: r.totalRows,
       upserted: r.upserted,
       removed: r.removed,
