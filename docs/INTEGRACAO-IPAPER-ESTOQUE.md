@@ -37,6 +37,33 @@ força de vendas mostra aos vendedores.
   seed (feed mantém o preço da planilha para eles).
 - Acesso 100% leitura: login `db_datareader`; nada é alterado no Result.
 
+## Atualização 08/07 (tarde) — filtro de filiais + push via Backend API
+
+1. **Filiais limitadas (decisão do Leandro)**: o catálogo recebe estoque só das
+   empresas **6 (GLASS), 9 (NEW COSMIC), 10 (MIDDAY), 11 (A GENTE)** — PR (4) e
+   PE (8) fora. Como a Live_function não expõe filial, o sync passou a calcular
+   o disponível POR EMPRESA (`Estoque_InfPro − Bloqueado − reserva_Infpro`,
+   fórmula validada: 96% dos produtos a ≤5 un. do força de vendas) e
+   `erp_estoque_live` ganhou a dimensão empresa (PK `erp_id` = empresa-cod).
+   Lista configurável via env `IPAPER_EMPRESAS` (default 6,9,10,11) sem deploy.
+2. **Plano B sem depender do suporte iPaper**: o admin não permite trocar a
+   fonte da Enrichment Automation para URL (config é feita pelo suporte). Mas a
+   Backend API tem `Media.UploadFile` que **sobrescreve por nome** — então a
+   edge `ipaper-push` gera o XLSX (mesmas colunas da planilha) e sobrescreve
+   `ESTOQUE-CATALOGOS-HUUGS-AUTO.xlsx` na Media library; o Auto Update (já
+   ativo no flipbook "Catálogo interativo Ruby Rose") re-executa a automação.
+   Passo único manual no admin: apontar a automação para esse arquivo.
+3. **Crons criados**: `sync-estoque-live-horario` (09–23 UTC, :05) e
+   `ipaper-push-horario` (:25), via pg_cron + x-cron-secret.
+4. **Guarda de dado velho**: o push aborta (409) se `erp_estoque_live` estiver
+   sem sync há mais de 24h — não empurra catálogo congelado.
+5. O feed por URL (`ipaper-feed`) continua no ar — vira o Plano A se/quando o
+   suporte do iPaper aceitar apontar a automação para URL (perguntar também se
+   o fetcher deles suporta `Authorization: Bearer` em vez de token na URL).
+   Secrets: `IPAPER_FEED_TOKEN` (feed) e `IPAPER_API_KEY` (Backend API, gerada
+   pelo admin em account-settings; opcional `IPAPER_PARENT_ID` para fixar a
+   pasta da Media — sem ela a função procura a pasta "Data" via GetTree).
+
 ## Arquitetura
 
 ```
