@@ -59737,6 +59737,15 @@ export type Database = {
           tela_codigo: string
         }[]
       }
+      get_vendedor_documento: {
+        Args: { _vendedor_id: string }
+        Returns: {
+          cnpj_cpf: string
+          id: string
+          nome: string
+          razao_social: string
+        }[]
+      }
       global_rate_limit_check: {
         Args: { _identifier: string; _limit?: number }
         Returns: Json
