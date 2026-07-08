@@ -9,6 +9,7 @@ import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
 import { ProcessoExecucaoDia } from "@/components/suporte/ProcessoExecucaoDia";
+import { ProcessoConfigSLA } from "@/components/suporte/ProcessoConfigSLA";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessoOnboardingGuide } from "@/components/suporte/ProcessoOnboardingGuide";
 import { toast } from "sonner";
