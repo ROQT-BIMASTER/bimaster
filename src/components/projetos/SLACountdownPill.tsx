@@ -102,6 +102,14 @@ const BUCKET_STYLES: Record<
     className: "bg-muted/40 text-muted-foreground border border-dashed border-border/60",
     Icon: Clock,
   },
+  done_on_time: {
+    className: "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40",
+    Icon: Clock,
+  },
+  done_late: {
+    className: "bg-destructive/15 text-destructive border border-destructive/60",
+    Icon: AlertCircle,
+  },
 };
 
 export function SLACountdownPill({
