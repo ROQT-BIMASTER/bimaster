@@ -90,12 +90,12 @@ const BUCKET_STYLES: Record<
   },
   critical: {
     className:
-      "bg-warning/15 text-warning border border-warning/50 animate-pulse",
+      "bg-warning/15 text-warning border border-warning/50",
     Icon: AlarmClock,
   },
   overdue: {
     className:
-      "bg-destructive/15 text-destructive border border-destructive/60 animate-pulse font-semibold shadow-[0_0_0_2px_hsl(var(--destructive)/0.15)]",
+      "bg-destructive/15 text-destructive border border-destructive/60 font-semibold",
     Icon: AlertCircle,
   },
   empty: {
