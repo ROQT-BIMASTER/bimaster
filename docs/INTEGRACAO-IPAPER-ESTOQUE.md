@@ -57,7 +57,9 @@ força de vendas mostra aos vendedores.
    `ipaper-push-horario` (:25), via pg_cron + x-cron-secret.
 4. **Guarda de dado velho**: o push aborta (409) se `erp_estoque_live` estiver
    sem sync há mais de 24h — não empurra catálogo congelado.
-5. O feed por URL (`ipaper-feed`) continua no ar — vira o Plano A se/quando o
+5. **Sem itens zerados**: feed e arquivo só levam produtos com estoque ≥ 1
+   (regra do iPaper/prática das planilhas manuais "SEM ITENS ZERADOS").
+6. O feed por URL (`ipaper-feed`) continua no ar — vira o Plano A se/quando o
    suporte do iPaper aceitar apontar a automação para URL (perguntar também se
    o fetcher deles suporta `Authorization: Bearer` em vez de token na URL).
    Secrets: `IPAPER_FEED_TOKEN` (feed) e `IPAPER_API_KEY` (Backend API, gerada
