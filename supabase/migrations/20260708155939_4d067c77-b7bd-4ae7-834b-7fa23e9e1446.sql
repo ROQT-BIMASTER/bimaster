@@ -1,0 +1,1 @@
+REVOKE INSERT, UPDATE ON public.ipaper_produtos FROM sandbox_exec;
