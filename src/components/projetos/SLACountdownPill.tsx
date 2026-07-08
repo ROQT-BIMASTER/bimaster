@@ -28,7 +28,7 @@ interface SLACountdownPillProps {
   completedAt?: string | Date | null;
 }
 
-type Bucket = "distant" | "near" | "critical" | "overdue" | "empty";
+type Bucket = "distant" | "near" | "critical" | "overdue" | "empty" | "done_on_time" | "done_late";
 
 function resolveDate(deadline: SLACountdownPillProps["deadline"]): Date | null {
   if (!deadline) return null;
