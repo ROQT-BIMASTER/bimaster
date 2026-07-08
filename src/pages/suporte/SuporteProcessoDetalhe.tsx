@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Workflow, ArrowLeft, Info, Play, Loader2 } from "lucide-react";
+import { Workflow, ArrowLeft, Info, Play, Loader2, Plus, Pencil } from "lucide-react";
 import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
