@@ -1181,6 +1181,15 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
     await Promise.all(promises);
   }
 
+  // Atualiza também o saldo disponível do força de vendas (fonte do feed iPaper),
+  // para o botão "Sincronizar ERP" e o cron cobrirem as duas visões numa tacada.
+  try {
+    const live = await syncEstoqueLiveCore(startMs);
+    results.estoque_live = { success: true, totalRows: live.totalRows, upserted: live.upserted, removed: live.removed };
+  } catch (e) {
+    results.estoque_live = { success: false, error: e instanceof Error ? e.message : "Erro" };
+  }
+
   return jsonResponse({
     success: true,
     entity: "estoque_full",
@@ -1194,6 +1203,88 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
 async function handleSyncEstoqueIncremental(req: Request, startMs: number) {
   // A view de estoque normalmente não tem timestamp — incremental = full rápido.
   return handleSyncEstoqueFull(req, startMs);
+}
+
+// ─── Estoque Live (Live_function_EstoqueProdutos → erp_estoque_live) ───
+// Saldo DISPONÍVEL que o força de vendas mostra aos vendedores (estoque − bloqueado −
+// reserva, já resolvido pela função do próprio Result). Consome a mesma função do app,
+// então o número aqui é idêntico ao que o vendedor vê. Alimenta o feed do iPaper.
+
+const ESTOQUE_LIVE_TABLE = "erp_estoque_live";
+const ESTOQUE_LIVE_QUERY = `
+  SELECT l.id_pro AS cod_produto,
+         l.estoque AS estoque_disponivel,
+         LTRIM(RTRIM(p.codfor_pro)) AS cod_fabricante,
+         LTRIM(RTRIM(p.descricao_pro)) AS nome_prod
+  FROM dbo.Live_function_EstoqueProdutos() l
+  JOIN dbo.Produtos p ON p.Id_Pro = l.id_pro
+`;
+
+async function syncEstoqueLiveCore(startMs: number) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  let connection: Connection | null = null;
+  let rows: SqlRow[];
+  try {
+    connection = await connectToSqlServer();
+    rows = await executeSqlQuery(connection, ESTOQUE_LIVE_QUERY);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  const syncStamp = new Date().toISOString();
+  const transformed = rows.map((row) => ({
+    cod_produto: parseInteger(row["cod_produto"]) ?? 0,
+    estoque_disponivel: parseAmount(row["estoque_disponivel"]),
+    cod_fabricante: row["cod_fabricante"] ? String(row["cod_fabricante"]).toUpperCase() : null,
+    nome_prod: row["nome_prod"] ?? null,
+    sincronizado_em: syncStamp,
+  })).filter((r) => r.cod_produto > 0);
+
+  const { inserted, errors, deadlockRetries } = await batchUpsert(
+    supabase, ESTOQUE_LIVE_TABLE, transformed, "cod_produto",
+  );
+
+  // Produto que saiu da função Live (descontinuado/zerado no app) some do feed também.
+  const { count } = await supabase
+    .from(ESTOQUE_LIVE_TABLE)
+    .delete({ count: "exact" })
+    .lt("sincronizado_em", syncStamp);
+  const removed = count ?? 0;
+
+  await recordSync(supabase, "estoque_live", {
+    status: errors.length > 0 ? "partial" : "success",
+    totalRegistros: rows.length,
+    registrosInseridos: inserted,
+    duracaoMs: Date.now() - startMs,
+    erroMensagem: errors.length > 0 ? errors.slice(0, 5).join("; ") : undefined,
+    deadlockRetries,
+  });
+
+  return { totalRows: rows.length, upserted: inserted, removed, errors };
+}
+
+async function handleSyncEstoqueLive(req: Request, startMs: number) {
+  try {
+    const r = await syncEstoqueLiveCore(startMs);
+    return jsonResponse({
+      success: true,
+      entity: "estoque_live",
+      source: "Live_function_EstoqueProdutos",
+      totalRows: r.totalRows,
+      upserted: r.upserted,
+      removed: r.removed,
+      errors: r.errors.length > 0 ? r.errors.slice(0, 5) : undefined,
+    }, 200, req, { startMs });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Erro";
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await recordSync(supabase, "estoque_live", { status: "error", totalRegistros: 0, registrosInseridos: 0, duracaoMs: Date.now() - startMs, erroMensagem: msg });
+    return errorResponse(500, "sync_failed", msg, req, startMs);
+  }
 }
 
 // ─── Composição (ComposicaoProduto → erp_composicao_produto) ───
@@ -1488,6 +1579,8 @@ Deno.serve(secureHandler({
         return await handleSyncEstoqueFull(req, startMs);
       case "sync-estoque-incremental":
         return await handleSyncEstoqueIncremental(req, startMs);
+      case "sync-estoque-live":
+        return await handleSyncEstoqueLive(req, startMs);
       case "sync-composicao-por-empresa":
         return await handleSyncComposicaoPorEmpresa(req, startMs);
       case "sync-composicao-full":
@@ -1517,6 +1610,7 @@ Deno.serve(secureHandler({
             "POST /sync-vendas-por-empresa — Sync de vendas filtrado por empresa (≥2025; body: { empresa_id })",
             "POST /sync-vendas-full — Sync completo de vendas segmentado por empresa (≥2025)",
             "POST /sync-vendas-incremental — Sync incremental de vendas (janela ±2 dias da última sync)",
+            "POST /sync-estoque-live — Sync do saldo disponível do força de vendas (Live_function_EstoqueProdutos → erp_estoque_live)",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
           ],

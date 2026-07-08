@@ -11,20 +11,36 @@ o catálogo fica defasado.
 
 O iPaper suporta **Enrichment Automation com product feed por URL**: em vez de
 receber arquivo, ele lê uma URL (CSV/JSON) e atualiza estoque/preço dos
-flipbooks sozinho (com Auto Update, disponível nos planos Commerce Plus /
-Enterprise+).
+flipbooks sozinho (com Auto Update, planos Commerce Plus / Enterprise+).
 
-O estoque já chega vivo no Huugs: o conector da Futura (droplet) envia o saldo
-a cada **15 minutos** para a tabela `fornecedor_estoque_futura`, com
-`codigo_produto` = REFERENCIA do produto (o mesmo código HB/RR da planilha).
+A fonte do estoque é o **Result (Ruby_SP)** — o mesmo saldo disponível que o
+força de vendas mostra aos vendedores.
 
-A automação então é só **expor esse estoque no formato que o iPaper espera**:
+### Investigação no Result (08/07/2026, somente leitura)
+
+- O força de vendas consome a função `dbo.Live_function_EstoqueProdutos()`
+  (inline TVF, definição criptografada pelo fornecedor). Retorna 1 linha por
+  produto: `id_pro`, `estoque` (disponível), ~5.978 produtos.
+- Validação empírica contra `Cust_EstoqueDistribuidora` (base completa):
+  o disponível ≈ `Estoque − Bloqueado − reserva_Infpro` da distribuidora dona
+  do produto (2.325 exatos com estoque−bloq; resíduos −5/−30 = campo
+  `reserva`; pedido pendente NÃO é descontado). Como a função já resolve
+  tudo isso, **consumimos a própria função** — zero reengenharia, zero drift.
+- De-para catálogo ↔ Result: `CODHB` da planilha = `Produtos.codfor_pro`
+  (código de fábrica). **1.494 de 1.496** códigos casam direto (exceções:
+  HBF5823, INSUMOI). 1.480 têm linha no Live.
+- Acesso 100% leitura: login `db_datareader`; nada é alterado no Result.
+
+## Arquitetura
 
 ```
-Futura (Firebird, on-prem)
-   └─ connector-futura (droplet, a cada 15 min)
-        └─ Edge receber-estoque-fornecedor
-             └─ tabela fornecedor_estoque_futura        ← estoque vivo
+Result / Ruby_SP (SQL Server, read-only)
+   └─ dbo.Live_function_EstoqueProdutos() + dbo.Produtos (codfor_pro)
+        └─ erp-sync-engine  rota sync-estoque-live
+           (roda também ao final de todo sync-estoque-full /
+            botão "Sincronizar ERP" / cron)
+             └─ tabela erp_estoque_live (cod_produto, cod_fabricante,
+                estoque_disponivel)                      ← saldo do vendedor
                                                             │
 tabela ipaper_produtos (seed da planilha)                   │
   ID iPaper ↔ CODHB + nome + preço + package size           │
@@ -37,46 +53,44 @@ tabela ipaper_produtos (seed da planilha)                   │
 
 ## Componentes (nesta PR)
 
-1. **Migration `20260708120000_…ipaper_produtos`**
-   - Tabela `ipaper_produtos` (ipaper_id PK, nome, codhb, preco, package_size, ativo).
-   - Seed com as 1.534 linhas válidas da planilha (35 linhas `#N/A` descartadas).
-   - RLS: leitura para `authenticated` via `check_user_access()`; escrita só service role.
-
-2. **Edge Function `ipaper-feed`** (pública, token compartilhado)
-   - `GET …/functions/v1/ipaper-feed?token=<IPAPER_FEED_TOKEN>` → CSV com as
-     colunas exatas da planilha: `ID,NAME,STOCK,DESCRIPTION,CODHB,PRICE,PACKAGE SIZE`.
-   - `&format=json` → mesmo conteúdo em JSON (se o suporte do iPaper preferir).
-   - STOCK = soma de `estoque_caixas` de `fornecedor_estoque_futura` por código
-     (todas as empresas da Futura), casando `upper(trim(codhb))`.
-   - Produto sem match no estoque → STOCK 0 (nunca some do feed).
-   - Cache 5 min; rate limit 60/min; token em query string ou `Authorization: Bearer`.
+1. **Migration `…120000` — `ipaper_produtos`**: de-para ID iPaper ↔ CODHB +
+   preço/embalagem, seed com as 1.534 linhas válidas da planilha.
+2. **Migration `…130000` — `erp_estoque_live`**: saldo disponível do força de
+   vendas (cod_produto PK, cod_fabricante indexado, estoque_disponivel).
+3. **erp-sync-engine**: nova rota `sync-estoque-live` (query única na função
+   Live + join Produtos, upsert + remoção de produtos que saíram do app);
+   também roda automaticamente ao final de `sync-estoque-full`.
+4. **Edge `ipaper-feed`** (pública, token compartilhado):
+   `GET …/functions/v1/ipaper-feed?token=<IPAPER_FEED_TOKEN>` → CSV com as
+   colunas exatas da planilha `ID,NAME,STOCK,DESCRIPTION,CODHB,PRICE,PACKAGE SIZE`
+   (`&format=json` também disponível). Join: `upper(trim(codhb))` =
+   `cod_fabricante`. Sem match → STOCK 0 (produto nunca some do feed).
+   RLS nas duas tabelas no molde padrão (leitura authenticated via
+   `check_user_access()`, escrita só service role).
 
 ## Configuração no iPaper (admin.ipaper.io)
 
-1. Gerar um token forte e salvar como secret `IPAPER_FEED_TOKEN` (prompt Lovable).
-2. Testar a URL no navegador:
-   `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/ipaper-feed?token=…`
-3. Abrir chamado com o suporte iPaper (support@ipaper.io) ou usar o setup de
-   Enrichment Automation no admin: informar a URL do feed, formato CSV,
-   coluna-chave (`ID` ou `CODHB` — o suporte confirma qual o EA deles usa hoje,
-   já que a planilha atual era importada com essas mesmas colunas).
-4. Modo de geração: **On request** (dado muda o dia todo) ou **On schedule**
-   (2–4×/dia) — recomendação: On request, o feed responde em <2s com cache.
-5. Ativar **Auto Update** nos catálogos para re-enriquecer sem ação manual.
+1. Gerar token forte → secret `IPAPER_FEED_TOKEN` (prompt Lovable).
+2. Testar a URL do feed no navegador (deve baixar o CSV).
+3. Configurar a Enrichment Automation com a URL do feed (ou via
+   support@ipaper.io, que monta o EA para o cenário — fluxo padrão deles).
+   Chave de match: mesma da planilha atual (colunas idênticas).
+4. Geração "On request" + **Auto Update** ativado nos catálogos.
+5. Conferir 3–5 produtos contra o app do vendedor após a 1ª atualização.
 
-## Decisões assumidas (validar com o time do catálogo)
+## Decisões assumidas
 
-| # | Decisão | Default adotado | Alternativa |
-|---|---------|-----------------|-------------|
-| 1 | Unidade do STOCK | caixas (`estoque_caixas`, como o conector converte DZ→CX) | unidades (multiplicar por package_size) |
-| 2 | Escopo de empresas | soma das empresas 1, 2 e 3 da Futura | filtrar 1 empresa (ajuste de 1 linha na function) |
-| 3 | Preço | congelado no seed da planilha (editável em `ipaper_produtos.preco`) | fase 2: sincronizar tabela de preço da Futura |
-| 4 | Produtos novos no catálogo | inserir linha em `ipaper_produtos` (tela admin futura ou SQL) | fase 2: tela de gestão no Huugs |
+| # | Decisão | Racional |
+|---|---------|----------|
+| 1 | STOCK = disponível do força de vendas | pedido do negócio: catálogo mostra o mesmo saldo que o vendedor vê |
+| 2 | Consumir a função Live, não replicar fórmula | definição criptografada; réplica teria drift (reserva, bloqueio, empresa dona) |
+| 3 | Preço congelado no seed (editável em `ipaper_produtos.preco`) | fase 2: preço automático da tabela do Result |
+| 4 | Atualização junto do sync de estoque do ERP | mesma cadência da tela Visão de Estoque; iPaper relê via feed URL |
 
 ## Fase 2 (não incluída)
 
-- Tela no Huugs para gerenciar `ipaper_produtos` (adicionar produto novo ao
-  catálogo, ajustar preço, inativar).
-- Preço automático via tabela de preço da Futura (`descobrir-tabela-preco.js`
-  já mapeou a fonte).
-- Alerta se o feed for consultado e o sync da Futura estiver velho (>2h).
+- Tela no Huugs para gerenciar `ipaper_produtos` (produto novo, preço, inativar).
+- Preço automático do Result.
+- Alerta se o feed for consultado com sync velho (>2h).
+- Cobrir os 2 códigos sem match (HBF5823, INSUMOI) — cadastro no Result ou
+  correção do código no catálogo.

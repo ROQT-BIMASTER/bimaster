@@ -1,7 +1,8 @@
 // Feed de produtos para o iPaper (Enrichment Automation / Auto Update).
 // Substitui a planilha manual "ESTOQUE CATALOGOS IPAPER PADRÃO.xlsx":
 // junta ipaper_produtos (de-para ID iPaper <-> CODHB + preço/embalagem)
-// com o estoque vivo de fornecedor_estoque_futura (sincronizado a cada 15min).
+// com erp_estoque_live — o saldo DISPONÍVEL do força de vendas do Result
+// (mesmo número que o vendedor vê), sincronizado pelo erp-sync-engine.
 // Auth: token compartilhado (?token= ou Bearer) — o iPaper busca a URL sem JWT.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -75,21 +76,22 @@ Deno.serve(secureHandler(
             .order("ipaper_id")
             .range(from, to),
         ),
-        fetchAll<{ codigo_produto: string; estoque_caixas: number | null }>(
+        fetchAll<{ cod_fabricante: string | null; estoque_disponivel: number | null }>(
           (from, to) => supabase
-            .from("fornecedor_estoque_futura")
-            .select("codigo_produto, estoque_caixas")
-            .order("erp_id")
+            .from("erp_estoque_live")
+            .select("cod_fabricante, estoque_disponivel")
+            .order("cod_produto")
             .range(from, to),
         ),
       ]);
 
-      // Soma o saldo por código (o conector traz uma linha por empresa da Futura)
+      // Saldo disponível por código de fábrica (se o mesmo código aparecer em
+      // mais de um produto do Result, soma — hoje o Live já traz 1 linha/produto)
       const saldoPorCodigo = new Map<string, number>();
       for (const e of estoque) {
-        const cod = (e.codigo_produto ?? "").trim().toUpperCase();
+        const cod = (e.cod_fabricante ?? "").trim().toUpperCase();
         if (!cod) continue;
-        saldoPorCodigo.set(cod, (saldoPorCodigo.get(cod) ?? 0) + (e.estoque_caixas ?? 0));
+        saldoPorCodigo.set(cod, (saldoPorCodigo.get(cod) ?? 0) + (e.estoque_disponivel ?? 0));
       }
 
       const linhas = produtos.map((p) => {
