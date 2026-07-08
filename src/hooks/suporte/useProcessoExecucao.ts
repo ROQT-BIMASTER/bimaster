@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface EtapaExecucaoDia {
@@ -13,7 +14,7 @@ export interface EtapaExecucaoDia {
   sla_minutos: number | null;
   execucao_id: string | null;
   ticket_id: string | null;
-  status: string; // 'nao_gerada' | 'gerada' | 'em_andamento' | 'concluida' | 'violada' | 'escalada'
+  status: string;
   sla_deadline: string | null;
   concluida_em: string | null;
   sla_estourado: boolean;
@@ -35,7 +36,8 @@ export interface ProcessoSaudeDia {
 
 /** Estado das etapas de um processo em uma data. */
 export function useProcessoExecucaoDia(processoId: string | null | undefined, dataRef?: string) {
-  return useQuery({
+  const qc = useQueryClient();
+  const query = useQuery({
     enabled: !!processoId,
     queryKey: ["processo", "execucao-dia", processoId, dataRef ?? "hoje"],
     refetchInterval: 60_000,
@@ -48,6 +50,33 @@ export function useProcessoExecucaoDia(processoId: string | null | undefined, da
       return (data ?? []) as unknown as EtapaExecucaoDia[];
     },
   });
+
+  // Realtime: reflete mudanças no Kanban de projetos imediatamente
+  useEffect(() => {
+    if (!processoId) return;
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["processo", "execucao-dia", processoId] });
+      qc.invalidateQueries({ queryKey: ["processos", "saude-dia"] });
+    };
+    const channel = supabase
+      .channel(`processo-execucao-${processoId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "processo_execucao_etapas" },
+        invalidate,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "processo_tarefa_espelho" },
+        invalidate,
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [processoId, qc]);
+
+  return query;
 }
 
 /** Painel agregado: saúde de todos os processos ativos em uma data. */

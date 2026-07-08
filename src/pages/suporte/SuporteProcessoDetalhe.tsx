@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Workflow, ArrowLeft, Info, Play, Loader2 } from "lucide-react";
+import { Workflow, ArrowLeft, Info, Play, Loader2, Plus, Pencil } from "lucide-react";
 import { useProcessos, useProcesso } from "@/hooks/suporte/useProcessos";
 import { useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { ProcessoCanvas } from "@/components/suporte/ProcessoCanvas";
@@ -69,6 +69,20 @@ export default function SuporteProcessoDetalhe() {
                 Encadeamento entre rotinas fixas com swimlanes por departamento.
               </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {selecionado && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/dashboard/suporte/processos/${selecionado}/editar`)}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> Editar processo
+              </Button>
+            )}
+            <Button size="sm" onClick={() => navigate("/dashboard/suporte/processos/novo")}>
+              <Plus className="h-4 w-4 mr-1" /> Novo processo
+            </Button>
           </div>
         </div>
 
