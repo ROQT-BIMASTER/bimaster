@@ -618,6 +618,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   return {
     comentarios,
     addComentario,
+    editComentario,
+
     anexos,
     uploadAnexo,
     deleteAnexo,
