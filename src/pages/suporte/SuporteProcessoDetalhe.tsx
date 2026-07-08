@@ -142,12 +142,16 @@ export default function SuporteProcessoDetalhe() {
             <TabsList>
               <TabsTrigger value="canvas">Canvas</TabsTrigger>
               <TabsTrigger value="execucao">Execução do dia</TabsTrigger>
+              <TabsTrigger value="config-sla">Configuração SLA</TabsTrigger>
             </TabsList>
             <TabsContent value="canvas" className="mt-3">
               <ProcessoCanvas processoId={selecionado} />
             </TabsContent>
             <TabsContent value="execucao" className="mt-3">
               <ProcessoExecucaoDia processoId={selecionado} />
+            </TabsContent>
+            <TabsContent value="config-sla" className="mt-3">
+              <ProcessoConfigSLA processoId={selecionado} />
             </TabsContent>
           </Tabs>
         ) : (
