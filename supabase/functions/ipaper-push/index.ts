@@ -26,9 +26,16 @@ function constantTimeEquals(a: string, b: string): boolean {
 
 async function ipaperCall(method: string, apiKey: string, params: Record<string, string>): Promise<string> {
   const [servico, metodo] = method.split("."); // "Media.UploadFile" → /Media.asmx/UploadFile
-  // Backend API .NET usa prefixo `pl` nos parâmetros (verificado empiricamente:
-  // `Username/Password` retornam "Missing parameter: plUsername").
-  const form = new URLSearchParams({ plUsername: "APIKey", plPassword: apiKey, ...params });
+  // Cada Web Service .NET do iPaper usa nomes de credencial diferentes
+  // (verificado empiricamente): Paper.* → plUsername/plPassword;
+  // Media.*  → username/password (lowercase). Enviamos todas as variantes;
+  // parâmetros extras são ignorados pelo servidor.
+  const form = new URLSearchParams({
+    Username: "APIKey", Password: apiKey,
+    username: "APIKey", password: apiKey,
+    plUsername: "APIKey", plPassword: apiKey,
+    ...params,
+  });
 
   const resp = await fetch(`${IPAPER_API_BASE}/${servico}.asmx/${metodo}`, {
     method: "POST",
