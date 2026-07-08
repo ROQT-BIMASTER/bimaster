@@ -57771,6 +57771,7 @@ export type Database = {
         Args: { _value: string }
         Returns: undefined
       }
+      _trigger_ipaper_push_manual: { Args: never; Returns: number }
       abrir_ticket_sla_tarefa: {
         Args: { _sla_status: string; _tarefa_id: string }
         Returns: string
