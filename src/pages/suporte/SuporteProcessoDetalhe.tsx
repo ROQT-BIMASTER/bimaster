@@ -70,6 +70,20 @@ export default function SuporteProcessoDetalhe() {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            {selecionado && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/dashboard/suporte/processos/${selecionado}/editar`)}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> Editar processo
+              </Button>
+            )}
+            <Button size="sm" onClick={() => navigate("/dashboard/suporte/processos/novo")}>
+              <Plus className="h-4 w-4 mr-1" /> Novo processo
+            </Button>
+          </div>
         </div>
 
         {(!isLoading && processos.length === 0) && (
