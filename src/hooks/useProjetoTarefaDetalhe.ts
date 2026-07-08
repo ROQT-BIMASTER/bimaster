@@ -18,8 +18,10 @@ export interface TarefaComentario {
   conteudo: string;
   mentions: string[];
   created_at: string;
+  edited_at?: string | null;
   autor?: { nome: string; avatar_url: string | null };
 }
+
 
 export interface TarefaAnexo {
   id: string;
@@ -132,6 +134,36 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId], refetchType: "none" });
     },
   });
+
+  const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+  const editComentario = useMutation({
+    mutationFn: async ({ id, conteudo }: { id: string; conteudo: string }) => {
+      const { error } = await supabase
+        .from("projeto_tarefa_comentarios")
+        .update({ conteudo } as any)
+        .eq("id", id)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, conteudo }) => {
+      const qk = ["tarefa-comentarios", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaComentario[]>(qk);
+      queryClient.setQueryData<TarefaComentario[]>(qk, (old) =>
+        (old || []).map((c) => (c.id === id ? { ...c, conteudo, edited_at: new Date().toISOString() } : c)),
+      );
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-comentarios", tarefaId], ctx.previous);
+      toast.error(err.message || "Não foi possível editar o comentário");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId], refetchType: "none" });
+    },
+  });
+
 
   // Realtime subscription for comments
   useEffect(() => {
@@ -586,6 +618,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   return {
     comentarios,
     addComentario,
+    editComentario,
+
     anexos,
     uploadAnexo,
     deleteAnexo,
