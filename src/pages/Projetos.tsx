@@ -8,7 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2, Eye, EyeOff } from "lucide-react";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2, Eye, EyeOff, Workflow } from "lucide-react";
+import { useProjetosProcessosVinculados } from "@/hooks/useProjetosProcessosVinculados";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
@@ -122,6 +123,8 @@ export default function Projetos() {
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
   const { startTour } = useTour();
+  const projetoIds = useMemo(() => projetos.map(p => p.id), [projetos]);
+  const { data: processosPorProjeto } = useProjetosProcessosVinculados(projetoIds);
 
   const toggleVerTodos = () => {
     setVerTodos((prev) => {
@@ -388,6 +391,49 @@ export default function Projetos() {
                               ) : null;
                             })()}
                           </div>
+                          {(() => {
+                            const procs = processosPorProjeto?.get(projeto.id) || [];
+                            if (procs.length === 0) return null;
+                            const primary = procs[0];
+                            const extra = procs.length - 1;
+                            const cor = primary.cor || "hsl(var(--primary))";
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-foreground/80 max-w-full"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span
+                                      className="h-1.5 w-1.5 rounded-full shrink-0"
+                                      style={{ backgroundColor: cor }}
+                                    />
+                                    <Workflow className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                                    <span className="truncate">{primary.nome}</span>
+                                    {extra > 0 && (
+                                      <span className="text-muted-foreground shrink-0">+{extra}</span>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <div className="text-[11px] font-semibold mb-1">
+                                    Processo{procs.length > 1 ? "s" : ""} operacional{procs.length > 1 ? "is" : ""} vinculado{procs.length > 1 ? "s" : ""}
+                                  </div>
+                                  <ul className="space-y-0.5">
+                                    {procs.map((p) => (
+                                      <li key={p.processo_id} className="flex items-center gap-1.5 text-[11px]">
+                                        <span
+                                          className="h-1.5 w-1.5 rounded-full"
+                                          style={{ backgroundColor: p.cor || "hsl(var(--primary))" }}
+                                        />
+                                        {p.nome}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
                           {projeto.descricao && (
                             <p className="text-[11px] text-muted-foreground truncate">{projeto.descricao}</p>
                           )}
