@@ -1582,9 +1582,12 @@ export function ProjetoTarefaDetalhe({
                 <TarefaComentariosSection
                   comentarios={comentarios}
                   addComentario={addComentario}
+                  editComentario={editComentario}
+                  currentUserId={user?.id ?? null}
                   teamMembers={teamMembers}
                   highlightCommentId={highlightCommentId}
                 />
+
 
                 {/* Timeline Unificada (Comentários + Atividades) */}
                 <Separator />
