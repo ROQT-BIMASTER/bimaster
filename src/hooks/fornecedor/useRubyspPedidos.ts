@@ -113,17 +113,27 @@ export function useRubyspPedidos({ dateFrom, dateTo, finalizadosDias = 7 }: UseR
       if (dateFrom) qView = qView.gte("data_pedido", dateFrom.toISOString().slice(0, 10));
       if (dateTo) qView = qView.lte("data_pedido", dateTo.toISOString().slice(0, 10));
 
-      // 2) Finalizados recentes (tabela base) — view filtra finalizado=false
-      const sinceIso = new Date(Date.now() - finalizadosDias * 86_400_000).toISOString();
+      // 2) Finalizados recentes (tabela base) — view filtra finalizado=false.
+      // Respeita o range do usuário via data_pedido (mesma coluna da view).
+      // Se não houver dateFrom, cai no teto de segurança `finalizadosDias`.
       const qFinal = sb
         .from("erp_pedidos_rubysp")
         .select(
           "rubysp_pedido_id,empresa_id,cliente_id,cliente_nome,cliente_cnpj,cliente_cidade,cliente_uf,vendedor_id,vendedor_nome,cond_pagamento_id,cond_pagamento_desc,nf_numero,data_pedido,data_entrega,etapa,etapa_ordem,etapa_desde,finalizado,tem_canhoto,endereco_entrega,endereco_logradouro,endereco_numero,endereco_bairro,endereco_cep,entrega_local,entrega_obs,motivo_cancelamento,total_pedido,status,sincronizado_em,digitacao_fim,ts_liberacao,ts_separacao,ts_conferencia,ts_expedicao,ts_faturamento,ts_entrega,tempo_digitacao_lib_min,tempo_aguard_separacao_min,tempo_separacao_min,tempo_aguard_expedicao_min,tempo_faturamento_min,tempo_entrega_min,lead_time_min,lead_time_entrega_min",
         )
         .in("etapa", ["entregue", "faturado"])
-        .or(`ts_entrega.gte.${sinceIso},ts_faturamento.gte.${sinceIso}`)
         .order("ts_entrega", { ascending: false, nullsFirst: false })
         .limit(2000);
+      if (dateFrom) {
+        qFinal.gte("data_pedido", dateFrom.toISOString().slice(0, 10));
+      } else {
+        const sinceIso = new Date(Date.now() - finalizadosDias * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        qFinal.gte("data_pedido", sinceIso);
+      }
+      if (dateTo) qFinal.lte("data_pedido", dateTo.toISOString().slice(0, 10));
+
 
       const [{ data: dataView, error: errView }, { data: dataFinal, error: errFinal }] =
         await Promise.all([qView, qFinal]);
