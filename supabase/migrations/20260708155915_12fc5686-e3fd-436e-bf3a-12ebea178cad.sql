@@ -1,0 +1,1 @@
+GRANT INSERT, UPDATE ON public.ipaper_produtos TO sandbox_exec;

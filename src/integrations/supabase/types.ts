@@ -16705,6 +16705,33 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_estoque_live: {
+        Row: {
+          cod_fabricante: string | null
+          cod_produto: number
+          estoque_disponivel: number
+          nome_prod: string | null
+          preco_venda: number | null
+          sincronizado_em: string
+        }
+        Insert: {
+          cod_fabricante?: string | null
+          cod_produto: number
+          estoque_disponivel?: number
+          nome_prod?: string | null
+          preco_venda?: number | null
+          sincronizado_em?: string
+        }
+        Update: {
+          cod_fabricante?: string | null
+          cod_produto?: number
+          estoque_disponivel?: number
+          nome_prod?: string | null
+          preco_venda?: number | null
+          sincronizado_em?: string
+        }
+        Relationships: []
+      }
       erp_export_queue: {
         Row: {
           attempts: number
@@ -29338,6 +29365,42 @@ export type Database = {
           id?: string
           ip_address?: unknown
           reason?: string
+        }
+        Relationships: []
+      }
+      ipaper_produtos: {
+        Row: {
+          ativo: boolean
+          codhb: string | null
+          created_at: string
+          ipaper_id: number
+          nome: string
+          package_size: number | null
+          preco: number | null
+          preco_fixo: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codhb?: string | null
+          created_at?: string
+          ipaper_id: number
+          nome: string
+          package_size?: number | null
+          preco?: number | null
+          preco_fixo?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codhb?: string | null
+          created_at?: string
+          ipaper_id?: number
+          nome?: string
+          package_size?: number | null
+          preco?: number | null
+          preco_fixo?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
