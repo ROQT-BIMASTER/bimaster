@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, Plus, UserPlus, UserMinus, X, FolderOpen, Search } from "lucide-react";
+import { Check, Plus, UserPlus, UserMinus, X, FolderOpen } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,11 +10,10 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem,
   CommandList, CommandSeparator,
 } from "@/components/ui/command";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useProjetoMembros } from "@/hooks/useProjetoMembros";
+import { useEmpresaDirectory, type EmpresaMembro } from "@/hooks/useEmpresaDirectory";
 import { useVincularProjetosOpcoes } from "@/hooks/useVincularProjetosOpcoes";
 import { useMoverTarefaParaProjeto } from "@/hooks/useMoverTarefaParaProjeto";
 
@@ -31,14 +30,18 @@ interface RespProps {
 }
 
 export function MinhasTarefaResponsavelInline({
-  tarefaId, projetoId, responsavelId, responsavelNome, responsavelAvatarUrl,
+  tarefaId, responsavelId, responsavelNome, responsavelAvatarUrl,
 }: RespProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { membros } = useProjetoMembros(open ? projetoId : undefined);
+  // Diretório completo da empresa — permite delegar tarefa pessoal a qualquer
+  // colega (padrão Asana/Todoist/ClickUp). RLS já cobre o caso: quem insere
+  // precisa ser membro/responsável/criador; o alvo não precisa estar em
+  // projeto_membros.
+  const { data: pessoas = [] } = useEmpresaDirectory(open);
 
-  const setResp = async (newId: string | null) => {
+  const setResp = async (newId: string | null, nome?: string | null) => {
     const { error } = await supabase
       .from("projeto_tarefas")
       .update({ responsavel_id: newId })
@@ -47,7 +50,13 @@ export function MinhasTarefaResponsavelInline({
       toast.error("Não foi possível atualizar o responsável.");
       return;
     }
-    toast.success(newId ? "Responsável atualizado." : "Responsável removido.");
+    if (newId && newId !== user?.id) {
+      toast.success(`Tarefa delegada para ${nome || "colega"}.`, {
+        description: "Ela aparecerá na Central de Trabalho dele.",
+      });
+    } else {
+      toast.success(newId ? "Responsável atualizado." : "Responsável removido.");
+    }
     qc.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     setOpen(false);
   };
@@ -82,15 +91,15 @@ export function MinhasTarefaResponsavelInline({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command>
-          <CommandInput placeholder="Buscar membro..." />
+          <CommandInput placeholder="Buscar pessoa..." />
           <CommandList>
-            <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
+            <CommandEmpty>Nenhuma pessoa encontrada.</CommandEmpty>
 
             {user && responsavelId !== user.id && (
               <CommandGroup>
                 <CommandItem
                   value="__me__"
-                  onSelect={() => setResp(user.id)}
+                  onSelect={() => setResp(user.id, "você")}
                   className="text-xs"
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-2" />
@@ -115,26 +124,26 @@ export function MinhasTarefaResponsavelInline({
               </>
             )}
 
-            {membros.length > 0 && (
+            {pessoas.length > 0 && (
               <>
                 <CommandSeparator />
-                <CommandGroup heading="Membros do projeto">
-                  {membros.map((m) => {
-                    const sel = m.user_id === responsavelId;
+                <CommandGroup heading="Pessoas da empresa">
+                  {pessoas.map((p) => {
+                    const sel = p.id === responsavelId;
                     return (
                       <CommandItem
-                        key={m.user_id}
-                        value={m.profile?.nome || m.user_id}
-                        onSelect={() => setResp(m.user_id)}
+                        key={p.id}
+                        value={p.nome || p.id}
+                        onSelect={() => setResp(p.id, p.nome)}
                         className={cn("text-xs", sel && "bg-accent/60")}
                       >
                         <Avatar className="h-5 w-5 mr-2">
-                          <AvatarImage src={m.profile?.avatar_url || undefined} />
+                          <AvatarImage src={p.avatar_url || undefined} />
                           <AvatarFallback className="text-[9px]">
-                            {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
+                            {p.nome?.substring(0, 2).toUpperCase() || "?"}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
+                        <span className="flex-1 truncate">{p.nome || "Sem nome"}</span>
                         {sel && <Check className="h-3.5 w-3.5 text-primary" />}
                       </CommandItem>
                     );
@@ -164,11 +173,11 @@ interface Colab {
   avatar_url: string | null;
 }
 
-export function MinhasTarefaColaboradoresInline({ tarefaId, projetoId }: ColabProps) {
+export function MinhasTarefaColaboradoresInline({ tarefaId }: ColabProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { membros } = useProjetoMembros(open ? projetoId : undefined);
+  const { data: pessoas = [] } = useEmpresaDirectory(open);
 
   const { data: colabs = [] } = useQuery({
     queryKey: ["minhas-tarefa-colaboradores", tarefaId],
@@ -193,9 +202,9 @@ export function MinhasTarefaColaboradoresInline({ tarefaId, projetoId }: ColabPr
     gcTime: 5 * 60_000,
   });
 
-  const colabIds = new Set(colabs.map((c) => c.user_id));
+  const colabIds = useMemo(() => new Set(colabs.map((c) => c.user_id)), [colabs]);
 
-  const toggle = async (userId: string) => {
+  const toggle = async (userId: string, nome?: string | null) => {
     if (colabIds.has(userId)) {
       const { error } = await supabase
         .from("projeto_tarefa_colaboradores")
@@ -218,7 +227,13 @@ export function MinhasTarefaColaboradoresInline({ tarefaId, projetoId }: ColabPr
         toast.error("Não foi possível adicionar o colaborador.");
         return;
       }
-      toast.success("Colaborador adicionado.");
+      if (userId !== user?.id) {
+        toast.success(`${nome || "Colega"} adicionado como seguidor.`, {
+          description: "Ele passa a ver esta tarefa na Central de Trabalho.",
+        });
+      } else {
+        toast.success("Você agora segue esta tarefa.");
+      }
     }
     qc.invalidateQueries({ queryKey: ["minhas-tarefa-colaboradores", tarefaId] });
   };
@@ -260,39 +275,39 @@ export function MinhasTarefaColaboradoresInline({ tarefaId, projetoId }: ColabPr
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command>
-          <CommandInput placeholder="Buscar membro..." />
+          <CommandInput placeholder="Buscar pessoa..." />
           <CommandList>
-            <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
+            <CommandEmpty>Nenhuma pessoa encontrada.</CommandEmpty>
 
             {user && !colabIds.has(user.id) && (
               <CommandGroup>
-                <CommandItem value="__me__" onSelect={() => toggle(user.id)} className="text-xs">
+                <CommandItem value="__me__" onSelect={() => toggle(user.id, "você")} className="text-xs">
                   <UserPlus className="h-3.5 w-3.5 mr-2" />
                   Seguir esta tarefa
                 </CommandItem>
               </CommandGroup>
             )}
 
-            {membros.length > 0 && (
+            {pessoas.length > 0 && (
               <>
                 <CommandSeparator />
-                <CommandGroup heading="Membros do projeto">
-                  {membros.map((m) => {
-                    const sel = colabIds.has(m.user_id);
+                <CommandGroup heading="Pessoas da empresa">
+                  {pessoas.map((p) => {
+                    const sel = colabIds.has(p.id);
                     return (
                       <CommandItem
-                        key={m.user_id}
-                        value={m.profile?.nome || m.user_id}
-                        onSelect={() => toggle(m.user_id)}
+                        key={p.id}
+                        value={p.nome || p.id}
+                        onSelect={() => toggle(p.id, p.nome)}
                         className={cn("text-xs", sel && "bg-accent/60")}
                       >
                         <Avatar className="h-5 w-5 mr-2">
-                          <AvatarImage src={m.profile?.avatar_url || undefined} />
+                          <AvatarImage src={p.avatar_url || undefined} />
                           <AvatarFallback className="text-[9px]">
-                            {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
+                            {p.nome?.substring(0, 2).toUpperCase() || "?"}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
+                        <span className="flex-1 truncate">{p.nome || "Sem nome"}</span>
                         {sel ? (
                           <UserMinus className="h-3.5 w-3.5 text-destructive" />
                         ) : (
