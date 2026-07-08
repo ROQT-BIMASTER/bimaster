@@ -18,8 +18,10 @@ export interface TarefaComentario {
   conteudo: string;
   mentions: string[];
   created_at: string;
+  edited_at?: string | null;
   autor?: { nome: string; avatar_url: string | null };
 }
+
 
 export interface TarefaAnexo {
   id: string;
