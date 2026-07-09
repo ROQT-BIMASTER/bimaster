@@ -35,11 +35,40 @@ export async function validateJWT(req: Request): Promise<AuthResult> {
     throw new AuthError("Token inválido ou expirado", 401);
   }
 
+  const userId = data.user.id;
+
+  // Enforce account quarantine + MFA para funções que validam JWT diretamente
+  // (auth:"none" no secureHandler). Espelha o pipeline de auth:"jwt" para
+  // eliminar o bypass de quarantine/MFA em ~130 funções internas.
+  try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: quar } = await admin.rpc("is_account_quarantined", { _user_id: userId });
+    if (quar === true) {
+      throw new AuthError("Conta em quarentena. Contate o administrador.", 423);
+    }
+    const { data: enforced } = await admin.rpc("mfa_is_enforced_for_user", { _user_id: userId });
+    if (enforced === true) {
+      throw new AuthError(
+        "MFA obrigatório. Período de carência expirado. Inscreva-se em /dashboard/security/mfa.",
+        403
+      );
+    }
+  } catch (e) {
+    // Propaga AuthError; erros de RPC (indisponibilidade) fail-open para não
+    // derrubar todas as funções internas — quarentena crítica é reverificada
+    // no próximo request via cache curto do secureHandler.
+    if (e instanceof AuthError) throw e;
+  }
+
   return {
-    userId: data.user.id,
+    userId,
     email: data.user.email,
   };
 }
+
 
 /**
  * Validate x-api-key against erp_config (supports hash comparison).
