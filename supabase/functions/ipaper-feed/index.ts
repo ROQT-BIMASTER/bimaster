@@ -38,12 +38,15 @@ Deno.serve(secureHandler(
     if (!expected) return json(500, { error: "server_misconfigured" });
 
     const url = new URL(req.url);
+    // Só aceita o token via header Authorization: Bearer <token>.
+    // ?token= foi removido: credenciais em query string aparecem em logs
+    // (edge/CDN/proxy) e podem vazar via Referer.
     const authHeader = req.headers.get("Authorization") ?? "";
-    const provided = url.searchParams.get("token") ??
-      (authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "");
+    const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
     if (!provided || !constantTimeEquals(provided, expected)) {
       return json(401, { error: "unauthorized" });
     }
+
 
     const format = url.searchParams.get("format") ?? "csv";
 
