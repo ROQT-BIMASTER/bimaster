@@ -26,7 +26,17 @@ function constantTimeEquals(a: string, b: string): boolean {
 
 async function ipaperCall(method: string, apiKey: string, params: Record<string, string>): Promise<string> {
   const [servico, metodo] = method.split("."); // "Media.UploadFile" → /Media.asmx/UploadFile
-  const form = new URLSearchParams({ Username: "APIKey", Password: apiKey, ...params });
+  // Cada Web Service .NET do iPaper usa nomes de credencial diferentes
+  // (verificado empiricamente): Paper.* → plUsername/plPassword;
+  // Media.*  → username/password (lowercase). Enviamos todas as variantes;
+  // parâmetros extras são ignorados pelo servidor.
+  const form = new URLSearchParams({
+    Username: "APIKey", Password: apiKey,
+    username: "APIKey", password: apiKey,
+    plUsername: "APIKey", plPassword: apiKey,
+    ...params,
+  });
+
   const resp = await fetch(`${IPAPER_API_BASE}/${servico}.asmx/${metodo}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -79,6 +89,29 @@ Deno.serve(secureHandler(
 
     const apiKey = Deno.env.get("IPAPER_API_KEY");
     if (!apiKey) return json(500, { error: "server_misconfigured", details: "IPAPER_API_KEY ausente" });
+
+    // Diagnóstico: valida acesso Backend API com uma chamada de leitura pura.
+    let diagnose = false;
+    try {
+      const body = await req.clone().json();
+      diagnose = body?.action === "diagnose";
+    } catch (_) { /* body vazio ok */ }
+    if (diagnose) {
+      try {
+        const xml = await ipaperCall("Paper.GetAllPapers", apiKey, {});
+        const code = xml.match(/<code[^>]*>(?:<!\[CDATA\[)?([^<\]]*)/i)?.[1]?.trim() ?? "";
+        return json(200, {
+          diagnose: true,
+          endpoint: "Paper.GetAllPapers",
+          code,
+          backend_api_ativo: !code || code === "OK",
+          resposta: xml.slice(0, 1200),
+        });
+      } catch (e) {
+        return json(200, { diagnose: true, endpoint: "Paper.GetAllPapers", erro: String(e) });
+      }
+    }
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
