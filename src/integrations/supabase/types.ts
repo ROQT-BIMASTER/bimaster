@@ -17831,6 +17831,7 @@ export type Database = {
           cliente_uf: string | null
           created_at: string
           data_emissao: string
+          empresa_destino_id: number | null
           empresa_id: number
           entrada_saida: string | null
           futura_nota_id: number
@@ -17859,6 +17860,7 @@ export type Database = {
           cliente_uf?: string | null
           created_at?: string
           data_emissao: string
+          empresa_destino_id?: number | null
           empresa_id: number
           entrada_saida?: string | null
           futura_nota_id: number
@@ -17887,6 +17889,7 @@ export type Database = {
           cliente_uf?: string | null
           created_at?: string
           data_emissao?: string
+          empresa_destino_id?: number | null
           empresa_id?: number
           entrada_saida?: string | null
           futura_nota_id?: number
@@ -17907,7 +17910,15 @@ export type Database = {
           updated_at?: string
           vendedor_futura_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "erp_vendas_empresa_destino_id_fkey"
+            columns: ["empresa_destino_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       erp_vendas_item: {
         Row: {
@@ -55565,6 +55576,35 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      erp_compras: {
+        Row: {
+          cfop_id: number | null
+          data_entrada: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
+          fornecedor_empresa_futura_id: number | null
+          futura_nota_id: number | null
+          modelo_doc: number | null
+          nro_nota: number | null
+          quantidade: number | null
+          serie: string | null
+          sincronizado_em: string | null
+          status: number | null
+          total_desconto: number | null
+          total_nota: number | null
+          total_produto: number | null
+          venda_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_vendas_empresa_destino_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       erp_config_safe: {
         Row: {
