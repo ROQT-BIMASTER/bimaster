@@ -26,17 +26,11 @@ function constantTimeEquals(a: string, b: string): boolean {
 
 async function ipaperCall(method: string, apiKey: string, params: Record<string, string>): Promise<string> {
   const [servico, metodo] = method.split("."); // "Media.UploadFile" → /Media.asmx/UploadFile
-  // Cada Web Service .NET do iPaper usa nomes de credencial diferentes
-  // (verificado empiricamente): Paper.* → plUsername/plPassword;
-  // Media.*  → username/password (lowercase). Enviamos todas as variantes;
-  // parâmetros extras são ignorados pelo servidor.
-  const form = new URLSearchParams({
-    Username: "APIKey", Password: apiKey,
-    username: "APIKey", password: apiKey,
-    plUsername: "APIKey", plPassword: apiKey,
-    ...params,
-  });
-
+  // ATENÇÃO: enviar UMA variante só de credencial. Form parsing do .NET é
+  // case-insensitive: mandar Username E username no mesmo POST mescla os
+  // valores ("chave,chave") e o login falha sempre — foi a causa do
+  // LOGIN_RATE_LIMITED persistente de 08-09/07. Doc oficial: Username/Password.
+  const form = new URLSearchParams({ Username: "APIKey", Password: apiKey, ...params });
   const resp = await fetch(`${IPAPER_API_BASE}/${servico}.asmx/${metodo}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
