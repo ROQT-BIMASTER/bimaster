@@ -1,7 +1,7 @@
 // Monta as linhas do catálogo iPaper — lógica compartilhada entre o feed por URL
 // (ipaper-feed) e o push de arquivo via Backend API (ipaper-push).
-// Fontes: ipaper_produtos (de-para ID iPaper ↔ CODHB + preço/embalagem) e
-// erp_estoque_live (saldo disponível + preço do força de vendas do Result).
+// Fontes: ipaper_produtos (linhas do catálogo; ipaper_id = Id_Pro do Result) e
+// erp_estoque_live (saldo disponível + preço do força de vendas, por filial).
 
 // deno-lint-ignore-file no-explicit-any
 
@@ -49,49 +49,29 @@ export async function buildIpaperRows(supabase: any): Promise<IpaperLinha[]> {
     ),
   ]);
 
-  // O mesmo código de fábrica pode existir em MAIS DE UM produto do Result
-  // (unidade × caixa master). Agrupamos por código → candidatos (um por
-  // cod_produto, saldo somado nas filiais) e escolhemos o candidato cujo preço
-  // fica mais perto do preço de referência do catálogo (seed) — senão o feed
-  // pega a granularidade errada (ex.: HBA7005 R$3,46 virava R$1.992,96 da caixa).
-  interface Candidato { saldo: number; preco: number | null }
-  const porCodigo = new Map<string, Map<number, Candidato>>();
+  // Join DETERMINÍSTICO por código ERP: a coluna ID da planilha do catálogo
+  // é o Id_Pro do Result (confirmado em 09/07 — ex.: 57=HB10751, 85=HB320,
+  // 10118=HBE2404). Nada de casar por código de fábrica (que se repete entre
+  // unidade e caixa master) — cada linha do catálogo aponta o produto exato.
+  interface Agregado { saldo: number; preco: number | null }
+  const porProduto = new Map<number, Agregado>();
   for (const e of estoque) {
-    const cod = (e.cod_fabricante ?? "").trim().toUpperCase();
-    if (!cod) continue;
-    let m = porCodigo.get(cod);
-    if (!m) { m = new Map(); porCodigo.set(cod, m); }
-    const c = m.get(e.cod_produto) ?? { saldo: 0, preco: null };
-    c.saldo += e.estoque_disponivel ?? 0;
-    if (c.preco == null && e.preco_venda != null && e.preco_venda > 0) c.preco = e.preco_venda;
-    m.set(e.cod_produto, c);
+    const g = porProduto.get(e.cod_produto) ?? { saldo: 0, preco: null };
+    g.saldo += e.estoque_disponivel ?? 0; // soma as filiais habilitadas
+    if (g.preco == null && e.preco_venda != null && e.preco_venda > 0) g.preco = e.preco_venda;
+    porProduto.set(e.cod_produto, g);
   }
 
   return produtos
     .map((p) => {
-      const cod = (p.codhb ?? "").trim().toUpperCase();
-      const cands = cod ? Array.from(porCodigo.get(cod)?.values() ?? []) : [];
-      let winner: Candidato | undefined;
-      if (cands.length === 1) {
-        winner = cands[0];
-      } else if (cands.length > 1) {
-        winner = p.preco != null
-          ? cands.reduce((a, b) =>
-              Math.abs((a.preco ?? Infinity) - p.preco!) <= Math.abs((b.preco ?? Infinity) - p.preco!) ? a : b)
-          : cands.reduce((a, b) => (a.saldo >= b.saldo ? a : b));
-      }
-      // Preço do ERP só entra se estiver numa faixa sã do preço de referência
-      // (0,5×–2×): acompanha reajuste real, rejeita troca de granularidade.
-      let price = p.preco;
-      if (!p.preco_fixo && winner?.preco != null) {
-        const dentroDaFaixa = p.preco == null ||
-          (winner.preco >= p.preco * 0.5 && winner.preco <= p.preco * 2);
-        if (dentroDaFaixa) price = winner.preco;
-      }
+      const g = porProduto.get(p.ipaper_id);
+      // Preço: do ERP (produto exato), exceto itens com preco_fixo (curadoria
+      // do catálogo, ex.: caixas com preço próprio no flipbook).
+      const price = !p.preco_fixo && g?.preco != null ? g.preco : p.preco;
       return {
         ID: p.ipaper_id,
         NAME: p.nome,
-        STOCK: winner === undefined ? 0 : Math.max(0, Math.floor(winner.saldo)),
+        STOCK: g === undefined ? 0 : Math.max(0, Math.floor(g.saldo)),
         DESCRIPTION: "",
         CODHB: p.codhb ?? "",
         PRICE: price,
