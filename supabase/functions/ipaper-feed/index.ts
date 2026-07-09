@@ -38,11 +38,11 @@ Deno.serve(secureHandler(
     if (!expected) return json(500, { error: "server_misconfigured" });
 
     const url = new URL(req.url);
-    // Só aceita o token via header Authorization: Bearer <token>.
-    // ?token= foi removido: credenciais em query string aparecem em logs
-    // (edge/CDN/proxy) e podem vazar via Referer.
+    // Aceita ?token= para compatibilidade com o fetcher do iPaper e Bearer
+    // para clientes que suportam header Authorization.
     const authHeader = req.headers.get("Authorization") ?? "";
-    const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const provided = url.searchParams.get("token") ?? bearerToken;
     if (!provided || !constantTimeEquals(provided, expected)) {
       return json(401, { error: "unauthorized" });
     }
