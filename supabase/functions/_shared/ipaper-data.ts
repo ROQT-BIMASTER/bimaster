@@ -40,40 +40,61 @@ export async function buildIpaperRows(supabase: any): Promise<IpaperLinha[]> {
         .order("ipaper_id")
         .range(from, to),
     ),
-    fetchAll<{ cod_fabricante: string | null; estoque_disponivel: number | null; preco_venda: number | null }>(
+    fetchAll<{ cod_produto: number; cod_fabricante: string | null; estoque_disponivel: number | null; preco_venda: number | null }>(
       (from, to) => supabase
         .from("erp_estoque_live")
-        .select("cod_fabricante, estoque_disponivel, preco_venda")
+        .select("cod_produto, cod_fabricante, estoque_disponivel, preco_venda")
         .order("cod_produto")
         .range(from, to),
     ),
   ]);
 
-  // Saldo disponível e preço por código de fábrica (se o mesmo código aparecer
-  // em mais de um produto do Result, soma o saldo — hoje o Live já traz 1 linha/produto)
-  const saldoPorCodigo = new Map<string, number>();
-  const precoPorCodigo = new Map<string, number>();
+  // O mesmo código de fábrica pode existir em MAIS DE UM produto do Result
+  // (unidade × caixa master). Agrupamos por código → candidatos (um por
+  // cod_produto, saldo somado nas filiais) e escolhemos o candidato cujo preço
+  // fica mais perto do preço de referência do catálogo (seed) — senão o feed
+  // pega a granularidade errada (ex.: HBA7005 R$3,46 virava R$1.992,96 da caixa).
+  interface Candidato { saldo: number; preco: number | null }
+  const porCodigo = new Map<string, Map<number, Candidato>>();
   for (const e of estoque) {
     const cod = (e.cod_fabricante ?? "").trim().toUpperCase();
     if (!cod) continue;
-    saldoPorCodigo.set(cod, (saldoPorCodigo.get(cod) ?? 0) + (e.estoque_disponivel ?? 0));
-    if (e.preco_venda != null && e.preco_venda > 0 && !precoPorCodigo.has(cod)) {
-      precoPorCodigo.set(cod, e.preco_venda);
-    }
+    let m = porCodigo.get(cod);
+    if (!m) { m = new Map(); porCodigo.set(cod, m); }
+    const c = m.get(e.cod_produto) ?? { saldo: 0, preco: null };
+    c.saldo += e.estoque_disponivel ?? 0;
+    if (c.preco == null && e.preco_venda != null && e.preco_venda > 0) c.preco = e.preco_venda;
+    m.set(e.cod_produto, c);
   }
 
   return produtos
     .map((p) => {
       const cod = (p.codhb ?? "").trim().toUpperCase();
-      const saldo = cod ? saldoPorCodigo.get(cod) : undefined;
-      const precoLive = cod && !p.preco_fixo ? precoPorCodigo.get(cod) : undefined;
+      const cands = cod ? Array.from(porCodigo.get(cod)?.values() ?? []) : [];
+      let winner: Candidato | undefined;
+      if (cands.length === 1) {
+        winner = cands[0];
+      } else if (cands.length > 1) {
+        winner = p.preco != null
+          ? cands.reduce((a, b) =>
+              Math.abs((a.preco ?? Infinity) - p.preco!) <= Math.abs((b.preco ?? Infinity) - p.preco!) ? a : b)
+          : cands.reduce((a, b) => (a.saldo >= b.saldo ? a : b));
+      }
+      // Preço do ERP só entra se estiver numa faixa sã do preço de referência
+      // (0,5×–2×): acompanha reajuste real, rejeita troca de granularidade.
+      let price = p.preco;
+      if (!p.preco_fixo && winner?.preco != null) {
+        const dentroDaFaixa = p.preco == null ||
+          (winner.preco >= p.preco * 0.5 && winner.preco <= p.preco * 2);
+        if (dentroDaFaixa) price = winner.preco;
+      }
       return {
         ID: p.ipaper_id,
         NAME: p.nome,
-        STOCK: saldo === undefined ? 0 : Math.max(0, Math.floor(saldo)),
+        STOCK: winner === undefined ? 0 : Math.max(0, Math.floor(winner.saldo)),
         DESCRIPTION: "",
         CODHB: p.codhb ?? "",
-        PRICE: precoLive ?? p.preco,
+        PRICE: price,
         "PACKAGE SIZE": p.package_size,
       };
     })
