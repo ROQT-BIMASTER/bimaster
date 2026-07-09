@@ -1,0 +1,1 @@
+SELECT vault.create_secret(encode(gen_random_bytes(48), 'base64'), 'cron_secret', 'Segredo usado por _get_cron_secret() para autorizar chamadas de crons internos');

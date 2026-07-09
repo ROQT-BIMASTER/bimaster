@@ -75,15 +75,29 @@ Deno.serve(secureHandler(
 
     if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
-    // Cron secret OU service-role bearer (mesmo padrão do erp-sync-engine)
+    // Cron secret (env CRON_SECRET OU vault.cron_secret) OU service-role bearer
     const cronSecret = req.headers.get("x-cron-secret") ?? "";
     const expectedCron = Deno.env.get("CRON_SECRET") ?? "";
     const bearer = req.headers.get("Authorization")?.startsWith("Bearer ")
       ? req.headers.get("Authorization")!.slice(7)
       : "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    // Fallback: lê vault via RPC (public._internal_cron_secret retorna
+    // vault.decrypted_secrets WHERE name='cron_secret' — mesmo valor que
+    // public._get_cron_secret() usa nos crons).
+    let vaultCronSecret = "";
+    if (cronSecret && serviceKey) {
+      try {
+        const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+        const { data } = await admin.rpc("_internal_cron_secret" as any);
+        vaultCronSecret = (data as string) ?? "";
+      } catch (_) { /* ignora */ }
+    }
+
     const authorized =
       (!!cronSecret && !!expectedCron && constantTimeEquals(cronSecret, expectedCron)) ||
+      (!!cronSecret && !!vaultCronSecret && constantTimeEquals(cronSecret, vaultCronSecret)) ||
       (!!bearer && !!serviceKey && constantTimeEquals(bearer, serviceKey));
     if (!authorized) return json(401, { error: "unauthorized" });
 
