@@ -17824,6 +17824,7 @@ export type Database = {
       }
       erp_vendas: {
         Row: {
+          cfop_codigo: number | null
           cfop_id: number | null
           cliente_cnpj_cpf: string | null
           cliente_futura_id: number | null
@@ -17847,12 +17848,20 @@ export type Database = {
           tabela_preco_nome: string | null
           tipo_pedido_id: number | null
           total_desconto: number | null
+          total_icms_base: number | null
+          total_icms_valor: number | null
+          total_ipi_base: number | null
+          total_ipi_valor: number | null
           total_nota: number | null
           total_produto: number | null
+          total_st_base: number | null
+          total_st_valor: number | null
+          total_tributos_valor: number | null
           updated_at: string
           vendedor_futura_id: number | null
         }
         Insert: {
+          cfop_codigo?: number | null
           cfop_id?: number | null
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
@@ -17876,12 +17885,20 @@ export type Database = {
           tabela_preco_nome?: string | null
           tipo_pedido_id?: number | null
           total_desconto?: number | null
+          total_icms_base?: number | null
+          total_icms_valor?: number | null
+          total_ipi_base?: number | null
+          total_ipi_valor?: number | null
           total_nota?: number | null
           total_produto?: number | null
+          total_st_base?: number | null
+          total_st_valor?: number | null
+          total_tributos_valor?: number | null
           updated_at?: string
           vendedor_futura_id?: number | null
         }
         Update: {
+          cfop_codigo?: number | null
           cfop_id?: number | null
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
@@ -17905,8 +17922,15 @@ export type Database = {
           tabela_preco_nome?: string | null
           tipo_pedido_id?: number | null
           total_desconto?: number | null
+          total_icms_base?: number | null
+          total_icms_valor?: number | null
+          total_ipi_base?: number | null
+          total_ipi_valor?: number | null
           total_nota?: number | null
           total_produto?: number | null
+          total_st_base?: number | null
+          total_st_valor?: number | null
+          total_tributos_valor?: number | null
           updated_at?: string
           vendedor_futura_id?: number | null
         }
@@ -17922,62 +17946,128 @@ export type Database = {
       }
       erp_vendas_item: {
         Row: {
+          cfop_codigo: number | null
           cod_produto: string | null
+          cofins_aliquota: number | null
+          cofins_base: number | null
+          cofins_cst: string | null
+          cofins_valor: number | null
           created_at: string
+          csosn: string | null
+          cst_icms: string | null
           desconto_valor: number | null
           descricao: string | null
           ean: string | null
           futura_item_id: number
           futura_nota_id: number
+          icms_aliquota: number | null
+          icms_base: number | null
+          icms_valor: number | null
           id: number
+          ipi_aliquota: number | null
+          ipi_base: number | null
+          ipi_cst: string | null
+          ipi_valor: number | null
           itens_caixa: number | null
+          ncm: string | null
+          pis_aliquota: number | null
+          pis_base: number | null
+          pis_cst: string | null
+          pis_valor: number | null
           produto_futura_id: number | null
           quantidade: number | null
           quantidade_un: number | null
           raw: Json | null
           sequencia: number | null
           sincronizado_em: string
+          st_base: number | null
+          st_valor: number | null
           total_item: number | null
+          tributos_valor: number | null
           unidade_sigla: string | null
           valor_unitario: number | null
         }
         Insert: {
+          cfop_codigo?: number | null
           cod_produto?: string | null
+          cofins_aliquota?: number | null
+          cofins_base?: number | null
+          cofins_cst?: string | null
+          cofins_valor?: number | null
           created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
           desconto_valor?: number | null
           descricao?: string | null
           ean?: string | null
           futura_item_id: number
           futura_nota_id: number
+          icms_aliquota?: number | null
+          icms_base?: number | null
+          icms_valor?: number | null
           id?: never
+          ipi_aliquota?: number | null
+          ipi_base?: number | null
+          ipi_cst?: string | null
+          ipi_valor?: number | null
           itens_caixa?: number | null
+          ncm?: string | null
+          pis_aliquota?: number | null
+          pis_base?: number | null
+          pis_cst?: string | null
+          pis_valor?: number | null
           produto_futura_id?: number | null
           quantidade?: number | null
           quantidade_un?: number | null
           raw?: Json | null
           sequencia?: number | null
           sincronizado_em?: string
+          st_base?: number | null
+          st_valor?: number | null
           total_item?: number | null
+          tributos_valor?: number | null
           unidade_sigla?: string | null
           valor_unitario?: number | null
         }
         Update: {
+          cfop_codigo?: number | null
           cod_produto?: string | null
+          cofins_aliquota?: number | null
+          cofins_base?: number | null
+          cofins_cst?: string | null
+          cofins_valor?: number | null
           created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
           desconto_valor?: number | null
           descricao?: string | null
           ean?: string | null
           futura_item_id?: number
           futura_nota_id?: number
+          icms_aliquota?: number | null
+          icms_base?: number | null
+          icms_valor?: number | null
           id?: never
+          ipi_aliquota?: number | null
+          ipi_base?: number | null
+          ipi_cst?: string | null
+          ipi_valor?: number | null
           itens_caixa?: number | null
+          ncm?: string | null
+          pis_aliquota?: number | null
+          pis_base?: number | null
+          pis_cst?: string | null
+          pis_valor?: number | null
           produto_futura_id?: number | null
           quantidade?: number | null
           quantidade_un?: number | null
           raw?: Json | null
           sequencia?: number | null
           sincronizado_em?: string
+          st_base?: number | null
+          st_valor?: number | null
           total_item?: number | null
+          tributos_valor?: number | null
           unidade_sigla?: string | null
           valor_unitario?: number | null
         }
@@ -55579,6 +55669,7 @@ export type Database = {
       }
       erp_compras: {
         Row: {
+          cfop_codigo: number | null
           cfop_id: number | null
           data_entrada: string | null
           empresa_id: number | null
@@ -55586,14 +55677,22 @@ export type Database = {
           fornecedor_empresa_futura_id: number | null
           futura_nota_id: number | null
           modelo_doc: number | null
+          natureza: string | null
           nro_nota: number | null
           quantidade: number | null
           serie: string | null
           sincronizado_em: string | null
           status: number | null
           total_desconto: number | null
+          total_icms_base: number | null
+          total_icms_valor: number | null
+          total_ipi_base: number | null
+          total_ipi_valor: number | null
           total_nota: number | null
           total_produto: number | null
+          total_st_base: number | null
+          total_st_valor: number | null
+          total_tributos_valor: number | null
           venda_id: number | null
         }
         Relationships: [
