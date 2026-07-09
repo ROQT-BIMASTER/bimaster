@@ -32,7 +32,11 @@ Deno.serve(secureHandler(
         headers: { ...cors, "Content-Type": "application/json" },
       });
 
-    if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
+    // HEAD é aceito: validadores de feed (inclusive o do iPaper) checam a URL
+    // com HEAD antes do GET — responder 405 quebrava a configuração lá.
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      return json(405, { error: "method_not_allowed" });
+    }
 
     const expected = Deno.env.get("IPAPER_FEED_TOKEN");
     if (!expected) return json(500, { error: "server_misconfigured" });
@@ -62,11 +66,35 @@ Deno.serve(secureHandler(
         ...cors,
         "Cache-Control": "public, max-age=300",
       };
+      const responder = (body: string, contentType: string) =>
+        new Response(req.method === "HEAD" ? null : body, {
+          headers: {
+            ...commonHeaders,
+            "Content-Type": contentType,
+            "Content-Length": String(new TextEncoder().encode(body).length),
+          },
+        });
 
       if (format === "json") {
-        return new Response(JSON.stringify(linhas), {
-          headers: { ...commonHeaders, "Content-Type": "application/json" },
-        });
+        return responder(JSON.stringify(linhas), "application/json");
+      }
+
+      if (format === "xml") {
+        const esc = (v: unknown) =>
+          String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const itens = linhas.map((l) =>
+          `  <product>\n` +
+          `    <ID>${l.ID}</ID>\n` +
+          `    <NAME>${esc(l.NAME)}</NAME>\n` +
+          `    <STOCK>${l.STOCK}</STOCK>\n` +
+          `    <DESCRIPTION>${esc(l.DESCRIPTION)}</DESCRIPTION>\n` +
+          `    <CODHB>${esc(l.CODHB)}</CODHB>\n` +
+          `    <PRICE>${l.PRICE ?? ""}</PRICE>\n` +
+          `    <PACKAGE_SIZE>${l["PACKAGE SIZE"] ?? ""}</PACKAGE_SIZE>\n` +
+          `  </product>`
+        ).join("\n");
+        const xml = `<?xml version="1.0" encoding="utf-8"?>\n<products>\n${itens}\n</products>\n`;
+        return responder(xml, "application/xml; charset=utf-8");
       }
 
       const header = "ID,NAME,STOCK,DESCRIPTION,CODHB,PRICE,PACKAGE SIZE";
@@ -76,9 +104,7 @@ Deno.serve(secureHandler(
             .map(csvField).join(",")
         )
         .join("\r\n");
-      return new Response(`${header}\r\n${body}\r\n`, {
-        headers: { ...commonHeaders, "Content-Type": "text/csv; charset=utf-8" },
-      });
+      return responder(`${header}\r\n${body}\r\n`, "text/csv; charset=utf-8");
     } catch (e) {
       return json(500, { error: "feed_failed", details: (e as Error).message });
     }
