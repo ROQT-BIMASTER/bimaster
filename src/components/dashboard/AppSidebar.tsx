@@ -1213,6 +1213,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
+      case "compras":
+        return (
+          <ModuleSubmenu icon={ShoppingCart} title="Compras" colorKey="financeiro" count={1}>
+            <MenuItemLink to="/dashboard/compras/entradas-futura" icon={Receipt} title="Entradas Futura" />
+          </ModuleSubmenu>
+        );
+
       case "estoque":
         return (
           <ModuleSubmenu icon={Package} title="Estoque" colorKey="financeiro">
