@@ -562,6 +562,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["reuniões"],
     processos: ["processos", "workflows", "etapas"],
     cadastros: ["cadastros", "fornecedores", "bancos", "portadores", "centros de custo", "plano de contas", "departamentos", "empresas", "clientes"],
+    compras: ["compras", "entradas", "futura", "notas fiscais", "icms", "st", "ipi", "distribuidoras"],
   }), [t]);
 
   // Auto-open modules matching search (must be before early return)
@@ -1213,6 +1214,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
+      case "compras":
+        return (
+          <ModuleSubmenu icon={ShoppingCart} title="Compras" colorKey="financeiro" count={1}>
+            <MenuItemLink to="/dashboard/compras/entradas-futura" icon={Receipt} title="Entradas Futura" />
+          </ModuleSubmenu>
+        );
+
       case "estoque":
         return (
           <ModuleSubmenu icon={Package} title="Estoque" colorKey="financeiro">
@@ -1458,6 +1466,14 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarGroup>
           );
         })}
+
+        {/* Compras standalone — visível para quem tem o módulo Fornecedor */}
+        {(isAdmin || hasModulePermission("fornecedor")) && moduleMatchesSearch("compras") && (
+          <SidebarGroup className="py-1 px-2">
+            <CategoryDivider title="Compras" />
+            {renderModuleContent("compras")}
+          </SidebarGroup>
+        )}
 
         {/* Design Studio standalone — admin-only at the moment */}
         {isAdmin && (
