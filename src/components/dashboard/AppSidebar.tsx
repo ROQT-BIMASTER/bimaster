@@ -1466,6 +1466,14 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           );
         })}
 
+        {/* Compras standalone — visível para quem tem o módulo Fornecedor */}
+        {(isAdmin || hasModulePermission("fornecedor")) && moduleMatchesSearch("compras") && (
+          <SidebarGroup className="py-1 px-2">
+            <CategoryDivider title="Compras" />
+            {renderModuleContent("compras")}
+          </SidebarGroup>
+        )}
+
         {/* Design Studio standalone — admin-only at the moment */}
         {isAdmin && (
           <SidebarGroup className="py-1 px-2">
