@@ -562,6 +562,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["reuniões"],
     processos: ["processos", "workflows", "etapas"],
     cadastros: ["cadastros", "fornecedores", "bancos", "portadores", "centros de custo", "plano de contas", "departamentos", "empresas", "clientes"],
+    compras: ["compras", "entradas", "futura", "notas fiscais", "icms", "st", "ipi", "distribuidoras"],
   }), [t]);
 
   // Auto-open modules matching search (must be before early return)
