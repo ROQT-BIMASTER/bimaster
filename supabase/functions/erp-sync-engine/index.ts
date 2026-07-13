@@ -60,6 +60,9 @@ function executeSqlQueryOnce(connection: Connection, query: string): Promise<Sql
     const rows: SqlRow[] = [];
     const request = new TdsRequest(query, (err: any) => {
       if (err) {
+        const inner = Array.isArray(err?.errors)
+          ? err.errors.map((e: any) => `${e?.message ?? e}`).join(" ; ")
+          : "";
         const detail = [
           err?.message,
           err?.number ? `number=${err.number}` : null,
@@ -67,6 +70,7 @@ function executeSqlQueryOnce(connection: Connection, query: string): Promise<Sql
           err?.code ? `code=${err.code}` : null,
           err?.procName ? `proc=${err.procName}` : null,
           err?.lineNumber ? `line=${err.lineNumber}` : null,
+          inner ? `inner=[${inner}]` : null,
         ].filter(Boolean).join(" | ");
         reject(new Error(`SQL query failed: ${detail || String(err)}`));
       } else resolve(rows);
@@ -81,6 +85,7 @@ function executeSqlQueryOnce(connection: Connection, query: string): Promise<Sql
     connection.execSql(request);
   });
 }
+
 
 
 // Transient SQL Server errors (tempdb full, deadlock, log backup, timeout) — retry with backoff
