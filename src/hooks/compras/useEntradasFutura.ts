@@ -142,21 +142,19 @@ export function useEntradaItens(futuraNotaId: number | null) {
 }
 
 /** Busca ids de futura_nota_id que contêm itens com código/descrição casando o termo. */
-export function useNotasComProduto(termo: string, from: string, to: string) {
+export function useNotasComProduto(termo: string) {
   return useQuery({
-    queryKey: ["compras-notas-com-produto", termo, from, to],
+    queryKey: ["compras-notas-com-produto", termo],
     enabled: termo.trim().length >= 2,
     queryFn: async (): Promise<Set<number>> => {
-      const t = termo.trim();
+      const t = termo.trim().replace(/[%,]/g, "");
       const ids = new Set<number>();
       let offset = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data, error } = await sb
           .from("erp_vendas_item")
-          .select("futura_nota_id, cod_produto, descricao, data_emissao")
-          .gte("data_emissao", from)
-          .lte("data_emissao", to)
+          .select("futura_nota_id, cod_produto, descricao")
           .or(`cod_produto.ilike.%${t}%,descricao.ilike.%${t}%`)
           .range(offset, offset + PAGE - 1);
         if (error) throw error;
