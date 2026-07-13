@@ -18,9 +18,14 @@ export interface EstoqueFilialRow {
 
 export function useEstoqueValoresPorFilial(filtros: EstoqueFiltros) {
   return useQuery({
-    queryKey: ['estoque-valores-por-filial', filtros],
-    staleTime: 60_000,
-    refetchInterval: 600_000,
+    queryKey: ['estoque-valores-por-filial', 'v2-erp-informacoesprodutos', filtros],
+    // Sempre buscar fresco: o RPC lê direto da erp_estoque_distribuidora (sync ERP).
+    staleTime: 0,
+    gcTime: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 120_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       // RPC ainda não está nos tipos gerados do Supabase -> cast controlado.
