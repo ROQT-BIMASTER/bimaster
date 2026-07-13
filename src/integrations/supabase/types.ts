@@ -16291,6 +16291,114 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_compras_result: {
+        Row: {
+          base_icms: number | null
+          base_st: number | null
+          cfop: number
+          chave_nfe: string | null
+          classe: string
+          cst: string | null
+          data_emissao: string | null
+          data_entrada: string
+          empresa_result: number
+          fornecedor_cnpj: string | null
+          fornecedor_nome: string | null
+          id: number
+          numero_nota: string
+          serie: string | null
+          sincronizado_em: string
+          valor_contabil: number | null
+          valor_icms: number | null
+          valor_ipi: number | null
+          valor_st: number | null
+        }
+        Insert: {
+          base_icms?: number | null
+          base_st?: number | null
+          cfop: number
+          chave_nfe?: string | null
+          classe: string
+          cst?: string | null
+          data_emissao?: string | null
+          data_entrada: string
+          empresa_result: number
+          fornecedor_cnpj?: string | null
+          fornecedor_nome?: string | null
+          id?: never
+          numero_nota: string
+          serie?: string | null
+          sincronizado_em?: string
+          valor_contabil?: number | null
+          valor_icms?: number | null
+          valor_ipi?: number | null
+          valor_st?: number | null
+        }
+        Update: {
+          base_icms?: number | null
+          base_st?: number | null
+          cfop?: number
+          chave_nfe?: string | null
+          classe?: string
+          cst?: string | null
+          data_emissao?: string | null
+          data_entrada?: string
+          empresa_result?: number
+          fornecedor_cnpj?: string | null
+          fornecedor_nome?: string | null
+          id?: never
+          numero_nota?: string
+          serie?: string | null
+          sincronizado_em?: string
+          valor_contabil?: number | null
+          valor_icms?: number | null
+          valor_ipi?: number | null
+          valor_st?: number | null
+        }
+        Relationships: []
+      }
+      erp_compras_vendas_mensal: {
+        Row: {
+          compras_revenda: number | null
+          compras_uso_consumo: number | null
+          devolucoes_venda: number | null
+          empresa_result: number
+          id: number
+          mes: string
+          sincronizado_em: string
+          transferencias: number | null
+          vendas_custo_familia: number | null
+          vendas_preco: number | null
+          vendas_ultimo_custo: number | null
+        }
+        Insert: {
+          compras_revenda?: number | null
+          compras_uso_consumo?: number | null
+          devolucoes_venda?: number | null
+          empresa_result: number
+          id?: never
+          mes: string
+          sincronizado_em?: string
+          transferencias?: number | null
+          vendas_custo_familia?: number | null
+          vendas_preco?: number | null
+          vendas_ultimo_custo?: number | null
+        }
+        Update: {
+          compras_revenda?: number | null
+          compras_uso_consumo?: number | null
+          devolucoes_venda?: number | null
+          empresa_result?: number
+          id?: never
+          mes?: string
+          sincronizado_em?: string
+          transferencias?: number | null
+          vendas_custo_familia?: number | null
+          vendas_preco?: number | null
+          vendas_ultimo_custo?: number | null
+        }
+        Relationships: []
+      }
       erp_config: {
         Row: {
           api_key: string | null
