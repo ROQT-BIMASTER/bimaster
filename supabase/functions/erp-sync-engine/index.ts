@@ -1401,6 +1401,10 @@ async function handleSyncComposicaoPorEmpresa(req: Request, startMs: number) {
       startPage: Number(startPage),
       maxPages: Number(maxPages),
       orderBy: COMPOSICAO_ORDER_BY,
+      // Hard-sync: após ciclo completo bem-sucedido, remove linhas com
+      // sincronizado_em < runStart nesta empresa (elimina arestas fantasma
+      // de composições recompostas/apagadas no ERP). Ver AGENTS/mem.
+      hardSync: { empresaCol: "empresa_compo", empresaValue: Number(empresaId) },
     }
   );
 }
