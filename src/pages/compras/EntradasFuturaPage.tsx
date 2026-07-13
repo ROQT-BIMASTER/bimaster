@@ -200,13 +200,38 @@ export default function EntradasFuturaPage() {
     };
   }, [data]);
 
+  const { data: notasProduto, isFetching: loadingProduto } =
+    useNotasComProduto(produtoTermo);
+
+  const rowsFiltered = useMemo(() => {
+    let rows = data ?? [];
+    const nq = notaSearch.trim();
+    if (nq) rows = rows.filter((r) => String(r.nro_nota ?? "").includes(nq));
+    const fq = fornecedorSearch.trim().toLowerCase();
+    if (fq)
+      rows = rows.filter((r) =>
+        (r.empresa_nome ?? "").toLowerCase().includes(fq),
+      );
+    if (produtoTermo.trim().length >= 2 && notasProduto) {
+      rows = rows.filter((r) => notasProduto.has(r.futura_nota_id));
+    }
+    return rows;
+  }, [data, notaSearch, fornecedorSearch, produtoTermo, notasProduto]);
+
   const rowsSorted = useMemo(() => {
-    return (data ?? []).slice().sort((a, b) => {
-      const da = a.data_entrada ?? "";
-      const db = b.data_entrada ?? "";
-      return db.localeCompare(da);
+    const { key, dir } = sort;
+    const mult = dir === "asc" ? 1 : -1;
+    return rowsFiltered.slice().sort((a, b) => {
+      const va = (a as any)[key];
+      const vb = (b as any)[key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number")
+        return (va - vb) * mult;
+      return String(va).localeCompare(String(vb), "pt-BR") * mult;
     });
-  }, [data]);
+  }, [rowsFiltered, sort]);
 
   const pageRows = useMemo(
     () => rowsSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
