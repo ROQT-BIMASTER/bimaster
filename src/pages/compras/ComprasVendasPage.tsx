@@ -187,16 +187,23 @@ export default function ComprasVendasPage() {
         <Card className="p-3 border-l-4 border-l-sky-500 bg-sky-500/5">
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="h-4 w-4 shrink-0 text-sky-600 mt-0.5" />
-            <p>
-              A régua de <strong>vendas a custo</strong> é exibida como banda
-              entre <strong>último custo de compra</strong> (piso) e{" "}
-              <strong>custo médio da família</strong> (teto). O campo de custo
-              médio do ERP não é confiável — o custo verdadeiro está{" "}
-              <em>dentro</em> da banda. A linha tracejada mostra o faturamento a
-              preço (eixo direito).
-            </p>
+            <div className="space-y-1">
+              <p>
+                A régua principal de <strong>vendas a custo</strong> é o{" "}
+                <strong>último custo de compra</strong> (piso). O{" "}
+                <strong>custo médio da família</strong> (teto) aparece apenas
+                como referência na banda do gráfico — o campo de custo médio do
+                ERP não é confiável. A linha tracejada mostra o faturamento a
+                preço (eixo direito).
+              </p>
+              <p>
+                Painel considera apenas operações com terceiros — movimentos
+                entre empresas do grupo aparecem como transferência.
+              </p>
+            </div>
           </div>
         </Card>
+
 
         {/* Filtros */}
         <Card className="p-4">
