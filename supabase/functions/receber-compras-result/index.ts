@@ -1,7 +1,7 @@
 // Recebe lote autoritativo do LIVRO DE ENTRADAS do ERP Result e faz upsert no staging.
 // Auth: Bearer RUBYSP_SYNC_TOKEN ou FUTURA_SYNC_TOKEN (mesmo padrão dos demais receivers rubysp).
 // Contrato: POST { tipo: 'full'|'incremental', compras: [...] } — máx. 5.000/lote.
-// Chave de conflito: (empresa_result, numero_nota, cfop, cst, data_entrada).
+// Chave de conflito: (empresa_result, fornecedor_id, numero_nota, serie, cfop, cst, aliquota, data_entrada).
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
