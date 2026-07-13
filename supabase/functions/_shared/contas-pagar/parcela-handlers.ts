@@ -3,6 +3,7 @@
 //   (empresa/fornecedor/categoria/departamento) — paridade DX com /consultar e /query.
 import type { HandlerContext } from "./types.ts";
 import { logSuccess, apiResponse, UUID_REGEX } from "./utils.ts";
+import { applyEmpresaFilter, isEmptyScope } from "../empresa-scope.ts";
 
 export async function handleGetParcelas(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
@@ -15,8 +16,36 @@ export async function handleGetParcelas(ctx: HandlerContext): Promise<Response> 
     return apiResponse({ error: 'VALIDATION_ERROR', message: 'conta_pagar_id deve ser um UUID válido' }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
+  // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+  const scope = ctx.getEmpresaScope ? await ctx.getEmpresaScope() : null;
+  if (scope && isEmptyScope(scope)) {
+    return apiResponse({ error: 'scope_forbidden', message: 'Usuário não possui empresa vinculada' }, 403, ctx.corsHeaders, ctx.startTime);
+  }
+
+  // Constrain parcelas to conta_pagar_ids visible under the caller's empresa scope.
+  // For non-admin, resolve the allowed conta_pagar_id set via a semi-join.
   let query = ctx.supabase.from('parcelas').select('*', { count: 'exact' });
-  if (contaPagarId) query = query.eq('conta_pagar_id', contaPagarId);
+  if (contaPagarId) {
+    // Verify parent belongs to caller's scope before letting parcelas leak.
+    if (scope && !scope.isAdmin) {
+      let parentQ = ctx.supabase.from('contas_pagar').select('id').eq('id', contaPagarId);
+      parentQ = applyEmpresaFilter(parentQ, scope);
+      const { data: parent } = await parentQ.maybeSingle();
+      if (!parent) {
+        return apiResponse({ error: 'nao_encontrado', message: 'Título não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
+      }
+    }
+    query = query.eq('conta_pagar_id', contaPagarId);
+  } else if (scope && !scope.isAdmin) {
+    let scopedParents = ctx.supabase.from('contas_pagar').select('id');
+    scopedParents = applyEmpresaFilter(scopedParents, scope);
+    const { data: parents } = await scopedParents.limit(2000);
+    const ids = (parents || []).map((r: any) => r.id);
+    if (ids.length === 0) {
+      return apiResponse({ data: [], meta_relacionados: null, pagination: { total: 0, limit, offset } }, 200, ctx.corsHeaders, ctx.startTime);
+    }
+    query = query.in('conta_pagar_id', ids);
+  }
   query = query.order('numero_parcela', { ascending: true }).range(offset, offset + limit - 1);
 
   const { data, error, count } = await query;
