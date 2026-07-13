@@ -428,7 +428,13 @@ export default function ComprasVendasPage() {
               </ComposedChart>
             </ResponsiveContainer>
           )}
+          {hasParcial && (
+            <div className="text-[11px] text-muted-foreground mt-2 text-right">
+              * mês corrente parcial (até {format(now, "dd/MM", { locale: ptBR })})
+            </div>
+          )}
         </Card>
+
 
         {/* Tabela mensal */}
         <Card className="overflow-hidden">
