@@ -842,3 +842,35 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     </Card>
   );
 }
+
+function SortableHead({
+  children,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  sortKey: string;
+  sort: { key: string; dir: "asc" | "desc" };
+  onSort: (key: any) => void;
+  align?: "left" | "right";
+}) {
+  const active = sort.key === sortKey;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead className={align === "right" ? "text-right" : undefined}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${
+          align === "right" ? "flex-row-reverse ml-auto" : ""
+        } ${active ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        <span>{children}</span>
+        <Icon className="h-3 w-3 opacity-70" />
+      </button>
+    </TableHead>
+  );
+}
+
