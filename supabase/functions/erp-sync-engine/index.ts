@@ -647,10 +647,11 @@ async function handleSyncPaginated(
 
       const offset = page * pageSize;
       const orderByClause = options?.orderBy || "[ID Empresa], [Nota], [Seq]";
+      const fromClause = options?.fromExpr ? options.fromExpr : `[${viewName}]`;
       const query = `
         SELECT * FROM (
           SELECT *, ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS _rn
-          FROM [${viewName}]
+          FROM ${fromClause}
           ${whereFilter}
         ) AS _paged
         WHERE _rn > ${offset} AND _rn <= ${offset + pageSize}
