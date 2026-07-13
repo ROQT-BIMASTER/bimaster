@@ -16819,6 +16819,39 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_estoque_fisico: {
+        Row: {
+          data_foto: string
+          empresa_result: number
+          id: number
+          produtos: number | null
+          sincronizado_em: string
+          unidades: number | null
+          valor_custo_familia: number | null
+          valor_ultimo_custo: number | null
+        }
+        Insert: {
+          data_foto: string
+          empresa_result: number
+          id?: never
+          produtos?: number | null
+          sincronizado_em?: string
+          unidades?: number | null
+          valor_custo_familia?: number | null
+          valor_ultimo_custo?: number | null
+        }
+        Update: {
+          data_foto?: string
+          empresa_result?: number
+          id?: never
+          produtos?: number | null
+          sincronizado_em?: string
+          unidades?: number | null
+          valor_custo_familia?: number | null
+          valor_ultimo_custo?: number | null
+        }
+        Relationships: []
+      }
       erp_estoque_live: {
         Row: {
           cod_fabricante: string | null
