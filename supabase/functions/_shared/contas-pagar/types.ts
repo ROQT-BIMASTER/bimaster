@@ -165,6 +165,8 @@ export const PagamentosParamsSchema = z.object({
 // =====================================================
 // Handler context
 // =====================================================
+import type { EmpresaScope } from "../empresa-scope.ts";
+
 export interface HandlerContext {
   // deno-lint-ignore no-explicit-any
   supabase: any;
@@ -177,6 +179,5 @@ export interface HandlerContext {
   // Auth info populated by validateAuth (may be undefined until validateAuth is called).
   authSource?: "jwt" | "api_key" | null;
   authUserId?: string;
-  // deno-lint-ignore no-explicit-any
-  getEmpresaScope?: () => Promise<import("../empresa-scope.ts").EmpresaScope>;
+  getEmpresaScope?: () => Promise<EmpresaScope>;
 }
