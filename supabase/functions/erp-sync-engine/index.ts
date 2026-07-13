@@ -1134,10 +1134,9 @@ function estoqueEmpresas(): number[] {
  * pipeline (views, cache, telas).
  */
 function estoqueFromExpr(empresasCsv: string): string {
-  // Sem enriquecimento explícito: puxa só InformacoesProdutos + Produtos.
-  // O enriquecimento vindo de Cust_EstoqueDistribuidora (curva, bloqueio,
-  // endereço, pedido_pendente, nome_linha) fica NULL — pode ser reintroduzido
-  // depois via LEFT JOIN quando os nomes exatos de coluna forem confirmados.
+  // Enriquecimento parcial: só campos SEM acento (compatíveis com todos os
+  // collations do SQL Server do ERP). Campos com "Endereço"/"Localização"
+  // ficam de fora até que sejam confirmados na estrutura da view antiga.
   return `(
     SELECT
       i.Empresa_InfPro                                            AS [Empresa_Par],
@@ -1150,9 +1149,18 @@ function estoqueFromExpr(empresasCsv: string): string {
       i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
       i.pcvenda_infpro                                            AS [Valor Venda],
       LTRIM(RTRIM(p.Descricao_Pro))                               AS [NomeProd],
-      LTRIM(RTRIM(p.codfor_pro))                                  AS [Cod Fabricante]
+      LTRIM(RTRIM(p.codfor_pro))                                  AS [Cod Fabricante],
+      e.[Abrev_Par]                                               AS [Abrev_Par],
+      e.[NomeLinha]                                               AS [NomeLinha],
+      e.[Estoque Bloqueado Produto]                               AS [Estoque Bloqueado Produto],
+      e.[Pedido Pendente]                                         AS [Pedido Pendente],
+      e.[CurvaFisica]                                             AS [CurvaFisica],
+      e.[CurvaMonetaria]                                          AS [CurvaMonetaria]
     FROM dbo.InformacoesProdutos i
     JOIN dbo.Produtos p ON p.Id_Pro = i.Produto_InfPro
+    LEFT JOIN dbo.Cust_EstoqueDistribuidora e
+      ON e.[Empresa_Par] = i.Empresa_InfPro
+     AND e.[Cod Produto] = i.Produto_InfPro
     WHERE i.Empresa_InfPro IN (${empresasCsv})
   ) AS src`;
 }
