@@ -1168,7 +1168,6 @@ function estoqueFromExpr(empresasCsv: string): string {
              NULLIF(c1.max_pcultimo,        0),
              NULLIF(c2.max_custonota,       0),
              NULLIF(c3.max_customedio,      0),
-             NULLIF(e.[Custo Unitario],     0),
              0) AS float)                                         AS [Custo Unitario],
       CAST(CAST(i.Estoque_InfPro AS float)
            * CAST(COALESCE(
@@ -1178,9 +1177,9 @@ function estoqueFromExpr(empresasCsv: string): string {
                     NULLIF(c1.max_pcultimo,        0),
                     NULLIF(c2.max_custonota,       0),
                     NULLIF(c3.max_customedio,      0),
-                    NULLIF(e.[Custo Unitario],     0),
                     0) AS float)
            AS float)                                              AS [Custo Total],
+
       i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
       i.pcvenda_infpro                                            AS [Valor Venda],
       LTRIM(RTRIM(p.Descricao_Pro))                               AS [NomeProd],
