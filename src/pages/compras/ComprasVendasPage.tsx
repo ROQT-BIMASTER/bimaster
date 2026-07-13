@@ -7,12 +7,12 @@ import {
   TrendingDown,
   Info,
   Layers,
+  Boxes,
 } from "lucide-react";
 import {
   ComposedChart,
   Bar,
   Line,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -39,6 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -47,6 +53,7 @@ import {
   EMPRESA_RESULT_NOME,
   nomeEmpresaResult,
 } from "@/hooks/compras/useEntradasResult";
+import { useEstoqueFisicoMensal } from "@/hooks/compras/useEstoqueFisicoMensal";
 
 const EMPRESAS = Object.entries(EMPRESA_RESULT_NOME).map(([id, nome]) => ({
   id: Number(id),
@@ -71,6 +78,15 @@ function fmtCurrencyShort(v: number): string {
   return formatCurrency(v);
 }
 
+function fmtNumShort(v: number): string {
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000)
+    return `${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}mi`;
+  if (abs >= 1_000)
+    return `${(v / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}k`;
+  return v.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+}
+
 export default function ComprasVendasPage() {
   const now = new Date();
   const [empresa, setEmpresa] = useState<string>("grupo");
@@ -85,6 +101,12 @@ export default function ComprasVendasPage() {
   );
 
   const { data, isLoading } = useComprasVendasMensal({
+    empresas: empresasFiltro,
+    from,
+    to,
+  });
+
+  const { data: fisicoData, isLoading: fisicoLoading } = useEstoqueFisicoMensal({
     empresas: empresasFiltro,
     from,
     to,
@@ -137,12 +159,6 @@ export default function ComprasVendasPage() {
           ...r,
           mesLabel: fmtMesLabel(r.mes) + (parcial ? " *" : ""),
           parcial,
-          // banda de custo verdadeiro (piso→teto)
-          banda_piso: r.vendas_ultimo_custo,
-          banda_faixa: Math.max(
-            0,
-            r.vendas_custo_familia - r.vendas_ultimo_custo,
-          ),
         };
       });
   }, [data, currentYM]);
@@ -151,27 +167,37 @@ export default function ComprasVendasPage() {
 
   const kpis = useMemo(() => {
     let compras = 0;
-    let vendasCustoBaixo = 0;
-    let vendasCustoAlto = 0;
+    let cmvReal = 0; // custo real de compra (custo família)
+    let cmvBI = 0; // régua ERP/BI (último custo) — comparação
     for (const r of chartRows) {
       compras += r.compras_revenda;
-      vendasCustoBaixo += r.vendas_ultimo_custo;
-      vendasCustoAlto += r.vendas_custo_familia;
+      cmvReal += r.vendas_custo_familia;
+      cmvBI += r.vendas_ultimo_custo;
     }
-    // Régua principal = PISO (vendas_ultimo_custo); teto é apenas referência
-    const razao = vendasCustoBaixo > 0 ? compras / vendasCustoBaixo : 0;
-    const cobertura = compras - vendasCustoBaixo;
-    return {
-      compras,
-      vendasCustoBaixo,
-      vendasCustoAlto,
-      razao,
-      cobertura,
-    };
+    const razao = cmvReal > 0 ? compras / cmvReal : 0;
+    const cobertura = compras - cmvReal;
+    return { compras, cmvReal, cmvBI, razao, cobertura };
   }, [chartRows]);
 
+  // Estoque físico: pontos + deltas + KPI
+  const fisicoRows = fisicoData ?? [];
+  const fisicoChart = useMemo(
+    () =>
+      fisicoRows.map((r) => ({
+        ...r,
+        mesLabel: fmtMesLabel(r.mes) + (r.parcial ? " *" : ""),
+      })),
+    [fisicoRows],
+  );
+  const deltaFisicoPeriodo = useMemo(() => {
+    if (fisicoRows.length < 2) return 0;
+    const first = fisicoRows[0];
+    const last = fisicoRows[fisicoRows.length - 1];
+    return last.valor_custo_familia - first.valor_custo_familia;
+  }, [fisicoRows]);
 
   return (
+    <TooltipProvider>
     <DashboardLayout>
       <div className="w-full px-4 md:px-6 py-6 space-y-4">
         <PageHeader
@@ -189,12 +215,12 @@ export default function ComprasVendasPage() {
             <Info className="h-4 w-4 shrink-0 text-sky-600 mt-0.5" />
             <div className="space-y-1">
               <p>
-                A régua principal de <strong>vendas a custo</strong> é o{" "}
-                <strong>último custo de compra</strong> (piso). O{" "}
-                <strong>custo médio da família</strong> (teto) aparece apenas
-                como referência na banda do gráfico — o campo de custo médio do
-                ERP não é confiável. A linha tracejada mostra o faturamento a
-                preço (eixo direito).
+                A régua principal de <strong>vendas a custo</strong> passou a
+                ser o <strong>CMV real (custo de compra por família)</strong>.
+                A régua antiga do ERP/BI (último custo) permanece no gráfico
+                apenas como <strong>linha de comparação</strong> — validado por
+                contagem física do WMS em 13/07/2026 que ela subavalia o CMV
+                em ~1,7×.
               </p>
               <p>
                 Painel considera apenas operações com terceiros — movimentos
@@ -265,20 +291,27 @@ export default function ComprasVendasPage() {
           </Card>
           <Card className="p-4 bg-card/70 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5" /> Vendas a custo (banda)
+              <TrendingUp className="h-3.5 w-3.5" /> CMV (custo real de compra)
             </div>
-            <div className="text-lg font-semibold mt-1 leading-tight">
-              {formatCurrency(kpis.vendasCustoBaixo)}
-              <span className="text-muted-foreground text-sm"> — </span>
-              {formatCurrency(kpis.vendasCustoAlto)}
+            <div className="text-2xl font-semibold mt-1">
+              {formatCurrency(kpis.cmvReal)}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              piso (último custo) → teto (custo família)
+            <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+              <span>ERP/BI (últ. custo): {formatCurrency(kpis.cmvBI)}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 cursor-help opacity-60" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Mesma régua usada pelo Power BI — subavaliada em ~1,7×
+                  (validado por contagem física do WMS em 13/07/2026).
+                </TooltipContent>
+              </Tooltip>
             </div>
           </Card>
           <Card className="p-4 bg-card/70 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Layers className="h-3.5 w-3.5" /> Razão compra ÷ venda-custo
+              <Layers className="h-3.5 w-3.5" /> Razão compra ÷ CMV real
             </div>
             <div className="text-2xl font-semibold mt-1">
               {kpis.razao > 0
@@ -290,17 +323,7 @@ export default function ComprasVendasPage() {
               <span className="text-sm text-muted-foreground">×</span>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              vs. piso (último custo)
-              {kpis.vendasCustoAlto > 0 && (
-                <>
-                  {" · ref. teto: "}
-                  {(kpis.compras / kpis.vendasCustoAlto).toLocaleString(
-                    "pt-BR",
-                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-                  )}
-                  ×
-                </>
-              )}
+              vs. CMV real (custo de compra por família)
             </div>
           </Card>
           <Card className="p-4 bg-card/70 backdrop-blur-sm">
@@ -310,7 +333,7 @@ export default function ComprasVendasPage() {
               ) : (
                 <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               )}
-              Cobertura (compra − venda-custo piso)
+              Cobertura (compra − CMV real)
             </div>
             <div
               className={`text-2xl font-semibold mt-1 ${
@@ -321,21 +344,14 @@ export default function ComprasVendasPage() {
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {kpis.cobertura >= 0 ? "estoque subindo" : "estoque caindo"}
-              {kpis.vendasCustoAlto > 0 && (
-                <>
-                  {" · ref. vs. teto: "}
-                  {formatCurrency(kpis.compras - kpis.vendasCustoAlto)}
-                </>
-              )}
             </div>
-
           </Card>
         </div>
 
         {/* Gráfico */}
         <Card className="p-4">
           <h3 className="text-sm font-semibold mb-3">
-            Compras vs vendas a custo — {" "}
+            Compras vs CMV — {" "}
             {empresa === "grupo"
               ? "Grupo"
               : nomeEmpresaResult(Number(empresa))}
@@ -372,19 +388,20 @@ export default function ComprasVendasPage() {
                     borderRadius: 8,
                     fontSize: 12,
                   }}
-                  formatter={(value: any, name: string) => {
-                    if (name === "banda_piso" || name === "banda_faixa")
-                      return null as any;
-                    return [formatCurrency(Number(value)), name];
-                  }}
+                  formatter={(value: any, name: string) => [
+                    formatCurrency(Number(value)),
+                    name,
+                  ]}
                   labelStyle={{ fontWeight: 600 }}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: 12 }}
                   formatter={(v) => {
-                    if (v === "banda_piso") return "Custo (piso — último)";
-                    if (v === "banda_faixa") return "Banda até custo família";
                     if (v === "compras_revenda") return "Compras (revenda)";
+                    if (v === "vendas_custo_familia")
+                      return "CMV real (custo família)";
+                    if (v === "vendas_ultimo_custo")
+                      return "CMV ERP/BI — últ. custo (comparação)";
                     if (v === "vendas_preco")
                       return "Vendas a preço (eixo →)";
                     return v;
@@ -397,24 +414,22 @@ export default function ComprasVendasPage() {
                   radius={[4, 4, 0, 0]}
                   maxBarSize={40}
                 />
-                {/* Banda: base transparente + faixa colorida empilhada */}
-                <Area
+                <Line
                   yAxisId="left"
                   type="monotone"
-                  dataKey="banda_piso"
-                  stackId="banda"
-                  stroke="none"
-                  fill="transparent"
-                  legendType="none"
-                />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="banda_faixa"
-                  stackId="banda"
+                  dataKey="vendas_custo_familia"
                   stroke="hsl(var(--module-fabrica, 25 90% 55%))"
-                  fill="hsl(var(--module-fabrica, 25 90% 55%))"
-                  fillOpacity={0.25}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="vendas_ultimo_custo"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="5 4"
+                  strokeWidth={1.5}
+                  dot={{ r: 2 }}
                 />
                 <Line
                   yAxisId="right"
@@ -424,6 +439,7 @@ export default function ComprasVendasPage() {
                   strokeDasharray="4 3"
                   strokeWidth={2}
                   dot={{ r: 2 }}
+                  opacity={0.6}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -452,11 +468,9 @@ export default function ComprasVendasPage() {
                   <TableHead>Mês</TableHead>
                   <TableHead className="text-right">Compras revenda</TableHead>
                   <TableHead className="text-right">Uso/consumo</TableHead>
-                  <TableHead className="text-right">
-                    Vendas — custo piso
-                  </TableHead>
-                  <TableHead className="text-right">
-                    Vendas — custo teto
+                  <TableHead className="text-right">CMV real</TableHead>
+                  <TableHead className="text-right text-muted-foreground">
+                    CMV ERP/BI (últ. custo)
                   </TableHead>
                   <TableHead className="text-right">Vendas a preço</TableHead>
                   <TableHead className="text-right">Devoluções</TableHead>
@@ -505,10 +519,10 @@ export default function ComprasVendasPage() {
                           {formatCurrency(r.compras_uso_consumo)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(r.vendas_ultimo_custo)}
-                        </TableCell>
-                        <TableCell className="text-right">
                           {formatCurrency(r.vendas_custo_familia)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(r.vendas_ultimo_custo)}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
                           {formatCurrency(r.vendas_preco)}
@@ -526,7 +540,202 @@ export default function ComprasVendasPage() {
             </Table>
           </div>
         </Card>
+
+        {/* Estoque físico (WMS) */}
+        <Card className="p-4 space-y-3">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Boxes className="h-4 w-4" /> Estoque físico (WMS)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
+                Contagem real do WMS — o desempate entre fluxo e físico.
+                Baseline: 22/03/2026. Série usa a última foto de cada mês.
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">
+                Δ estoque físico no período
+              </div>
+              <div
+                className={`text-xl font-semibold ${
+                  deltaFisicoPeriodo >= 0 ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                {deltaFisicoPeriodo >= 0 ? "+" : ""}
+                {formatCurrency(deltaFisicoPeriodo)}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                pela régua CMV real
+              </div>
+            </div>
+          </div>
+
+          {fisicoLoading ? (
+            <Skeleton className="h-[320px] w-full" />
+          ) : fisicoChart.length === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+              Sem fotos de estoque físico no período.
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart
+                  data={fisicoChart}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="mesLabel" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    yAxisId="left"
+                    tickFormatter={fmtCurrencyShort}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tickFormatter={fmtNumShort}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <RTooltip
+                    contentStyle={{
+                      background: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name === "unidades")
+                        return [fmtNumShort(Number(value)), "Unidades"];
+                      return [formatCurrency(Number(value)), name];
+                    }}
+                    labelStyle={{ fontWeight: 600 }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 12 }}
+                    formatter={(v) => {
+                      if (v === "valor_custo_familia")
+                        return "Valor (CMV real)";
+                      if (v === "valor_ultimo_custo")
+                        return "Valor (últ. custo — comparação)";
+                      if (v === "unidades") return "Unidades (eixo →)";
+                      return v;
+                    }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="valor_custo_familia"
+                    stroke="hsl(var(--module-fabrica, 25 90% 55%))"
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="valor_ultimo_custo"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeDasharray="5 4"
+                    strokeWidth={1.5}
+                    dot={{ r: 2 }}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="unidades"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={1.5}
+                    dot={{ r: 2 }}
+                    opacity={0.6}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mês</TableHead>
+                      <TableHead className="text-right">Foto</TableHead>
+                      <TableHead className="text-right">Produtos</TableHead>
+                      <TableHead className="text-right">Unidades</TableHead>
+                      <TableHead className="text-right">
+                        Valor (CMV real)
+                      </TableHead>
+                      <TableHead className="text-right text-muted-foreground">
+                        Valor (últ. custo)
+                      </TableHead>
+                      <TableHead className="text-right">Δ CMV real</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fisicoChart
+                      .slice()
+                      .reverse()
+                      .map((r) => (
+                        <TableRow
+                          key={r.mes}
+                          className={r.parcial ? "bg-amber-500/5" : undefined}
+                        >
+                          <TableCell className="font-medium">
+                            <span className="inline-flex items-center gap-2">
+                              {r.mesLabel.replace(/ \*$/, "")}
+                              {r.parcial && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium">
+                                  parcial
+                                </span>
+                              )}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {(() => {
+                              const d = parseLocalDate(r.data_foto);
+                              return d ? format(d, "dd/MM/yy") : r.data_foto;
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {r.produtos.toLocaleString("pt-BR")}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {r.unidades.toLocaleString("pt-BR", {
+                              maximumFractionDigits: 0,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(r.valor_custo_familia)}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {formatCurrency(r.valor_ultimo_custo)}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${
+                              r.delta_valor_custo_familia > 0
+                                ? "text-emerald-600"
+                                : r.delta_valor_custo_familia < 0
+                                  ? "text-red-600"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            {r.delta_valor_custo_familia === 0
+                              ? "—"
+                              : `${r.delta_valor_custo_familia > 0 ? "+" : ""}${formatCurrency(r.delta_valor_custo_familia)}`}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </Card>
+
+        <div className="text-[11px] text-muted-foreground pt-1">
+          Painel considera apenas operações com terceiros; movimentos entre
+          empresas do grupo aparecem como transferência. MG (f3) não possui
+          WMS — fora da série física.
+        </div>
       </div>
     </DashboardLayout>
+    </TooltipProvider>
   );
 }
