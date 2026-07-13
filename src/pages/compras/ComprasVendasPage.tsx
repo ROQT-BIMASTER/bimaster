@@ -486,10 +486,18 @@ export default function ComprasVendasPage() {
                     .slice()
                     .reverse()
                     .map((r) => (
-                      <TableRow key={r.mes}>
+                      <TableRow key={r.mes} className={r.parcial ? "bg-amber-500/5" : undefined}>
                         <TableCell className="font-medium">
-                          {r.mesLabel}
+                          <span className="inline-flex items-center gap-2">
+                            {r.mesLabel.replace(/ \*$/, "")}
+                            {r.parcial && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium">
+                                parcial
+                              </span>
+                            )}
+                          </span>
                         </TableCell>
+
                         <TableCell className="text-right">
                           {formatCurrency(r.compras_revenda)}
                         </TableCell>
