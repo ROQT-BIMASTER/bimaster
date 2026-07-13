@@ -54,8 +54,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   useEntradasFutura,
   useEntradaItens,
+  useNotasComProduto,
   type EntradaFuturaRow,
 } from "@/hooks/compras/useEntradasFutura";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 const NATUREZA_LABEL: Record<string, string> = {
   venda: "Venda",
@@ -101,6 +103,34 @@ export default function EntradasFuturaPage() {
   const [naturezas, setNaturezas] = useState<string[]>(["venda"]);
   const [notaAberta, setNotaAberta] = useState<EntradaFuturaRow | null>(null);
   const [page, setPage] = useState(0);
+  const [notaSearch, setNotaSearch] = useState("");
+  const [fornecedorSearch, setFornecedorSearch] = useState("");
+  const [produtoSearch, setProdutoSearch] = useState("");
+  const [produtoTermo, setProdutoTermo] = useState("");
+  type SortKey =
+    | "data_entrada"
+    | "empresa_nome"
+    | "nro_nota"
+    | "natureza"
+    | "cfop_codigo"
+    | "total_produto"
+    | "total_desconto"
+    | "total_nota"
+    | "total_icms_valor"
+    | "total_st_valor"
+    | "total_ipi_valor";
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
+    key: "data_entrada",
+    dir: "desc",
+  });
+  const toggleSort = (key: SortKey) => {
+    setSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "desc" },
+    );
+    setPage(0);
+  };
 
   const { data, isLoading, error } = useEntradasFutura({
     from,
@@ -170,13 +200,38 @@ export default function EntradasFuturaPage() {
     };
   }, [data]);
 
+  const { data: notasProduto, isFetching: loadingProduto } =
+    useNotasComProduto(produtoTermo);
+
+  const rowsFiltered = useMemo(() => {
+    let rows = data ?? [];
+    const nq = notaSearch.trim();
+    if (nq) rows = rows.filter((r) => String(r.nro_nota ?? "").includes(nq));
+    const fq = fornecedorSearch.trim().toLowerCase();
+    if (fq)
+      rows = rows.filter((r) =>
+        (r.empresa_nome ?? "").toLowerCase().includes(fq),
+      );
+    if (produtoTermo.trim().length >= 2 && notasProduto) {
+      rows = rows.filter((r) => notasProduto.has(r.futura_nota_id));
+    }
+    return rows;
+  }, [data, notaSearch, fornecedorSearch, produtoTermo, notasProduto]);
+
   const rowsSorted = useMemo(() => {
-    return (data ?? []).slice().sort((a, b) => {
-      const da = a.data_entrada ?? "";
-      const db = b.data_entrada ?? "";
-      return db.localeCompare(da);
+    const { key, dir } = sort;
+    const mult = dir === "asc" ? 1 : -1;
+    return rowsFiltered.slice().sort((a, b) => {
+      const va = (a as any)[key];
+      const vb = (b as any)[key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number")
+        return (va - vb) * mult;
+      return String(va).localeCompare(String(vb), "pt-BR") * mult;
     });
-  }, [data]);
+  }, [rowsFiltered, sort]);
 
   const pageRows = useMemo(
     () => rowsSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
@@ -317,6 +372,77 @@ export default function EntradasFuturaPage() {
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 pt-3 border-t">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Nº da nota
+              </label>
+              <Input
+                placeholder="Ex: 12345"
+                value={notaSearch}
+                onChange={(e) => {
+                  setNotaSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Fornecedor / distribuidora (texto)
+              </label>
+              <Input
+                placeholder="Buscar por nome"
+                value={fornecedorSearch}
+                onChange={(e) => {
+                  setFornecedorSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Produto (código ou descrição)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Mín. 2 caracteres"
+                  value={produtoSearch}
+                  onChange={(e) => setProdutoSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setProdutoTermo(produtoSearch);
+                      setPage(0);
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setProdutoTermo(produtoSearch);
+                    setPage(0);
+                  }}
+                  disabled={produtoSearch.trim().length < 2 && !produtoTermo}
+                >
+                  {loadingProduto ? "..." : produtoTermo ? "Atualizar" : "Filtrar"}
+                </Button>
+                {produtoTermo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setProdutoSearch("");
+                      setProdutoTermo("");
+                      setPage(0);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </Card>
 
         {/* KPIs */}
@@ -451,17 +577,17 @@ export default function EntradasFuturaPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Distribuidora</TableHead>
-                      <TableHead>Nº / Série</TableHead>
-                      <TableHead>Natureza</TableHead>
-                      <TableHead className="text-right">CFOP</TableHead>
-                      <TableHead className="text-right">Produtos</TableHead>
-                      <TableHead className="text-right">Desconto</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">ICMS</TableHead>
-                      <TableHead className="text-right">ST</TableHead>
-                      <TableHead className="text-right">IPI</TableHead>
+                      <SortableHead sortKey="data_entrada" sort={sort} onSort={toggleSort}>Data</SortableHead>
+                      <SortableHead sortKey="empresa_nome" sort={sort} onSort={toggleSort}>Distribuidora</SortableHead>
+                      <SortableHead sortKey="nro_nota" sort={sort} onSort={toggleSort}>Nº / Série</SortableHead>
+                      <SortableHead sortKey="natureza" sort={sort} onSort={toggleSort}>Natureza</SortableHead>
+                      <SortableHead sortKey="cfop_codigo" sort={sort} onSort={toggleSort} align="right">CFOP</SortableHead>
+                      <SortableHead sortKey="total_produto" sort={sort} onSort={toggleSort} align="right">Produtos</SortableHead>
+                      <SortableHead sortKey="total_desconto" sort={sort} onSort={toggleSort} align="right">Desconto</SortableHead>
+                      <SortableHead sortKey="total_nota" sort={sort} onSort={toggleSort} align="right">Total</SortableHead>
+                      <SortableHead sortKey="total_icms_valor" sort={sort} onSort={toggleSort} align="right">ICMS</SortableHead>
+                      <SortableHead sortKey="total_st_valor" sort={sort} onSort={toggleSort} align="right">ST</SortableHead>
+                      <SortableHead sortKey="total_ipi_valor" sort={sort} onSort={toggleSort} align="right">IPI</SortableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -716,3 +842,35 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     </Card>
   );
 }
+
+function SortableHead({
+  children,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  sortKey: string;
+  sort: { key: string; dir: "asc" | "desc" };
+  onSort: (key: any) => void;
+  align?: "left" | "right";
+}) {
+  const active = sort.key === sortKey;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead className={align === "right" ? "text-right" : undefined}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${
+          align === "right" ? "flex-row-reverse ml-auto" : ""
+        } ${active ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        <span>{children}</span>
+        <Icon className="h-3 w-3 opacity-70" />
+      </button>
+    </TableHead>
+  );
+}
+
