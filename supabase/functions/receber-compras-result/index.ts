@@ -9,15 +9,17 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 const CompraSchema = z.object({
   empresa_result: z.number().int(),
+  fornecedor_id: z.number().int(),
   fornecedor_nome: z.string().optional().nullable(),
   fornecedor_cnpj: z.string().optional().nullable(),
   numero_nota: z.string().min(1),
-  serie: z.string().optional().nullable(),
+  serie: z.string(),
   chave_nfe: z.string().optional().nullable(),
   data_emissao: z.string().optional().nullable(),
   data_entrada: z.string().min(1),
   cfop: z.number().int(),
   cst: z.string().optional().nullable(),
+  aliquota: z.number(),
   classe: z.enum(["revenda", "uso_consumo", "devolucao_venda", "transferencia", "outros"]),
   valor_contabil: z.number().optional().nullable(),
   base_icms: z.number().optional().nullable(),
