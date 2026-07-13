@@ -1096,11 +1096,78 @@ async function handleSyncVendasIncremental(req: Request, startMs: number) {
   );
 }
 
-// ─── Estoque (Cust_EstoqueDistribuidora → erp_estoque_distribuidora) ───
+// ─── Estoque (InformacoesProdutos + Produtos → erp_estoque_distribuidora) ───
+//
+// Fonte antiga (Cust_EstoqueDistribuidora) era um subconjunto filtrado: só 6
+// filiais e algumas linhas escondidas (insumos trade e certas caixas reais).
+// Fonte nova: dbo.InformacoesProdutos (tabela que o próprio ERP usa) —
+// superconjunto consistente com a antiga. Cust_EstoqueDistribuidora vira
+// LEFT JOIN de enriquecimento (curva, bloqueio, endereço, pedido pendente,
+// nome_linha) — quando não existir (ex.: MG=3), esses campos vêm nulos.
+//
+// Cutover validado em 13/07/2026: paridade por SKU nas 6 filiais em comum;
+// filiais 3/MG entram com ~1.4k SKUs (~239k un); insumos de trade (linha 27)
+// e caixas antes escondidas passam a aparecer — filtro fica na UI, não no sync.
 
-const ESTOQUE_VIEW = "Cust_EstoqueDistribuidora";
+const ESTOQUE_VIEW = "InformacoesProdutos"; // apenas rótulo/logs
 const ESTOQUE_TABLE = "erp_estoque_distribuidora";
 const ESTOQUE_ORDER_BY = "[Empresa_Par], [Cod Produto]";
+
+// Empresas alimentadas pelo sync completo de estoque. Config por env
+// ESTOQUE_EMPRESAS (CSV) — segue o mesmo padrão do IPAPER_EMPRESAS.
+// Default: 3 (MG), 4 (PR), 6 (Glass), 8 (PE), 9 (New Cosmic), 10 (Midday),
+// 11 (A Gente). 1/2/5/7 ficam fora até revisão.
+const ESTOQUE_EMPRESAS_DEFAULT = [3, 4, 6, 8, 9, 10, 11];
+function estoqueEmpresas(): number[] {
+  const env = Deno.env.get("ESTOQUE_EMPRESAS");
+  if (env) {
+    const ids = env.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isInteger(n) && n > 0);
+    if (ids.length > 0) return ids;
+  }
+  return ESTOQUE_EMPRESAS_DEFAULT;
+}
+
+/**
+ * Subquery que projeta InformacoesProdutos + Produtos + enriquecimento da
+ * Cust_EstoqueDistribuidora com os MESMOS nomes de coluna que o
+ * transformEstoque já sabe ler. Mantém compatibilidade total com o resto do
+ * pipeline (views, cache, telas).
+ */
+function estoqueFromExpr(empresasCsv: string): string {
+  return `(
+    SELECT
+      i.Empresa_InfPro                                            AS [Empresa_Par],
+      i.Produto_InfPro                                            AS [Cod Produto],
+      CAST(i.Estoque_InfPro AS float)                             AS [Estoque Produto],
+      CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float) AS [Custo Unitario],
+      CAST(CAST(i.Estoque_InfPro AS float)
+           * CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float)
+           AS float)                                              AS [Custo Total],
+      i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
+      i.pcvenda_infpro                                            AS [Valor Venda],
+      LTRIM(RTRIM(p.Descricao_Pro))                               AS [NomeProd],
+      LTRIM(RTRIM(p.codfor_pro))                                  AS [Cod Fabricante],
+      e.[Abrev_Par]                                               AS [Abrev_Par],
+      e.[NomeLinha]                                               AS [NomeLinha],
+      e.[UnidadeMedida]                                           AS [UnidadeMedida],
+      e.[Estoque Endereço]                                        AS [Estoque Endereço],
+      e.[Estoque Bloqueado Produto]                               AS [Estoque Bloqueado Produto],
+      e.[EstqBloqueado Endereço]                                  AS [EstqBloqueado Endereço],
+      e.[Saldo Endereço]                                          AS [Saldo Endereço],
+      e.[Pedido Pendente]                                         AS [Pedido Pendente],
+      e.[Localizacao]                                             AS [Localizacao],
+      e.[CurvaFisica]                                             AS [CurvaFisica],
+      e.[CurvaMonetaria]                                          AS [CurvaMonetaria],
+      e.[Validade]                                                AS [Validade],
+      e.[Lote]                                                    AS [Lote]
+    FROM dbo.InformacoesProdutos i
+    JOIN dbo.Produtos p ON p.Id_Pro = i.Produto_InfPro
+    LEFT JOIN dbo.Cust_EstoqueDistribuidora e
+      ON e.[Empresa_Par] = i.Empresa_InfPro
+     AND e.[Cod Produto] = i.Produto_InfPro
+    WHERE i.Empresa_InfPro IN (${empresasCsv})
+  ) AS src`;
+}
 
 function transformEstoque(row: SqlRow) {
   const empresaPar = parseInteger(row["Empresa_Par"] ?? row["Empresa Par"]) ?? 0;
@@ -1160,16 +1227,22 @@ async function handleSyncEstoquePorEmpresa(req: Request, startMs: number) {
   if (!empresaId || isNaN(Number(empresaId))) {
     return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
   }
+  const empId = Number(empresaId);
   return handleSyncPaginated(
     req, startMs,
     ESTOQUE_VIEW, ESTOQUE_TABLE, "estoque",
     transformEstoque, "erp_id",
     {
-      whereClause: `[Empresa_Par] = ${Number(empresaId)}`,
-      empresaId: Number(empresaId),
+      // Filtro já embutido dentro do subquery (WHERE i.Empresa_InfPro IN (...)),
+      // mas mantemos o predicate externo por segurança (idempotente).
+      whereClause: `[Empresa_Par] = ${empId}`,
+      empresaId: empId,
       startPage: Number(startPage),
       maxPages: Number(maxPages),
       orderBy: ESTOQUE_ORDER_BY,
+      fromExpr: estoqueFromExpr(String(empId)),
+      // Hard-sync: remove linhas stale (SKUs que sumiram do ERP) após full ok.
+      hardSync: { empresaCol: "empresa_par", empresaValue: empId },
     }
   );
 }
