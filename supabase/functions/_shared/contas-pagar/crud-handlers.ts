@@ -31,7 +31,14 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   const enrichedSelect = `*,
     portador_rel:portadores!portador_id(id, nome, codigo_erp)`;
 
+  // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+  const scope = ctx.getEmpresaScope ? await ctx.getEmpresaScope() : null;
+  if (scope && isEmptyScope(scope)) {
+    return apiResponse({ error: 'scope_forbidden', message: 'Usuário não possui empresa vinculada' }, 403, ctx.corsHeaders, ctx.startTime);
+  }
+
   let query = ctx.supabase.from('contas_pagar').select(enrichedSelect);
+  if (scope) query = applyEmpresaFilter(query, scope);
   if (id) query = query.eq('id', id);
   else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
   else if (codHuggs) query = query.eq('codigo_lancamento_huggs', codHuggs);
