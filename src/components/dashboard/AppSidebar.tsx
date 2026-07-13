@@ -1467,8 +1467,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           );
         })}
 
-        {/* Compras standalone — visível para quem tem o módulo Fornecedor */}
-        {(isAdmin || hasModulePermission("fornecedor")) && moduleMatchesSearch("compras") && (
+        {/* Compras standalone — módulo próprio (paridade com nav v2) */}
+        {(isAdmin || hasModulePermission("compras")) && moduleMatchesSearch("compras") && (
           <SidebarGroup className="py-1 px-2">
             <CategoryDivider title="Compras" />
             {renderModuleContent("compras")}
