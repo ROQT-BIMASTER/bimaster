@@ -16293,6 +16293,7 @@ export type Database = {
       }
       erp_compras_result: {
         Row: {
+          aliquota: number
           base_icms: number | null
           base_st: number | null
           cfop: number
@@ -16303,10 +16304,11 @@ export type Database = {
           data_entrada: string
           empresa_result: number
           fornecedor_cnpj: string | null
+          fornecedor_id: number
           fornecedor_nome: string | null
           id: number
           numero_nota: string
-          serie: string | null
+          serie: string
           sincronizado_em: string
           valor_contabil: number | null
           valor_icms: number | null
@@ -16314,6 +16316,7 @@ export type Database = {
           valor_st: number | null
         }
         Insert: {
+          aliquota?: number
           base_icms?: number | null
           base_st?: number | null
           cfop: number
@@ -16324,10 +16327,11 @@ export type Database = {
           data_entrada: string
           empresa_result: number
           fornecedor_cnpj?: string | null
+          fornecedor_id?: number
           fornecedor_nome?: string | null
           id?: never
           numero_nota: string
-          serie?: string | null
+          serie?: string
           sincronizado_em?: string
           valor_contabil?: number | null
           valor_icms?: number | null
@@ -16335,6 +16339,7 @@ export type Database = {
           valor_st?: number | null
         }
         Update: {
+          aliquota?: number
           base_icms?: number | null
           base_st?: number | null
           cfop?: number
@@ -16345,10 +16350,11 @@ export type Database = {
           data_entrada?: string
           empresa_result?: number
           fornecedor_cnpj?: string | null
+          fornecedor_id?: number
           fornecedor_nome?: string | null
           id?: never
           numero_nota?: string
-          serie?: string | null
+          serie?: string
           sincronizado_em?: string
           valor_contabil?: number | null
           valor_icms?: number | null
