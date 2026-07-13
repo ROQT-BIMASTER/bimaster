@@ -54,8 +54,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   useEntradasFutura,
   useEntradaItens,
+  useNotasComProduto,
   type EntradaFuturaRow,
 } from "@/hooks/compras/useEntradasFutura";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 const NATUREZA_LABEL: Record<string, string> = {
   venda: "Venda",
