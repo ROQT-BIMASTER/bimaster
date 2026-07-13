@@ -90,6 +90,8 @@ export default function ComprasVendasPage() {
     to,
   });
 
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   // Agrega por mês (grupo soma todas as filiais)
   const chartRows = useMemo(() => {
     const rows = data ?? [];
@@ -128,17 +130,24 @@ export default function ComprasVendasPage() {
     }
     return Array.from(byMes.values())
       .sort((a, b) => a.mes.localeCompare(b.mes))
-      .map((r) => ({
-        ...r,
-        mesLabel: fmtMesLabel(r.mes),
-        // banda de custo verdadeiro (piso→teto)
-        banda_piso: r.vendas_ultimo_custo,
-        banda_faixa: Math.max(
-          0,
-          r.vendas_custo_familia - r.vendas_ultimo_custo,
-        ),
-      }));
-  }, [data]);
+      .map((r) => {
+        const ym = r.mes.slice(0, 7);
+        const parcial = ym === currentYM;
+        return {
+          ...r,
+          mesLabel: fmtMesLabel(r.mes) + (parcial ? " *" : ""),
+          parcial,
+          // banda de custo verdadeiro (piso→teto)
+          banda_piso: r.vendas_ultimo_custo,
+          banda_faixa: Math.max(
+            0,
+            r.vendas_custo_familia - r.vendas_ultimo_custo,
+          ),
+        };
+      });
+  }, [data, currentYM]);
+
+  const hasParcial = chartRows.some((r) => r.parcial);
 
   const kpis = useMemo(() => {
     let compras = 0;
@@ -149,18 +158,18 @@ export default function ComprasVendasPage() {
       vendasCustoBaixo += r.vendas_ultimo_custo;
       vendasCustoAlto += r.vendas_custo_familia;
     }
-    const vendasMid = (vendasCustoBaixo + vendasCustoAlto) / 2 || 0;
-    const razao = vendasMid > 0 ? compras / vendasMid : 0;
-    const cobertura = compras - vendasMid;
+    // Régua principal = PISO (vendas_ultimo_custo); teto é apenas referência
+    const razao = vendasCustoBaixo > 0 ? compras / vendasCustoBaixo : 0;
+    const cobertura = compras - vendasCustoBaixo;
     return {
       compras,
       vendasCustoBaixo,
       vendasCustoAlto,
-      vendasMid,
       razao,
       cobertura,
     };
   }, [chartRows]);
+
 
   return (
     <DashboardLayout>
@@ -178,16 +187,23 @@ export default function ComprasVendasPage() {
         <Card className="p-3 border-l-4 border-l-sky-500 bg-sky-500/5">
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="h-4 w-4 shrink-0 text-sky-600 mt-0.5" />
-            <p>
-              A régua de <strong>vendas a custo</strong> é exibida como banda
-              entre <strong>último custo de compra</strong> (piso) e{" "}
-              <strong>custo médio da família</strong> (teto). O campo de custo
-              médio do ERP não é confiável — o custo verdadeiro está{" "}
-              <em>dentro</em> da banda. A linha tracejada mostra o faturamento a
-              preço (eixo direito).
-            </p>
+            <div className="space-y-1">
+              <p>
+                A régua principal de <strong>vendas a custo</strong> é o{" "}
+                <strong>último custo de compra</strong> (piso). O{" "}
+                <strong>custo médio da família</strong> (teto) aparece apenas
+                como referência na banda do gráfico — o campo de custo médio do
+                ERP não é confiável. A linha tracejada mostra o faturamento a
+                preço (eixo direito).
+              </p>
+              <p>
+                Painel considera apenas operações com terceiros — movimentos
+                entre empresas do grupo aparecem como transferência.
+              </p>
+            </div>
           </div>
         </Card>
+
 
         {/* Filtros */}
         <Card className="p-4">
@@ -274,7 +290,17 @@ export default function ComprasVendasPage() {
               <span className="text-sm text-muted-foreground">×</span>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              usando média da banda
+              vs. piso (último custo)
+              {kpis.vendasCustoAlto > 0 && (
+                <>
+                  {" · ref. teto: "}
+                  {(kpis.compras / kpis.vendasCustoAlto).toLocaleString(
+                    "pt-BR",
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  )}
+                  ×
+                </>
+              )}
             </div>
           </Card>
           <Card className="p-4 bg-card/70 backdrop-blur-sm">
@@ -284,7 +310,7 @@ export default function ComprasVendasPage() {
               ) : (
                 <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               )}
-              Cobertura (compra − venda-custo)
+              Cobertura (compra − venda-custo piso)
             </div>
             <div
               className={`text-2xl font-semibold mt-1 ${
@@ -295,7 +321,14 @@ export default function ComprasVendasPage() {
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {kpis.cobertura >= 0 ? "estoque subindo" : "estoque caindo"}
+              {kpis.vendasCustoAlto > 0 && (
+                <>
+                  {" · ref. vs. teto: "}
+                  {formatCurrency(kpis.compras - kpis.vendasCustoAlto)}
+                </>
+              )}
             </div>
+
           </Card>
         </div>
 
@@ -395,7 +428,13 @@ export default function ComprasVendasPage() {
               </ComposedChart>
             </ResponsiveContainer>
           )}
+          {hasParcial && (
+            <div className="text-[11px] text-muted-foreground mt-2 text-right">
+              * mês corrente parcial (até {format(now, "dd/MM", { locale: ptBR })})
+            </div>
+          )}
         </Card>
+
 
         {/* Tabela mensal */}
         <Card className="overflow-hidden">
@@ -447,10 +486,18 @@ export default function ComprasVendasPage() {
                     .slice()
                     .reverse()
                     .map((r) => (
-                      <TableRow key={r.mes}>
+                      <TableRow key={r.mes} className={r.parcial ? "bg-amber-500/5" : undefined}>
                         <TableCell className="font-medium">
-                          {r.mesLabel}
+                          <span className="inline-flex items-center gap-2">
+                            {r.mesLabel.replace(/ \*$/, "")}
+                            {r.parcial && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium">
+                                parcial
+                              </span>
+                            )}
+                          </span>
                         </TableCell>
+
                         <TableCell className="text-right">
                           {formatCurrency(r.compras_revenda)}
                         </TableCell>
