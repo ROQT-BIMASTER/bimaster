@@ -1142,13 +1142,43 @@ function estoqueFromExpr(empresasCsv: string): string {
       i.Empresa_InfPro                                            AS [Empresa_Par],
       i.Produto_InfPro                                            AS [Cod Produto],
       CAST(i.Estoque_InfPro AS float)                             AS [Estoque Produto],
-      CAST(COALESCE(NULLIF(i.pcultimocusto_InfPro, 0),
-                    NULLIF(i.CustoNota_InfPro, 0),
-                    NULLIF(i.CustoMedio_InfPro, 0), 0) AS float) AS [Custo Unitario],
+      CAST(COALESCE(
+             NULLIF(i.pcultimocusto_InfPro, 0),
+             NULLIF(i.CustoNota_InfPro,     0),
+             NULLIF(i.CustoMedio_InfPro,    0),
+             NULLIF((SELECT MAX(i2.pcultimocusto_InfPro)
+                       FROM dbo.InformacoesProdutos i2
+                      WHERE i2.Produto_InfPro = i.Produto_InfPro
+                        AND i2.pcultimocusto_InfPro > 0), 0),
+             NULLIF((SELECT MAX(i3.CustoNota_InfPro)
+                       FROM dbo.InformacoesProdutos i3
+                      WHERE i3.Produto_InfPro = i.Produto_InfPro
+                        AND i3.CustoNota_InfPro > 0), 0),
+             NULLIF((SELECT MAX(i4.CustoMedio_InfPro)
+                       FROM dbo.InformacoesProdutos i4
+                      WHERE i4.Produto_InfPro = i.Produto_InfPro
+                        AND i4.CustoMedio_InfPro > 0), 0),
+             NULLIF(e.[Custo Unitario], 0),
+             0) AS float)                                         AS [Custo Unitario],
       CAST(CAST(i.Estoque_InfPro AS float)
-           * CAST(COALESCE(NULLIF(i.pcultimocusto_InfPro, 0),
-                           NULLIF(i.CustoNota_InfPro, 0),
-                           NULLIF(i.CustoMedio_InfPro, 0), 0) AS float)
+           * CAST(COALESCE(
+                    NULLIF(i.pcultimocusto_InfPro, 0),
+                    NULLIF(i.CustoNota_InfPro,     0),
+                    NULLIF(i.CustoMedio_InfPro,    0),
+                    NULLIF((SELECT MAX(i2.pcultimocusto_InfPro)
+                              FROM dbo.InformacoesProdutos i2
+                             WHERE i2.Produto_InfPro = i.Produto_InfPro
+                               AND i2.pcultimocusto_InfPro > 0), 0),
+                    NULLIF((SELECT MAX(i3.CustoNota_InfPro)
+                              FROM dbo.InformacoesProdutos i3
+                             WHERE i3.Produto_InfPro = i.Produto_InfPro
+                               AND i3.CustoNota_InfPro > 0), 0),
+                    NULLIF((SELECT MAX(i4.CustoMedio_InfPro)
+                              FROM dbo.InformacoesProdutos i4
+                             WHERE i4.Produto_InfPro = i.Produto_InfPro
+                               AND i4.CustoMedio_InfPro > 0), 0),
+                    NULLIF(e.[Custo Unitario], 0),
+                    0) AS float)
            AS float)                                              AS [Custo Total],
       i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
       i.pcvenda_infpro                                            AS [Valor Venda],
@@ -1167,6 +1197,7 @@ function estoqueFromExpr(empresasCsv: string): string {
      AND e.[Cod Produto] = i.Produto_InfPro
     WHERE i.Empresa_InfPro IN (${empresasCsv})
   ) AS src`;
+
 }
 
 function transformEstoque(row: SqlRow) {
