@@ -372,6 +372,77 @@ export default function EntradasFuturaPage() {
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 pt-3 border-t">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Nº da nota
+              </label>
+              <Input
+                placeholder="Ex: 12345"
+                value={notaSearch}
+                onChange={(e) => {
+                  setNotaSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Fornecedor / distribuidora (texto)
+              </label>
+              <Input
+                placeholder="Buscar por nome"
+                value={fornecedorSearch}
+                onChange={(e) => {
+                  setFornecedorSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Produto (código ou descrição)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Mín. 2 caracteres"
+                  value={produtoSearch}
+                  onChange={(e) => setProdutoSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setProdutoTermo(produtoSearch);
+                      setPage(0);
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setProdutoTermo(produtoSearch);
+                    setPage(0);
+                  }}
+                  disabled={produtoSearch.trim().length < 2 && !produtoTermo}
+                >
+                  {loadingProduto ? "..." : produtoTermo ? "Atualizar" : "Filtrar"}
+                </Button>
+                {produtoTermo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setProdutoSearch("");
+                      setProdutoTermo("");
+                      setPage(0);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </Card>
 
         {/* KPIs */}
