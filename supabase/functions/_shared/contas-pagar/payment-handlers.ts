@@ -228,13 +228,39 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const { conta_pagar_id, limit, offset, cursor } = params.data;
 
+  // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+  const scope = ctx.getEmpresaScope ? await ctx.getEmpresaScope() : null;
+  if (scope && isEmptyScope(scope)) {
+    return apiResponse({ error: 'scope_forbidden', message: 'Usuário não possui empresa vinculada' }, 403, ctx.corsHeaders, ctx.startTime);
+  }
+
   // PR-23/PR-24 (v4.4.1): JOIN embedded com contas_bancarias (FK conta_bancaria_id).
   // `created_by` referencia auth.users (não profiles) — fazemos lookup separado em profiles
   // para evitar PGRST200 (PostgREST não consegue resolver join cross-schema implícito).
   const enrichedPagSelect = `*,
     conta_corrente_rel:contas_bancarias!conta_bancaria_id(id, banco, agencia, conta)`;
   let query = ctx.supabase.from('pagamentos').select(enrichedPagSelect, { count: 'exact' });
-  if (conta_pagar_id) query = query.eq('conta_pagar_id', conta_pagar_id);
+  if (conta_pagar_id) {
+    // Verify parent belongs to caller's scope.
+    if (scope && !scope.isAdmin) {
+      let parentQ = ctx.supabase.from('contas_pagar').select('id').eq('id', conta_pagar_id);
+      parentQ = applyEmpresaFilter(parentQ, scope);
+      const { data: parent } = await parentQ.maybeSingle();
+      if (!parent) {
+        return apiResponse({ error: 'nao_encontrado', message: 'Título não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
+      }
+    }
+    query = query.eq('conta_pagar_id', conta_pagar_id);
+  } else if (scope && !scope.isAdmin) {
+    let scopedParents = ctx.supabase.from('contas_pagar').select('id');
+    scopedParents = applyEmpresaFilter(scopedParents, scope);
+    const { data: parents } = await scopedParents.limit(2000);
+    const ids = (parents || []).map((r: any) => r.id);
+    if (ids.length === 0) {
+      return apiResponse({ data: [], pagination: { total: 0, limit, offset, cursor: undefined, has_more: false } }, 200, ctx.corsHeaders, ctx.startTime);
+    }
+    query = query.in('conta_pagar_id', ids);
+  }
 
   // Cursor-based pagination
   if (cursor) {
