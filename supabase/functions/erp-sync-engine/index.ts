@@ -1142,9 +1142,13 @@ function estoqueFromExpr(empresasCsv: string): string {
       i.Empresa_InfPro                                            AS [Empresa_Par],
       i.Produto_InfPro                                            AS [Cod Produto],
       CAST(i.Estoque_InfPro AS float)                             AS [Estoque Produto],
-      CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float) AS [Custo Unitario],
+      CAST(COALESCE(NULLIF(i.pcultimocusto_InfPro, 0),
+                    NULLIF(i.CustoNota_InfPro, 0),
+                    NULLIF(i.CustoMedio_InfPro, 0), 0) AS float) AS [Custo Unitario],
       CAST(CAST(i.Estoque_InfPro AS float)
-           * CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float)
+           * CAST(COALESCE(NULLIF(i.pcultimocusto_InfPro, 0),
+                           NULLIF(i.CustoNota_InfPro, 0),
+                           NULLIF(i.CustoMedio_InfPro, 0), 0) AS float)
            AS float)                                              AS [Custo Total],
       i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
       i.pcvenda_infpro                                            AS [Valor Venda],
