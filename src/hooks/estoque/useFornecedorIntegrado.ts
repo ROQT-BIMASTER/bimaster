@@ -85,33 +85,44 @@ export interface FornecedorIntegradoKpis {
 
 /**
  * KPIs agregados a partir de v_estoque_fornecedor_integrado.
- * Faz duas queries com `head:true, count:exact` para evitar trafegar linhas.
+ *
+ * Estratégia: uma única leitura (com .range(0, 19999)) trazendo só as colunas
+ * mínimas (casado, fornecedor_caixas) e derivação client-side. Motivo: 5 counts
+ * head:true em paralelo estavam falhando silenciosamente (timeout na view por
+ * causa do GROUP BY da CTE `linha`) e o hook retornava 0 em todos os KPIs.
+ * Aqui, se der erro, lançamos — o card mostra estado de erro/loading em vez
+ * de renderizar 0 falso.
  */
 export function useFornecedorIntegradoKpis() {
   return useQuery({
-    queryKey: ['fornecedor-integrado-kpis'],
+    queryKey: ['fornecedor-integrado-kpis', 'v2-single-scan'],
     staleTime: 60_000,
     queryFn: async (): Promise<FornecedorIntegradoKpis> => {
-      const tbl = 'v_estoque_fornecedor_integrado' as any;
-      const [{ count: total }, { count: casados }, { count: comSaldo }, { count: comSaldoCasados }, { count: pendentes }] = await Promise.all([
-        (supabase as any).from(tbl).select('*', { count: 'exact', head: true }),
-        (supabase as any).from(tbl).select('*', { count: 'exact', head: true }).eq('casado', true),
-        (supabase as any).from(tbl).select('*', { count: 'exact', head: true }).gt('fornecedor_caixas', 0),
-        (supabase as any).from(tbl).select('*', { count: 'exact', head: true }).gt('fornecedor_caixas', 0).eq('casado', true),
-        (supabase as any).from(tbl).select('*', { count: 'exact', head: true }).gt('fornecedor_caixas', 0).eq('casado', false),
-      ]);
-      const t = Number(total ?? 0);
-      const c = Number(casados ?? 0);
-      const cs = Number(comSaldo ?? 0);
-      const csc = Number(comSaldoCasados ?? 0);
+      const { data, error } = await (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('casado, fornecedor_caixas')
+        .range(0, 19999);
+      if (error) throw error;
+      const rows = (data ?? []) as { casado: boolean | null; fornecedor_caixas: number | null }[];
+      let total = 0, casados = 0, comSaldo = 0, comSaldoCasados = 0, pendentes = 0;
+      for (const r of rows) {
+        total += 1;
+        const hasSaldo = Number(r.fornecedor_caixas ?? 0) > 0;
+        if (r.casado === true) casados += 1;
+        if (hasSaldo) {
+          comSaldo += 1;
+          if (r.casado === true) comSaldoCasados += 1;
+          else if (r.casado === false) pendentes += 1;
+        }
+      }
       return {
-        total: t,
-        casados: c,
-        pct_casado: t ? Math.round((c / t) * 1000) / 10 : 0,
-        com_saldo: cs,
-        com_saldo_casados: csc,
-        pct_casado_com_saldo: cs ? Math.round((csc / cs) * 1000) / 10 : 0,
-        exceptions_pendentes: Number(pendentes ?? 0),
+        total,
+        casados,
+        pct_casado: total ? Math.round((casados / total) * 1000) / 10 : 0,
+        com_saldo: comSaldo,
+        com_saldo_casados: comSaldoCasados,
+        pct_casado_com_saldo: comSaldo ? Math.round((comSaldoCasados / comSaldo) * 1000) / 10 : 0,
+        exceptions_pendentes: pendentes,
       };
     },
   });
