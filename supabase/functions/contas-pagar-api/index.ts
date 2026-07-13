@@ -6,6 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess, callerHasModuleAccess } from "../_shared/auth.ts";
+import { getCallerEmpresaScope, isEmptyScope, type EmpresaScope } from "../_shared/empresa-scope.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
