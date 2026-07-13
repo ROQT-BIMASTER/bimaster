@@ -90,6 +90,8 @@ export default function ComprasVendasPage() {
     to,
   });
 
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   // Agrega por mês (grupo soma todas as filiais)
   const chartRows = useMemo(() => {
     const rows = data ?? [];
@@ -128,17 +130,24 @@ export default function ComprasVendasPage() {
     }
     return Array.from(byMes.values())
       .sort((a, b) => a.mes.localeCompare(b.mes))
-      .map((r) => ({
-        ...r,
-        mesLabel: fmtMesLabel(r.mes),
-        // banda de custo verdadeiro (piso→teto)
-        banda_piso: r.vendas_ultimo_custo,
-        banda_faixa: Math.max(
-          0,
-          r.vendas_custo_familia - r.vendas_ultimo_custo,
-        ),
-      }));
-  }, [data]);
+      .map((r) => {
+        const ym = r.mes.slice(0, 7);
+        const parcial = ym === currentYM;
+        return {
+          ...r,
+          mesLabel: fmtMesLabel(r.mes) + (parcial ? " *" : ""),
+          parcial,
+          // banda de custo verdadeiro (piso→teto)
+          banda_piso: r.vendas_ultimo_custo,
+          banda_faixa: Math.max(
+            0,
+            r.vendas_custo_familia - r.vendas_ultimo_custo,
+          ),
+        };
+      });
+  }, [data, currentYM]);
+
+  const hasParcial = chartRows.some((r) => r.parcial);
 
   const kpis = useMemo(() => {
     let compras = 0;
@@ -149,18 +158,18 @@ export default function ComprasVendasPage() {
       vendasCustoBaixo += r.vendas_ultimo_custo;
       vendasCustoAlto += r.vendas_custo_familia;
     }
-    const vendasMid = (vendasCustoBaixo + vendasCustoAlto) / 2 || 0;
-    const razao = vendasMid > 0 ? compras / vendasMid : 0;
-    const cobertura = compras - vendasMid;
+    // Régua principal = PISO (vendas_ultimo_custo); teto é apenas referência
+    const razao = vendasCustoBaixo > 0 ? compras / vendasCustoBaixo : 0;
+    const cobertura = compras - vendasCustoBaixo;
     return {
       compras,
       vendasCustoBaixo,
       vendasCustoAlto,
-      vendasMid,
       razao,
       cobertura,
     };
   }, [chartRows]);
+
 
   return (
     <DashboardLayout>
