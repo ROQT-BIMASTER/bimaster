@@ -174,4 +174,9 @@ export interface HandlerContext {
   corsHeaders: Record<string, string>;
   validateAuth: () => Promise<boolean>;
   validateApiKey: () => Promise<boolean>;
+  // Auth info populated by validateAuth (may be undefined until validateAuth is called).
+  authSource?: "jwt" | "api_key" | null;
+  authUserId?: string;
+  // deno-lint-ignore no-explicit-any
+  getEmpresaScope?: () => Promise<import("../empresa-scope.ts").EmpresaScope>;
 }
