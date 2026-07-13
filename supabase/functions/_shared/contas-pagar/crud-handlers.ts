@@ -3,6 +3,7 @@
 import type { HandlerContext } from "./types.ts";
 import { IncluirSchema, UpsertSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
+import { applyEmpresaFilter, isEmptyScope } from "../empresa-scope.ts";
 // PR-24 (Production Hardening): idempotência centralizada em withIdempotency (router) — checkIdempotency/saveIdempotency removidos dos handlers (eram dupla execução com race em retries simultâneos).
 import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, validateReference } from "./utils.ts";
 
