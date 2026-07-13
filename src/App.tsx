@@ -408,6 +408,8 @@ const ClienteHistoricoPage = lazyWithRetry(() => import("./pages/fornecedor/Clie
 const ClientesListPage = lazyWithRetry(() => import("./pages/fornecedor/ClientesListPage"));
 const ProdutosVendasPage = lazyWithRetry(() => import("./pages/fornecedor/ProdutosVendasPage"));
 const EntradasFuturaPage = lazyWithRetry(() => import("./pages/compras/EntradasFuturaPage"));
+const EntradasResultPage = lazyWithRetry(() => import("./pages/compras/EntradasResultPage"));
+const ComprasVendasPage = lazyWithRetry(() => import("./pages/compras/ComprasVendasPage"));
 const AnalisesBuilder = lazyWithRetry(() => import("./pages/vendas/AnalisesBuilder"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
@@ -802,6 +804,8 @@ function AppContent() {
             <Route path="/dashboard/fornecedor/analises" element={<ModuleRoute moduleCode="fornecedor"><AnalisesBuilder /></ModuleRoute>} />
             <Route path="/dashboard/compras" element={<Navigate to="/dashboard/compras/entradas-futura" replace />} />
             <Route path="/dashboard/compras/entradas-futura" element={<ModuleRoute moduleCode="compras"><EntradasFuturaPage /></ModuleRoute>} />
+            <Route path="/dashboard/compras/entradas-result" element={<ModuleRoute moduleCode="compras"><EntradasResultPage /></ModuleRoute>} />
+            <Route path="/dashboard/compras/vendas" element={<ModuleRoute moduleCode="compras"><ComprasVendasPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/fornecedor" element={<Navigate to="/dashboard/fornecedor/estoque" replace />} />
             <Route path="/dashboard/estoque/fornecedor-depara" element={<Navigate to="/dashboard/fornecedor/depara-ean" replace />} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />

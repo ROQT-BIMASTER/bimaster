@@ -1216,8 +1216,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "compras":
         return (
-          <ModuleSubmenu icon={ShoppingCart} title="Compras" colorKey="financeiro" count={1}>
+          <ModuleSubmenu icon={ShoppingCart} title="Compras" colorKey="financeiro" count={3}>
             <MenuItemLink to="/dashboard/compras/entradas-futura" icon={Receipt} title="Entradas Futura" />
+            <MenuItemLink to="/dashboard/compras/entradas-result" icon={Receipt} title="Entradas Result (livro)" />
+            <MenuItemLink to="/dashboard/compras/vendas" icon={TrendingUp} title="Compras × Vendas" />
           </ModuleSubmenu>
         );
 
