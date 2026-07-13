@@ -140,3 +140,37 @@ export function useEntradaItens(futuraNotaId: number | null) {
     staleTime: 60 * 1000,
   });
 }
+
+/** Busca ids de futura_nota_id que contêm itens com código/descrição casando o termo. */
+export function useNotasComProduto(termo: string, from: string, to: string) {
+  return useQuery({
+    queryKey: ["compras-notas-com-produto", termo, from, to],
+    enabled: termo.trim().length >= 2,
+    queryFn: async (): Promise<Set<number>> => {
+      const t = termo.trim();
+      const ids = new Set<number>();
+      let offset = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await sb
+          .from("erp_vendas_item")
+          .select("futura_nota_id, cod_produto, descricao, data_emissao")
+          .gte("data_emissao", from)
+          .lte("data_emissao", to)
+          .or(`cod_produto.ilike.%${t}%,descricao.ilike.%${t}%`)
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) {
+          if (r.futura_nota_id != null) ids.add(Number(r.futura_nota_id));
+        }
+        if (data.length < PAGE) break;
+        offset += PAGE;
+        if (offset > 100_000) break;
+      }
+      return ids;
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
