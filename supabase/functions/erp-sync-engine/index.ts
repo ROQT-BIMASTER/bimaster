@@ -1432,6 +1432,7 @@ async function handleSyncComposicaoFull(req: Request, startMs: number) {
   let totalAll = 0;
   let upsertedAll = 0;
 
+  let deletedStaleAll = 0;
   const CONCURRENCY = 2;
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
     const batch = empresaIds.slice(i, i + CONCURRENCY);
@@ -1443,10 +1444,11 @@ async function handleSyncComposicaoFull(req: Request, startMs: number) {
           body: JSON.stringify({ path: "sync-composicao-por-empresa", empresa_id: empId }),
         });
         const data = await resp.json();
-        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, deletedStale: data.deletedStale, hardSyncApplied: data.hardSyncApplied, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        logger.log(`✅ Composição Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        deletedStaleAll += data.deletedStale || 0;
+        logger.log(`✅ Composição Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted, ${data.deletedStale || 0} stale removed`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
@@ -1462,6 +1464,7 @@ async function handleSyncComposicaoFull(req: Request, startMs: number) {
     empresas: empresaIds.length,
     totalRows: totalAll,
     upserted: upsertedAll,
+    deletedStale: deletedStaleAll,
     results,
   }, 200, req, { startMs });
 }
