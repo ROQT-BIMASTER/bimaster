@@ -6,6 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess, callerHasModuleAccess } from "../_shared/auth.ts";
+import { getCallerEmpresaScope, isEmptyScope, type EmpresaScope } from "../_shared/empresa-scope.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
@@ -116,21 +117,57 @@ async function runRouter(req: Request): Promise<Response> {
       return false;
     };
 
+    let cachedScope: EmpresaScope | null = null;
+    const getEmpresaScope = async (): Promise<EmpresaScope> => {
+      if (cachedScope) return cachedScope;
+      // Ensure auth has been validated before resolving scope.
+      if (!authSource) await validateAuthFn();
+      cachedScope = await getCallerEmpresaScope({
+        source: authSource ?? undefined,
+        userId: authUserId,
+        empresaId: undefined, // populated by service_role lookup for api_key in future refactors
+      });
+      // For api_key auth, resolve empresa_id from erp_config on demand.
+      if (authSource === 'api_key') {
+        const apiKey = req.headers.get('x-api-key');
+        if (apiKey) {
+          const { data: cfgRow } = await supabase.from('erp_config').select('empresa_id').eq('config_key', 'api_key').eq('config_value', apiKey).maybeSingle();
+          const empId = cfgRow?.empresa_id != null ? String(cfgRow.empresa_id) : '';
+          if (empId) cachedScope = { isAdmin: false, empresaIds: [empId], source: 'api_key' };
+        }
+      }
+      return cachedScope;
+    };
+
     const ctx: HandlerContext = {
       supabase, req, url, startTime, corsHeaders,
       validateAuth: validateAuthFn,
       validateApiKey: validateApiKeyFn,
-    };
+      get authSource() { return authSource; },
+      get authUserId() { return authUserId; },
+      getEmpresaScope,
+    } as HandlerContext;
 
     const segment = path.split('/').pop() || '';
     const method = req.method;
 
     // Autorização de escrita: métodos que mutam exigem papel financeiro para chamador JWT.
     // API-key (máquina) já é escopada por empresa e passa. validateAuthFn popula authSource/authUserId.
+    // GET routes now additionally enforce module access + empresa scope inside the shared
+    // handlers (handleConsultar/handleQuery/handleGetParcelas/handleGetPagamentos) via
+    // ctx.getEmpresaScope(). This closes the IDOR where any signed-in user could read AP
+    // records for every company.
     if (method !== 'GET') {
       const authed = await validateAuthFn();
       if (!authed) return apiResponse({ error: 'Autenticação necessária', codigo_status: '1' }, 401, corsHeaders, startTime);
       if (authSource === 'jwt' && !(await callerHasModuleAccess(authSource, authUserId, 'financeiro'))) {
+        return apiResponse({ error: 'Acesso negado: módulo financeiro necessário', codigo_status: '1' }, 403, corsHeaders, startTime);
+      }
+    } else {
+      // Enforce auth + module access for GET reads too.
+      const authed = await validateAuthFn();
+      if (!authed && segment !== 'status') return apiResponse({ error: 'Autenticação necessária', codigo_status: '1' }, 401, corsHeaders, startTime);
+      if (segment !== 'status' && authSource === 'jwt' && !(await callerHasModuleAccess(authSource, authUserId, 'financeiro'))) {
         return apiResponse({ error: 'Acesso negado: módulo financeiro necessário', codigo_status: '1' }, 403, corsHeaders, startTime);
       }
     }

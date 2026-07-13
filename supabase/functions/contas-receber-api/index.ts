@@ -4,7 +4,8 @@ import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 // withSecurityHeaders removed in PR-1B — shared response.ts já aplica security headers.
-import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, AuthError, callerHasModuleAccess } from "../_shared/auth.ts";
+import { getCallerEmpresaScope, applyEmpresaFilter, isEmptyScope } from "../_shared/empresa-scope.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
@@ -207,6 +208,20 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
     // Rate limit with correct signature
     await checkRateLimit({ prefix: 'cr-api', limit: 60, req, userId: auth.userId });
 
+    // Portal financial APIs: JWT callers must have financeiro module access.
+    // API-key callers are already empresa-scoped upstream.
+    if (!(await callerHasModuleAccess(auth.source as any, auth.userId, 'financeiro'))) {
+      return jsonResponse({ error: 'Acesso negado: módulo financeiro necessário' }, 403, corsHeaders);
+    }
+
+    // Multi-tenant scope: API-key ⇒ single empresa; JWT ⇒ user_empresas ∪ admin.
+    // Non-admin caller with no empresa vinculada ⇒ 403 (previously any signed-in user
+    // could enumerate contas_receber and boletos across every company).
+    const scope = await getCallerEmpresaScope(auth);
+    if (isEmptyScope(scope)) {
+      return jsonResponse({ error: 'Usuário não possui empresa vinculada' }, 403, corsHeaders);
+    }
+
     // ========== GET /consultar ==========
     if (path.endsWith('/consultar') && req.method === 'GET') {
       const id = url.searchParams.get('id');
@@ -214,6 +229,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       const codHuggs = url.searchParams.get('codigo_lancamento_huggs');
 
       let query = supabase.from('contas_receber').select('*');
+      query = applyEmpresaFilter(query, scope);
       if (id) query = query.eq('id', id);
       else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
       else if (codHuggs) query = query.eq('codigo_lancamento_huggs', Number(codHuggs));
@@ -241,6 +257,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       const offset = Math.max(0, isFinite(offsetRaw) ? offsetRaw : 0);
 
       let query = supabase.from('contas_receber').select('*', { count: 'exact' });
+      query = applyEmpresaFilter(query, scope);
       if (empresa_id) query = query.eq('empresa_id', Number(empresa_id));
       if (cliente_codigo) query = query.eq('cliente_codigo', cliente_codigo);
       if (status) {

@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { getCallerEmpresaScope, applyEmpresaFilter, isEmptyScope, type EmpresaScope } from "../_shared/empresa-scope.ts";
 
 function getSupabase() {
   return createClient(
@@ -113,7 +114,7 @@ async function handleIncluir(req: Request, auth: any): Promise<Response> {
   }, 201, req, { startMs });
 }
 
-async function handleConsultar(req: Request, auth: any): Promise<Response> {
+async function handleConsultar(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const cCodIntAnexo = url.searchParams.get("cCodIntAnexo");
@@ -124,6 +125,7 @@ async function handleConsultar(req: Request, auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("documento_anexos").select("*");
+  query = applyEmpresaFilter(query, scope);
 
   if (cCodIntAnexo) query = query.eq("c_cod_int_anexo", cCodIntAnexo);
   if (cTabela) query = query.eq("c_tabela", cTabela);
@@ -155,7 +157,7 @@ async function handleConsultar(req: Request, auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleObter(req: Request, auth: any): Promise<Response> {
+async function handleObter(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const cCodIntAnexo = url.searchParams.get("cCodIntAnexo");
@@ -166,6 +168,7 @@ async function handleObter(req: Request, auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("documento_anexos").select("*");
+  query = applyEmpresaFilter(query, scope);
 
   if (cCodIntAnexo) query = query.eq("c_cod_int_anexo", cCodIntAnexo);
   if (nIdAnexo) query = query.eq("n_id_anexo", parseInt(nIdAnexo));
@@ -207,7 +210,7 @@ async function handleObter(req: Request, auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleListar(req: Request, auth: any): Promise<Response> {
+async function handleListar(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const nPagina = parseInt(url.searchParams.get("nPagina") || "1");
@@ -231,6 +234,7 @@ async function handleListar(req: Request, auth: any): Promise<Response> {
     .eq("n_id", parseInt(nId))
     .order("created_at", { ascending: false })
     .range(offset, offset + nRegPorPagina - 1);
+  query = applyEmpresaFilter(query, scope);
 
   if (dDtIncDe) query = query.gte("created_at", dDtIncDe);
   if (dDtIncAte) query = query.lte("created_at", dDtIncAte);
@@ -267,13 +271,14 @@ async function handleListar(req: Request, auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleExcluir(req: Request, auth: any): Promise<Response> {
+async function handleExcluir(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const body = await req.json();
   const { cCodIntAnexo, cTabela, nId, nIdAnexo, cNomeArquivo } = body;
 
   const supabase = getSupabase();
   let query = supabase.from("documento_anexos").select("id, storage_path");
+  query = applyEmpresaFilter(query, scope);
 
   if (cCodIntAnexo) query = query.eq("c_cod_int_anexo", cCodIntAnexo);
   if (cTabela) query = query.eq("c_tabela", cTabela);
@@ -343,6 +348,14 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "anexos
     const auth = await authenticate(req);
     await checkRateLimit({ prefix: "anexos", limit: 60, req, userId: auth.userId });
 
+    // Multi-tenant scope: API-key ⇒ single empresa; JWT ⇒ user_empresas ∪ admin bypass.
+    // Empty scope for non-admin JWT users ⇒ 403 (previously any user could enumerate
+    // attachments belonging to other companies/departments via c_tabela + n_id).
+    const scope = await getCallerEmpresaScope(auth);
+    if (isEmptyScope(scope)) {
+      return errorResponse(403, "SCOPE-001", "Usuário não possui empresa vinculada", req);
+    }
+
     // Route
     switch (path) {
       case "/incluir":
@@ -351,19 +364,19 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "anexos
 
       case "/consultar":
         if (req.method !== "GET") return errorResponse(405, "MTD-001", "Use GET para /consultar", req);
-        return await handleConsultar(req, auth);
+        return await handleConsultar(req, auth, scope);
 
       case "/obter":
         if (req.method !== "GET") return errorResponse(405, "MTD-001", "Use GET para /obter", req);
-        return await handleObter(req, auth);
+        return await handleObter(req, auth, scope);
 
       case "/listar":
         if (req.method !== "GET") return errorResponse(405, "MTD-001", "Use GET para /listar", req);
-        return await handleListar(req, auth);
+        return await handleListar(req, auth, scope);
 
       case "/excluir":
         if (req.method !== "DELETE") return errorResponse(405, "MTD-001", "Use DELETE para /excluir", req);
-        return await handleExcluir(req, auth);
+        return await handleExcluir(req, auth, scope);
 
       default:
         return errorResponse(404, "ROUTE-001", `Rota não encontrada: ${path}`, req);

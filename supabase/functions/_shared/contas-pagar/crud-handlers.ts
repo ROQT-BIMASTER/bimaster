@@ -3,6 +3,7 @@
 import type { HandlerContext } from "./types.ts";
 import { IncluirSchema, UpsertSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
+import { applyEmpresaFilter, isEmptyScope } from "../empresa-scope.ts";
 // PR-24 (Production Hardening): idempotência centralizada em withIdempotency (router) — checkIdempotency/saveIdempotency removidos dos handlers (eram dupla execução com race em retries simultâneos).
 import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, validateReference } from "./utils.ts";
 
@@ -30,7 +31,14 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   const enrichedSelect = `*,
     portador_rel:portadores!portador_id(id, nome, codigo_erp)`;
 
+  // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+  const scope = ctx.getEmpresaScope ? await ctx.getEmpresaScope() : null;
+  if (scope && isEmptyScope(scope)) {
+    return apiResponse({ error: 'scope_forbidden', message: 'Usuário não possui empresa vinculada' }, 403, ctx.corsHeaders, ctx.startTime);
+  }
+
   let query = ctx.supabase.from('contas_pagar').select(enrichedSelect);
+  if (scope) query = applyEmpresaFilter(query, scope);
   if (id) query = query.eq('id', id);
   else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
   else if (codHuggs) query = query.eq('codigo_lancamento_huggs', codHuggs);
@@ -166,7 +174,14 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   const p = params.data;
 
+  // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+  const scope = ctx.getEmpresaScope ? await ctx.getEmpresaScope() : null;
+  if (scope && isEmptyScope(scope)) {
+    return apiResponse({ error: 'scope_forbidden', message: 'Usuário não possui empresa vinculada' }, 403, ctx.corsHeaders, ctx.startTime);
+  }
+
   let query = ctx.supabase.from('contas_pagar').select('*', { count: 'exact' });
+  if (scope) query = applyEmpresaFilter(query, scope);
 
   if (p.empresa_id) query = query.eq('empresa_id', p.empresa_id);
   if (p.empresa_ids) {
