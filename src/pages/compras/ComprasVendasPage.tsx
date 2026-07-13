@@ -290,7 +290,17 @@ export default function ComprasVendasPage() {
               <span className="text-sm text-muted-foreground">×</span>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              usando média da banda
+              vs. piso (último custo)
+              {kpis.vendasCustoAlto > 0 && (
+                <>
+                  {" · ref. teto: "}
+                  {(kpis.compras / kpis.vendasCustoAlto).toLocaleString(
+                    "pt-BR",
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  )}
+                  ×
+                </>
+              )}
             </div>
           </Card>
           <Card className="p-4 bg-card/70 backdrop-blur-sm">
@@ -300,7 +310,7 @@ export default function ComprasVendasPage() {
               ) : (
                 <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               )}
-              Cobertura (compra − venda-custo)
+              Cobertura (compra − venda-custo piso)
             </div>
             <div
               className={`text-2xl font-semibold mt-1 ${
@@ -311,7 +321,14 @@ export default function ComprasVendasPage() {
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {kpis.cobertura >= 0 ? "estoque subindo" : "estoque caindo"}
+              {kpis.vendasCustoAlto > 0 && (
+                <>
+                  {" · ref. vs. teto: "}
+                  {formatCurrency(kpis.compras - kpis.vendasCustoAlto)}
+                </>
+              )}
             </div>
+
           </Card>
         </div>
 
