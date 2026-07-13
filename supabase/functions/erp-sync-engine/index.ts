@@ -602,16 +602,20 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number; hardSync?: { empresaCol: string; empresaValue: number } }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  // Captura ANTES da 1ª página — usado para hard-sync (remoção de linhas stale).
+  const runStart = new Date().toISOString();
+
   let totalRows = 0;
   let totalUpserted = 0;
   const allErrors: string[] = [];
   let page = options?.startPage || 0;
+  const startPage = options?.startPage || 0;
   const maxPages = options?.maxPages || 999;
   const pageSize = options?.pageSize || SQL_PAGE_SIZE;
   const TIME_LIMIT_MS = 110_000; // 110s — leaves 40s margin for upsert + response
@@ -619,6 +623,8 @@ async function handleSyncPaginated(
   let stoppedByTimeGuard = false;
   let pagesProcessed = 0;
   let totalDeadlockRetries = 0;
+  let terminatedNaturally = false;
+  let hitMaxPages = false;
 
   // Single connection for ALL pages — eliminates 5-10s overhead per page
   let connection: Connection | null = null;
@@ -635,6 +641,7 @@ async function handleSyncPaginated(
 
       if (pagesProcessed >= maxPages) {
         logger.log(`📄 Max pages reached: ${pagesProcessed}/${maxPages}`);
+        hitMaxPages = true;
         break;
       }
 
@@ -652,7 +659,7 @@ async function handleSyncPaginated(
       const rows = await executeSqlQuery(connection, query);
       logger.log(`📊 Got ${rows.length} rows`);
 
-      if (rows.length === 0) break;
+      if (rows.length === 0) { terminatedNaturally = true; break; }
 
       totalRows += rows.length;
       const transformed = rows.map(transformFn);
@@ -661,13 +668,43 @@ async function handleSyncPaginated(
       totalDeadlockRetries += deadlockRetries;
       if (errors.length > 0) allErrors.push(...errors);
 
-      if (rows.length < pageSize) break;
+      if (rows.length < pageSize) { terminatedNaturally = true; break; }
       page++;
       pagesProcessed++;
 
       await new Promise((r) => setTimeout(r, 50));
     }
 
+    // ─── Hard-sync: só remove linhas stale se a execução foi completa e sem erros ───
+    // Escopo mínimo (empresaCol = empresaValue) + timestamp < runStart.
+    let deletedStale = 0;
+    const fullCycleOk =
+      !!options?.hardSync &&
+      startPage === 0 &&
+      terminatedNaturally &&
+      !stoppedByTimeGuard &&
+      !hitMaxPages &&
+      allErrors.length === 0;
+
+    if (options?.hardSync && !fullCycleOk) {
+      logger.log(`⚠️  hard-sync SKIPPED (partial run): startPage=${startPage} terminatedNaturally=${terminatedNaturally} stoppedByTimeGuard=${stoppedByTimeGuard} hitMaxPages=${hitMaxPages} errors=${allErrors.length}`);
+    }
+
+    if (fullCycleOk && options?.hardSync) {
+      const { empresaCol, empresaValue } = options.hardSync;
+      const { count, error: delErr } = await supabase
+        .from(tableName)
+        .delete({ count: "exact" })
+        .eq(empresaCol, empresaValue)
+        .lt("sincronizado_em", runStart);
+      if (delErr) {
+        logger.error(`❌ hard-sync delete failed: ${delErr.message}`);
+        allErrors.push(`hard-sync delete: ${delErr.message}`);
+      } else {
+        deletedStale = count ?? 0;
+        logger.log(`🧹 hard-sync: deleted ${deletedStale} stale rows from ${tableName} where ${empresaCol}=${empresaValue}`);
+      }
+    }
 
     const duration = Date.now() - startMs;
     const status = stoppedByTimeGuard ? "partial" : (allErrors.length > 0 ? "partial" : "success");
@@ -689,6 +726,8 @@ async function handleSyncPaginated(
       empresaId: options?.empresaId,
       totalRows,
       upserted: totalUpserted,
+      deletedStale: options?.hardSync ? deletedStale : undefined,
+      hardSyncApplied: options?.hardSync ? fullCycleOk : undefined,
       pages: pagesProcessed + 1,
       stoppedByTimeGuard,
       lastPage: page,
