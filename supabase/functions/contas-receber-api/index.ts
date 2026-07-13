@@ -257,6 +257,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       const offset = Math.max(0, isFinite(offsetRaw) ? offsetRaw : 0);
 
       let query = supabase.from('contas_receber').select('*', { count: 'exact' });
+      query = applyEmpresaFilter(query, scope);
       if (empresa_id) query = query.eq('empresa_id', Number(empresa_id));
       if (cliente_codigo) query = query.eq('cliente_codigo', cliente_codigo);
       if (status) {
