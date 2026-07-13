@@ -8,6 +8,8 @@ import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
+import { callerHasModuleAccess } from "../_shared/auth.ts";
+import { getCallerEmpresaScope, applyEmpresaFilter, isEmptyScope, type EmpresaScope } from "../_shared/empresa-scope.ts";
 
 // === Zod Schemas ===
 const GerarSchema = z.object({
@@ -50,7 +52,7 @@ async function authenticate(req: Request) {
 
 // === ROUTE HANDLERS ===
 
-async function handleGerar(req: Request, auth: any): Promise<Response> {
+async function handleGerar(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const rawBody = await req.json();
   const body = validateBody(rawBody, GerarSchema);
@@ -58,8 +60,9 @@ async function handleGerar(req: Request, auth: any): Promise<Response> {
 
   const supabase = getSupabase();
 
-  // Find the contas_receber record
+  // Find the contas_receber record — scoped to caller's empresa(s).
   let query = supabase.from("contas_receber").select("id, empresa_id, valor_original, data_vencimento, codigo_lancamento_huggs, codigo_lancamento_integracao");
+  query = applyEmpresaFilter(query, scope);
   if (nCodTitulo) query = query.eq("codigo_lancamento_huggs", nCodTitulo);
   else query = query.eq("codigo_lancamento_integracao", cCodIntTitulo);
 
@@ -126,7 +129,7 @@ async function handleGerar(req: Request, auth: any): Promise<Response> {
   }, 201, req, { startMs });
 }
 
-async function handleObter(req: Request, _auth: any): Promise<Response> {
+async function handleObter(req: Request, _auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const nCodTitulo = url.searchParams.get("nCodTitulo");
@@ -139,6 +142,7 @@ async function handleObter(req: Request, _auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").select("*").eq("status", "gerado").order("created_at", { ascending: false });
+  query = applyEmpresaFilter(query, scope);
   if (id) query = query.eq("id", id);
   else if (nCodTitulo) query = query.eq("n_cod_titulo", parseInt(nCodTitulo));
   else query = query.eq("c_cod_int_titulo", cCodIntTitulo);
@@ -167,7 +171,7 @@ async function handleObter(req: Request, _auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleCancelar(req: Request, _auth: any): Promise<Response> {
+async function handleCancelar(req: Request, _auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const rawBody = await req.json();
   const body = validateBody(rawBody, CancelarSchema);
@@ -175,6 +179,7 @@ async function handleCancelar(req: Request, _auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").update({ status: "cancelado" }).eq("status", "gerado");
+  query = applyEmpresaFilter(query, scope);
   if (nCodTitulo) query = query.eq("n_cod_titulo", nCodTitulo);
   else query = query.eq("c_cod_int_titulo", cCodIntTitulo);
 
@@ -194,7 +199,7 @@ async function handleCancelar(req: Request, _auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleProrrogar(req: Request, _auth: any): Promise<Response> {
+async function handleProrrogar(req: Request, _auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const rawBody = await req.json();
   const body = validateBody(rawBody, ProrrogarSchema);
@@ -209,6 +214,7 @@ async function handleProrrogar(req: Request, _auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").update({ data_vencimento: dataVenc, status: "prorrogado" }).eq("status", "gerado");
+  query = applyEmpresaFilter(query, scope);
   if (nCodTitulo) query = query.eq("n_cod_titulo", nCodTitulo);
   else query = query.eq("c_cod_int_titulo", cCodIntTitulo);
 
@@ -236,7 +242,7 @@ async function handleProrrogar(req: Request, _auth: any): Promise<Response> {
   }, 200, req, { startMs });
 }
 
-async function handleListar(req: Request, auth: any): Promise<Response> {
+async function handleListar(req: Request, auth: any, scope: EmpresaScope): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const pagina = parseInt(url.searchParams.get("pagina") || "1");
@@ -246,7 +252,7 @@ async function handleListar(req: Request, auth: any): Promise<Response> {
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").select("*", { count: "exact" });
-  if (auth.empresaId) query = query.eq("empresa_id", auth.empresaId);
+  query = applyEmpresaFilter(query, scope);
   if (status) query = query.eq("status", status);
   query = query.order("created_at", { ascending: false }).range(offset, offset + registros - 1);
 
@@ -298,26 +304,37 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "boleto
     const auth = await authenticate(req);
     await checkRateLimit({ prefix: "boletos", limit: 60, req, userId: auth.userId });
 
+    // JWT callers must belong to the financeiro module. API-key callers pass.
+    if (!(await callerHasModuleAccess(auth.source as any, auth.userId, "financeiro"))) {
+      return errorResponse(403, "AUTH-002", "Acesso negado: módulo financeiro necessário", req);
+    }
+
+    // Multi-tenant scope. Empty scope for non-admin JWT ⇒ 403.
+    const scope = await getCallerEmpresaScope(auth);
+    if (isEmptyScope(scope)) {
+      return errorResponse(403, "SCOPE-001", "Usuário não possui empresa vinculada", req);
+    }
+
     switch (route) {
       case "gerar":
         if (req.method !== "POST") return errorResponse(405, "MTD-001", "Use POST", req);
-        return await handleGerar(req, auth);
+        return await handleGerar(req, auth, scope);
 
       case "obter":
         if (req.method !== "GET") return errorResponse(405, "MTD-001", "Use GET", req);
-        return await handleObter(req, auth);
+        return await handleObter(req, auth, scope);
 
       case "cancelar":
         if (req.method !== "POST") return errorResponse(405, "MTD-001", "Use POST", req);
-        return await handleCancelar(req, auth);
+        return await handleCancelar(req, auth, scope);
 
       case "prorrogar":
         if (req.method !== "POST") return errorResponse(405, "MTD-001", "Use POST", req);
-        return await handleProrrogar(req, auth);
+        return await handleProrrogar(req, auth, scope);
 
       case "listar":
         if (req.method !== "GET") return errorResponse(405, "MTD-001", "Use GET", req);
-        return await handleListar(req, auth);
+        return await handleListar(req, auth, scope);
 
       default:
         return errorResponse(404, "NOT-001", `Rota não encontrada: /${route}. Rotas: /gerar, /obter, /cancelar, /prorrogar, /listar, /status`, req);

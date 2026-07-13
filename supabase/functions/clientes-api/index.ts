@@ -2,11 +2,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateAnyAuth } from "../_shared/auth.ts";
+import { validateAnyAuth, callerHasModuleAccess } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { getCallerEmpresaScope, applyEmpresaFilter, isEmptyScope, type EmpresaScope } from "../_shared/empresa-scope.ts";
 
 // === Zod Schemas ===
 const IncluirClienteSchema = z.object({
@@ -191,12 +192,36 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Portal financial APIs: JWT callers must have financeiro module access;
+    // API-key callers are already scoped by empresa upstream.
+    if (!(await callerHasModuleAccess(auth.source as any, auth.userId, "financeiro"))) {
+      return errorResponse(403, "FORBIDDEN", "Acesso negado: módulo financeiro necessário", req, startMs);
+    }
+
+    // Multi-tenant scope: API-key ⇒ single empresa; JWT ⇒ user_empresas ∪ admin bypass.
+    // Non-admin JWT users with no empresa vinculada ⇒ 403 (previously any signed-in
+    // user could read/edit clientes from every company via /consultar, /listar, etc.).
+    const scope: EmpresaScope = await getCallerEmpresaScope(auth);
+    if (isEmptyScope(scope)) {
+      return errorResponse(403, "SCOPE_FORBIDDEN", "Usuário não possui empresa vinculada", req, startMs);
+    }
+    // Helper to scope any `clientes` query by empresa_id.
+    const scopeClientes = <Q extends { in: (col: string, vals: any[]) => Q }>(q: Q): Q =>
+      applyEmpresaFilter(q, scope, "empresa_id");
+    // Non-admin API-key/JWT writes must stamp the empresa_id when creating a row.
+    const empresaIdForWrite: number | null = scope.isAdmin
+      ? null
+      : (scope.empresaIds[0] ? Number(scope.empresaIds[0]) : null);
+
     // ── POST /incluir ────────────────────────────────────────────
     if (req.method === "POST" && path === "/incluir") {
       const body = validateBody(await req.json(), IncluirClienteSchema);
 
       const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
+      // Stamp empresa_id from caller's scope when not admin — prevents caller from
+      // silently creating rows in another company by omission.
+      if (empresaIdForWrite != null && dbData.empresa_id == null) dbData.empresa_id = empresaIdForWrite;
 
       const { data, error } = await supabase
         .from("clientes")
@@ -225,6 +250,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       dbData.updated_at = new Date().toISOString();
 
       let query = supabase.from("clientes").update(dbData);
+      query = scopeClientes(query);
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
       else query = query.eq("id", codigo_cliente_huggs);
 
@@ -245,6 +271,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       }
 
       let query = supabase.from("clientes").select("*");
+      query = scopeClientes(query);
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
       else query = query.eq("id", codigo_cliente_huggs);
 
@@ -263,6 +290,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       }
 
       let query = supabase.from("clientes").update({ status_bloqueio: "INATIVO", updated_at: new Date().toISOString() });
+      query = scopeClientes(query);
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
       else query = query.eq("id", codigo_cliente_huggs);
 
@@ -282,6 +310,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       const to = from + regPorPag - 1;
 
       let query = supabase.from("clientes").select("*", { count: "exact" }).order("nome", { ascending: true }).range(from, to);
+      query = scopeClientes(query);
 
       // Filters
       const filtro = body.clientesFiltro || {};
@@ -319,6 +348,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       const to = from + regPorPag - 1;
 
       let query = supabase.from("clientes").select("id, codigo, nome, nome_abreviado, cnpj", { count: "exact" }).order("nome", { ascending: true }).range(from, to);
+      query = scopeClientes(query);
 
       const filtro = body.clientesFiltro || {};
       if (filtro.cnpj_cpf) query = query.ilike("cnpj", `%${filtro.cnpj_cpf}%`);
@@ -346,6 +376,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
 
       const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
+      if (empresaIdForWrite != null && dbData.empresa_id == null) dbData.empresa_id = empresaIdForWrite;
 
       const { data, error } = await supabase
         .from("clientes")
@@ -367,22 +398,24 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
 
       const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
+      if (empresaIdForWrite != null && dbData.empresa_id == null) dbData.empresa_id = empresaIdForWrite;
 
-      // Check if exists by cnpj
-      const { data: existing } = await supabase
+      // Check if exists by cnpj — scoped to caller's empresa(s).
+      let existingQuery = supabase
         .from("clientes")
         .select("id, codigo")
-        .eq("cnpj", body.cnpj_cpf)
-        .maybeSingle();
+        .eq("cnpj", body.cnpj_cpf);
+      existingQuery = scopeClientes(existingQuery);
+      const { data: existing } = await existingQuery.maybeSingle();
 
       let result;
       if (existing) {
-        const { data, error } = await supabase
+        let updQuery = supabase
           .from("clientes")
           .update(dbData)
-          .eq("id", existing.id)
-          .select("id, codigo")
-          .single();
+          .eq("id", existing.id);
+        updQuery = scopeClientes(updQuery);
+        const { data, error } = await updQuery.select("id, codigo").single();
         if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
         result = data;
       } else {
@@ -406,10 +439,12 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
         return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_huggs e codigo_cliente_integracao são obrigatórios", req, startMs);
       }
 
-      const { data, error } = await supabase
+      let assocQuery = supabase
         .from("clientes")
         .update({ codigo: body.codigo_cliente_integracao, updated_at: new Date().toISOString() })
-        .eq("id", body.codigo_cliente_huggs)
+        .eq("id", body.codigo_cliente_huggs);
+      assocQuery = scopeClientes(assocQuery);
+      const { data, error } = await assocQuery
         .select("id, codigo")
         .single();
 
@@ -435,6 +470,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
         try {
           const dbData = mapApiToDb(cliente);
           dbData.updated_at = new Date().toISOString();
+          if (empresaIdForWrite != null && dbData.empresa_id == null) dbData.empresa_id = empresaIdForWrite;
 
           const { error } = await supabase
             .from("clientes")
@@ -541,6 +577,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
         .select("*", { count: "exact" })
         .order("updated_at", { ascending: false })
         .range(from, to);
+      query = scopeClientes(query);
 
       if (body.atualizado_desde) {
         query = query.gte("updated_at", body.atualizado_desde);
@@ -561,13 +598,16 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
     }
 
     // ── Helper: resolve cliente by huggs/integracao code ─────────
+    // Scoped to caller's empresa(s) so cliente_caracteristicas / cliente_tags
+    // operations cannot enumerate rows from other empresas.
     async function resolveCliente(body: Record<string, unknown>): Promise<{ id: string; codigo: string } | null> {
       const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
       if (!codigo_cliente_integracao && !codigo_cliente_huggs) return null;
       let q = supabase.from("clientes").select("id, codigo");
+      q = scopeClientes(q);
       if (codigo_cliente_integracao) q = q.eq("codigo", codigo_cliente_integracao);
       else q = q.eq("id", codigo_cliente_huggs);
-      const { data } = await q.single();
+      const { data } = await q.maybeSingle();
       return data;
     }
 
