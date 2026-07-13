@@ -103,6 +103,34 @@ export default function EntradasFuturaPage() {
   const [naturezas, setNaturezas] = useState<string[]>(["venda"]);
   const [notaAberta, setNotaAberta] = useState<EntradaFuturaRow | null>(null);
   const [page, setPage] = useState(0);
+  const [notaSearch, setNotaSearch] = useState("");
+  const [fornecedorSearch, setFornecedorSearch] = useState("");
+  const [produtoSearch, setProdutoSearch] = useState("");
+  const [produtoTermo, setProdutoTermo] = useState("");
+  type SortKey =
+    | "data_entrada"
+    | "empresa_nome"
+    | "nro_nota"
+    | "natureza"
+    | "cfop_codigo"
+    | "total_produto"
+    | "total_desconto"
+    | "total_nota"
+    | "total_icms_valor"
+    | "total_st_valor"
+    | "total_ipi_valor";
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
+    key: "data_entrada",
+    dir: "desc",
+  });
+  const toggleSort = (key: SortKey) => {
+    setSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "desc" },
+    );
+    setPage(0);
+  };
 
   const { data, isLoading, error } = useEntradasFutura({
     from,
