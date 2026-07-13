@@ -1,7 +1,7 @@
 // Recebe lote autoritativo do LIVRO DE ENTRADAS do ERP Result e faz upsert no staging.
 // Auth: Bearer RUBYSP_SYNC_TOKEN ou FUTURA_SYNC_TOKEN (mesmo padrão dos demais receivers rubysp).
 // Contrato: POST { tipo: 'full'|'incremental', compras: [...] } — máx. 5.000/lote.
-// Chave de conflito: (empresa_result, numero_nota, cfop, cst, data_entrada).
+// Chave de conflito: (empresa_result, fornecedor_id, numero_nota, serie, cfop, cst, aliquota, data_entrada).
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -9,15 +9,17 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 const CompraSchema = z.object({
   empresa_result: z.number().int(),
+  fornecedor_id: z.number().int(),
   fornecedor_nome: z.string().optional().nullable(),
   fornecedor_cnpj: z.string().optional().nullable(),
   numero_nota: z.string().min(1),
-  serie: z.string().optional().nullable(),
+  serie: z.string(),
   chave_nfe: z.string().optional().nullable(),
   data_emissao: z.string().optional().nullable(),
   data_entrada: z.string().min(1),
   cfop: z.number().int(),
   cst: z.string().optional().nullable(),
+  aliquota: z.number(),
   classe: z.enum(["revenda", "uso_consumo", "devolucao_venda", "transferencia", "outros"]),
   valor_contabil: z.number().optional().nullable(),
   base_icms: z.number().optional().nullable(),
@@ -89,15 +91,17 @@ Deno.serve(secureHandler(
         const chunk = compras.slice(i, i + chunkSize);
         const rows = chunk.map((c) => ({
           empresa_result: c.empresa_result,
+          fornecedor_id: c.fornecedor_id,
           fornecedor_nome: c.fornecedor_nome ?? null,
           fornecedor_cnpj: c.fornecedor_cnpj ?? null,
           numero_nota: c.numero_nota,
-          serie: c.serie ?? null,
+          serie: c.serie,
           chave_nfe: c.chave_nfe ?? null,
           data_emissao: c.data_emissao ?? null,
           data_entrada: c.data_entrada,
           cfop: c.cfop,
           cst: c.cst ?? null,
+          aliquota: c.aliquota,
           classe: c.classe,
           valor_contabil: c.valor_contabil ?? null,
           base_icms: c.base_icms ?? null,
@@ -109,7 +113,7 @@ Deno.serve(secureHandler(
         }));
         const { error: upErr } = await supabase
           .from("erp_compras_result")
-          .upsert(rows, { onConflict: "empresa_result,numero_nota,cfop,cst,data_entrada" });
+          .upsert(rows, { onConflict: "empresa_result,fornecedor_id,numero_nota,serie,cfop,cst,aliquota,data_entrada" });
         if (upErr) {
           for (const r of chunk) {
             errors.push({
