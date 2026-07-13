@@ -1248,18 +1248,14 @@ async function handleSyncEstoquePorEmpresa(req: Request, startMs: number) {
 }
 
 async function handleSyncEstoqueFull(req: Request, startMs: number) {
-  let connection: Connection | null = null;
-  let empresaIds: number[] = [];
-  try {
-    connection = await connectToSqlServer();
-    const rows = await executeSqlQuery(connection, `SELECT DISTINCT [Empresa_Par] FROM [${ESTOQUE_VIEW}]`);
-    empresaIds = rows.map((r) => Number(r["Empresa_Par"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
-  } finally {
-    if (connection) try { connection.close(); } catch (_) {}
-  }
+  // Empresas alimentadas: whitelist configurável por env (ESTOQUE_EMPRESAS).
+  // Antes usávamos SELECT DISTINCT [Empresa_Par] FROM Cust_EstoqueDistribuidora,
+  // que expunha só 6 filiais. Com a fonte nova (InformacoesProdutos), a lista
+  // vem do próprio código para não puxar filiais inativas (1/2/5/7) por engano.
+  const empresaIds = estoqueEmpresas();
 
   if (empresaIds.length === 0) {
-    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de estoque", req, startMs);
+    return errorResponse(500, "no_empresas", "Nenhuma empresa configurada para o sync de estoque (env ESTOQUE_EMPRESAS)", req, startMs);
   }
 
   logger.log(`🏢 Estoque Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
@@ -1269,6 +1265,7 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
   let totalAll = 0;
   let upsertedAll = 0;
+  let deletedStaleAll = 0;
 
   const CONCURRENCY = 2;
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
@@ -1281,10 +1278,11 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
           body: JSON.stringify({ path: "sync-estoque-por-empresa", empresa_id: empId }),
         });
         const data = await resp.json();
-        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, deletedStale: data.deletedStale, hardSyncApplied: data.hardSyncApplied, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        logger.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        deletedStaleAll += data.deletedStale || 0;
+        logger.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted, ${data.deletedStale || 0} stale removed`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
@@ -1309,6 +1307,7 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
     empresas: empresaIds.length,
     totalRows: totalAll,
     upserted: upsertedAll,
+    deletedStale: deletedStaleAll,
     results,
   }, 200, req, { startMs });
 }
