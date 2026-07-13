@@ -577,17 +577,17 @@ export default function EntradasFuturaPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Distribuidora</TableHead>
-                      <TableHead>Nº / Série</TableHead>
-                      <TableHead>Natureza</TableHead>
-                      <TableHead className="text-right">CFOP</TableHead>
-                      <TableHead className="text-right">Produtos</TableHead>
-                      <TableHead className="text-right">Desconto</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">ICMS</TableHead>
-                      <TableHead className="text-right">ST</TableHead>
-                      <TableHead className="text-right">IPI</TableHead>
+                      <SortableHead sortKey="data_entrada" sort={sort} onSort={toggleSort}>Data</SortableHead>
+                      <SortableHead sortKey="empresa_nome" sort={sort} onSort={toggleSort}>Distribuidora</SortableHead>
+                      <SortableHead sortKey="nro_nota" sort={sort} onSort={toggleSort}>Nº / Série</SortableHead>
+                      <SortableHead sortKey="natureza" sort={sort} onSort={toggleSort}>Natureza</SortableHead>
+                      <SortableHead sortKey="cfop_codigo" sort={sort} onSort={toggleSort} align="right">CFOP</SortableHead>
+                      <SortableHead sortKey="total_produto" sort={sort} onSort={toggleSort} align="right">Produtos</SortableHead>
+                      <SortableHead sortKey="total_desconto" sort={sort} onSort={toggleSort} align="right">Desconto</SortableHead>
+                      <SortableHead sortKey="total_nota" sort={sort} onSort={toggleSort} align="right">Total</SortableHead>
+                      <SortableHead sortKey="total_icms_valor" sort={sort} onSort={toggleSort} align="right">ICMS</SortableHead>
+                      <SortableHead sortKey="total_st_valor" sort={sort} onSort={toggleSort} align="right">ST</SortableHead>
+                      <SortableHead sortKey="total_ipi_valor" sort={sort} onSort={toggleSort} align="right">IPI</SortableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
