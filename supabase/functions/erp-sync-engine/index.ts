@@ -58,9 +58,18 @@ function connectToSqlServer(): Promise<Connection> {
 function executeSqlQueryOnce(connection: Connection, query: string): Promise<SqlRow[]> {
   return new Promise((resolve, reject) => {
     const rows: SqlRow[] = [];
-    const request = new TdsRequest(query, (err: Error | undefined) => {
-      if (err) reject(new Error(`SQL query failed: ${err.message}`));
-      else resolve(rows);
+    const request = new TdsRequest(query, (err: any) => {
+      if (err) {
+        const detail = [
+          err?.message,
+          err?.number ? `number=${err.number}` : null,
+          err?.state ? `state=${err.state}` : null,
+          err?.code ? `code=${err.code}` : null,
+          err?.procName ? `proc=${err.procName}` : null,
+          err?.lineNumber ? `line=${err.lineNumber}` : null,
+        ].filter(Boolean).join(" | ");
+        reject(new Error(`SQL query failed: ${detail || String(err)}`));
+      } else resolve(rows);
     });
     request.on("row", (columns: Array<{ metadata: { colName: string }; value: unknown }>) => {
       const row: SqlRow = {};
@@ -72,6 +81,7 @@ function executeSqlQueryOnce(connection: Connection, query: string): Promise<Sql
     connection.execSql(request);
   });
 }
+
 
 // Transient SQL Server errors (tempdb full, deadlock, log backup, timeout) — retry with backoff
 function isTransientSqlError(msg: string): boolean {
