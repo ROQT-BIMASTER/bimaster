@@ -602,7 +602,7 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number; hardSync?: { empresaCol: string; empresaValue: number } }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number; hardSync?: { empresaCol: string; empresaValue: number }; fromExpr?: string }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -647,10 +647,11 @@ async function handleSyncPaginated(
 
       const offset = page * pageSize;
       const orderByClause = options?.orderBy || "[ID Empresa], [Nota], [Seq]";
+      const fromClause = options?.fromExpr ? options.fromExpr : `[${viewName}]`;
       const query = `
         SELECT * FROM (
           SELECT *, ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS _rn
-          FROM [${viewName}]
+          FROM ${fromClause}
           ${whereFilter}
         ) AS _paged
         WHERE _rn > ${offset} AND _rn <= ${offset + pageSize}
@@ -1095,11 +1096,74 @@ async function handleSyncVendasIncremental(req: Request, startMs: number) {
   );
 }
 
-// ─── Estoque (Cust_EstoqueDistribuidora → erp_estoque_distribuidora) ───
+// ─── Estoque (InformacoesProdutos + Produtos → erp_estoque_distribuidora) ───
+//
+// Fonte antiga (Cust_EstoqueDistribuidora) era um subconjunto filtrado: só 6
+// filiais e algumas linhas escondidas (insumos trade e certas caixas reais).
+// Fonte nova: dbo.InformacoesProdutos (tabela que o próprio ERP usa) —
+// superconjunto consistente com a antiga. Cust_EstoqueDistribuidora vira
+// LEFT JOIN de enriquecimento (curva, bloqueio, endereço, pedido pendente,
+// nome_linha) — quando não existir (ex.: MG=3), esses campos vêm nulos.
+//
+// Cutover validado em 13/07/2026: paridade por SKU nas 6 filiais em comum;
+// filiais 3/MG entram com ~1.4k SKUs (~239k un); insumos de trade (linha 27)
+// e caixas antes escondidas passam a aparecer — filtro fica na UI, não no sync.
 
-const ESTOQUE_VIEW = "Cust_EstoqueDistribuidora";
+const ESTOQUE_VIEW = "InformacoesProdutos"; // apenas rótulo/logs
 const ESTOQUE_TABLE = "erp_estoque_distribuidora";
 const ESTOQUE_ORDER_BY = "[Empresa_Par], [Cod Produto]";
+
+// Empresas alimentadas pelo sync completo de estoque. Config por env
+// ESTOQUE_EMPRESAS (CSV) — segue o mesmo padrão do IPAPER_EMPRESAS.
+// Default: 3 (MG), 4 (PR), 6 (Glass), 8 (PE), 9 (New Cosmic), 10 (Midday),
+// 11 (A Gente). 1/2/5/7 ficam fora até revisão.
+const ESTOQUE_EMPRESAS_DEFAULT = [3, 4, 6, 8, 9, 10, 11];
+function estoqueEmpresas(): number[] {
+  const env = Deno.env.get("ESTOQUE_EMPRESAS");
+  if (env) {
+    const ids = env.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isInteger(n) && n > 0);
+    if (ids.length > 0) return ids;
+  }
+  return ESTOQUE_EMPRESAS_DEFAULT;
+}
+
+/**
+ * Subquery que projeta InformacoesProdutos + Produtos + enriquecimento da
+ * Cust_EstoqueDistribuidora com os MESMOS nomes de coluna que o
+ * transformEstoque já sabe ler. Mantém compatibilidade total com o resto do
+ * pipeline (views, cache, telas).
+ */
+function estoqueFromExpr(empresasCsv: string): string {
+  // Enriquecimento parcial: só campos SEM acento (compatíveis com todos os
+  // collations do SQL Server do ERP). Campos com "Endereço"/"Localização"
+  // ficam de fora até que sejam confirmados na estrutura da view antiga.
+  return `(
+    SELECT
+      i.Empresa_InfPro                                            AS [Empresa_Par],
+      i.Produto_InfPro                                            AS [Cod Produto],
+      CAST(i.Estoque_InfPro AS float)                             AS [Estoque Produto],
+      CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float) AS [Custo Unitario],
+      CAST(CAST(i.Estoque_InfPro AS float)
+           * CAST(COALESCE(i.CustoMedio_InfPro, i.CustoNota_InfPro, 0) AS float)
+           AS float)                                              AS [Custo Total],
+      i.DtUltimaCompra_InfPro                                     AS [DataUltimaCompra],
+      i.pcvenda_infpro                                            AS [Valor Venda],
+      LTRIM(RTRIM(p.Descricao_Pro))                               AS [NomeProd],
+      LTRIM(RTRIM(p.codfor_pro))                                  AS [Cod Fabricante],
+      e.[Abrev_Par]                                               AS [Abrev_Par],
+      e.[NomeLinha]                                               AS [NomeLinha],
+      e.[Estoque Bloqueado Produto]                               AS [Estoque Bloqueado Produto],
+      e.[Pedido Pendente]                                         AS [Pedido Pendente],
+      e.[CurvaFisica]                                             AS [CurvaFisica],
+      e.[CurvaMonetaria]                                          AS [CurvaMonetaria]
+    FROM dbo.InformacoesProdutos i
+    JOIN dbo.Produtos p ON p.Id_Pro = i.Produto_InfPro
+    LEFT JOIN dbo.Cust_EstoqueDistribuidora e
+      ON e.[Empresa_Par] = i.Empresa_InfPro
+     AND e.[Cod Produto] = i.Produto_InfPro
+    WHERE i.Empresa_InfPro IN (${empresasCsv})
+  ) AS src`;
+}
 
 function transformEstoque(row: SqlRow) {
   const empresaPar = parseInteger(row["Empresa_Par"] ?? row["Empresa Par"]) ?? 0;
@@ -1159,33 +1223,35 @@ async function handleSyncEstoquePorEmpresa(req: Request, startMs: number) {
   if (!empresaId || isNaN(Number(empresaId))) {
     return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
   }
+  const empId = Number(empresaId);
   return handleSyncPaginated(
     req, startMs,
     ESTOQUE_VIEW, ESTOQUE_TABLE, "estoque",
     transformEstoque, "erp_id",
     {
-      whereClause: `[Empresa_Par] = ${Number(empresaId)}`,
-      empresaId: Number(empresaId),
+      // Filtro já embutido dentro do subquery (WHERE i.Empresa_InfPro IN (...)),
+      // mas mantemos o predicate externo por segurança (idempotente).
+      whereClause: `[Empresa_Par] = ${empId}`,
+      empresaId: empId,
       startPage: Number(startPage),
       maxPages: Number(maxPages),
       orderBy: ESTOQUE_ORDER_BY,
+      fromExpr: estoqueFromExpr(String(empId)),
+      // Hard-sync: remove linhas stale (SKUs que sumiram do ERP) após full ok.
+      hardSync: { empresaCol: "empresa_par", empresaValue: empId },
     }
   );
 }
 
 async function handleSyncEstoqueFull(req: Request, startMs: number) {
-  let connection: Connection | null = null;
-  let empresaIds: number[] = [];
-  try {
-    connection = await connectToSqlServer();
-    const rows = await executeSqlQuery(connection, `SELECT DISTINCT [Empresa_Par] FROM [${ESTOQUE_VIEW}]`);
-    empresaIds = rows.map((r) => Number(r["Empresa_Par"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
-  } finally {
-    if (connection) try { connection.close(); } catch (_) {}
-  }
+  // Empresas alimentadas: whitelist configurável por env (ESTOQUE_EMPRESAS).
+  // Antes usávamos SELECT DISTINCT [Empresa_Par] FROM Cust_EstoqueDistribuidora,
+  // que expunha só 6 filiais. Com a fonte nova (InformacoesProdutos), a lista
+  // vem do próprio código para não puxar filiais inativas (1/2/5/7) por engano.
+  const empresaIds = estoqueEmpresas();
 
   if (empresaIds.length === 0) {
-    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de estoque", req, startMs);
+    return errorResponse(500, "no_empresas", "Nenhuma empresa configurada para o sync de estoque (env ESTOQUE_EMPRESAS)", req, startMs);
   }
 
   logger.log(`🏢 Estoque Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
@@ -1195,6 +1261,7 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
   let totalAll = 0;
   let upsertedAll = 0;
+  let deletedStaleAll = 0;
 
   const CONCURRENCY = 2;
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
@@ -1207,10 +1274,11 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
           body: JSON.stringify({ path: "sync-estoque-por-empresa", empresa_id: empId }),
         });
         const data = await resp.json();
-        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, deletedStale: data.deletedStale, hardSyncApplied: data.hardSyncApplied, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        logger.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        deletedStaleAll += data.deletedStale || 0;
+        logger.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted, ${data.deletedStale || 0} stale removed`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
@@ -1235,6 +1303,7 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
     empresas: empresaIds.length,
     totalRows: totalAll,
     upserted: upsertedAll,
+    deletedStale: deletedStaleAll,
     results,
   }, 200, req, { startMs });
 }
