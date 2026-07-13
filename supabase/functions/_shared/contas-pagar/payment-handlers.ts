@@ -6,6 +6,7 @@ import type { HandlerContext } from "./types.ts";
 import { LancarPagamentoSchema, EstornarSchema, PagamentosParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
 import { logAuditEvent, logSuccess, parseDate, apiResponse, jsonRes } from "./utils.ts";
+import { applyEmpresaFilter, isEmptyScope } from "../empresa-scope.ts";
 
 // =====================================================
 // Atomic payment processor via RPC
