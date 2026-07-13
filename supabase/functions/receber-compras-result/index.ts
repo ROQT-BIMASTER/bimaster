@@ -91,15 +91,17 @@ Deno.serve(secureHandler(
         const chunk = compras.slice(i, i + chunkSize);
         const rows = chunk.map((c) => ({
           empresa_result: c.empresa_result,
+          fornecedor_id: c.fornecedor_id,
           fornecedor_nome: c.fornecedor_nome ?? null,
           fornecedor_cnpj: c.fornecedor_cnpj ?? null,
           numero_nota: c.numero_nota,
-          serie: c.serie ?? null,
+          serie: c.serie,
           chave_nfe: c.chave_nfe ?? null,
           data_emissao: c.data_emissao ?? null,
           data_entrada: c.data_entrada,
           cfop: c.cfop,
           cst: c.cst ?? null,
+          aliquota: c.aliquota,
           classe: c.classe,
           valor_contabil: c.valor_contabil ?? null,
           base_icms: c.base_icms ?? null,
@@ -111,7 +113,7 @@ Deno.serve(secureHandler(
         }));
         const { error: upErr } = await supabase
           .from("erp_compras_result")
-          .upsert(rows, { onConflict: "empresa_result,numero_nota,cfop,cst,data_entrada" });
+          .upsert(rows, { onConflict: "empresa_result,fornecedor_id,numero_nota,serie,cfop,cst,aliquota,data_entrada" });
         if (upErr) {
           for (const r of chunk) {
             errors.push({
