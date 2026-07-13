@@ -667,8 +667,12 @@ async function handleSyncPaginated(
         WHERE _rn > ${offset} AND _rn <= ${offset + pageSize}
       `;
       logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset}, size ${pageSize})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
+      if (entityName === "estoque" && page === 0) {
+        logger.log(`🔎 estoque SQL (first 900 chars): ${query.slice(0, 900)}`);
+      }
       const rows = await executeSqlQuery(connection, query);
       logger.log(`📊 Got ${rows.length} rows`);
+
 
       if (rows.length === 0) { terminatedNaturally = true; break; }
 
