@@ -26,9 +26,10 @@ let globalPermissionsCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos (aumentado de 30s para reduzir re-fetches)
+const CACHE_DURATION = 30 * 1000; // 30s — rede de segurança; propagação real vem via Realtime
 const SAFETY_TIMEOUT = 5000; // 5s - reduced from 12s
 const LOCAL_STORAGE_KEY = "permissions_cache_v1";
+const LOCAL_STORAGE_MAX_AGE = 90 * 1000; // 90s
 
 // Restore from localStorage on startup for instant loading
 const restoreFromLocalStorage = (): typeof globalPermissionsCache => {
@@ -36,8 +37,8 @@ const restoreFromLocalStorage = (): typeof globalPermissionsCache => {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Accept localStorage cache for up to 5 minutes for instant boot
-      if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+      // Accept localStorage cache for a short window for instant boot
+      if (Date.now() - parsed.timestamp < LOCAL_STORAGE_MAX_AGE) {
         return parsed;
       }
     }
@@ -349,17 +350,62 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             handlePermissionsUpdate();
           }
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'usuario_modulos_negados', filter: `usuario_id=eq.${userId}` },
+          () => {
+            logger.log("[PermissionsContext] Negações de módulo atualizadas - recarregando");
+            handlePermissionsUpdate();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_roles', filter: `user_id=eq.${userId}` },
+          () => {
+            logger.log("[PermissionsContext] Papel atualizado - recarregando (fallback além do session_invalidation)");
+            handlePermissionsUpdate();
+          }
+        )
+        // Tabelas coletivas (afetam múltiplos usuários) — sem filtro; qualquer mudança
+        // dispara um refetch leve no cliente. Tabelas pequenas, custo desprezível.
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'departamento_permissoes_modulos' },
+          () => handlePermissionsUpdate()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'departamento_permissoes_telas' },
+          () => handlePermissionsUpdate()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'role_permissoes_modulos' },
+          () => handlePermissionsUpdate()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'role_permissoes_telas' },
+          () => handlePermissionsUpdate()
+        )
         // ADV-4: Listen for session invalidation events (role changes force logout)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'session_invalidation_queue', filter: `user_id=eq.${userId}` },
           async (payload) => {
             logger.warn("[PermissionsContext] Session invalidation received:", payload.new);
-            // Force sign out — role/permissions were changed by an admin
+            const reason = (payload.new as { reason?: string } | null)?.reason || 'permission_change';
+            // Aviso visível para o usuário antes de reautenticar
+            try {
+              const { toast } = await import("sonner");
+              toast.info("Suas permissões foram atualizadas. Reautenticando...", { duration: 3000 });
+            } catch { /* toast opcional */ }
+            // Pequeno delay para o toast aparecer
+            await new Promise((r) => setTimeout(r, 1200));
             globalPermissionsCache = null;
             try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
             await supabase.auth.signOut();
-            window.location.href = "/?session_invalidated=1";
+            window.location.href = `/?session_invalidated=1&reason=${encodeURIComponent(reason)}`;
           }
         )
         .subscribe((status, err) => {
