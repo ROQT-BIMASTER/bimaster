@@ -121,15 +121,29 @@ Deno.serve(secureHandler(
 
     const upserted = count ?? rows.length;
 
+    // TTL cleanup: apaga linhas que não são re-upsertadas há mais de 2 h.
+    // Conector envia full a cada 15 min em vários lotes; portanto qualquer
+    // linha > 2 h sem re-upsert deixou de existir na origem. Se o conector
+    // morrer, nenhum request chega e nada é apagado (fail-safe).
+    const staleCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { count: deletedStale, error: staleErr } = await supabase
+      .from("fornecedor_estoque_futura")
+      .delete({ count: "exact" })
+      .lt("sincronizado_em", staleCutoff);
+    if (staleErr) {
+      console.warn("stale cleanup failed", staleErr.message);
+    }
+
     await supabase
       .from("fornecedor_estoque_sync_log")
       .update({
         finished_at: new Date().toISOString(),
         status: "ok",
         linhas_upserted: upserted,
+        deleted_stale: deletedStale ?? 0,
       })
       .eq("id", logId);
 
-    return json(200, { ok: true, upserted });
+    return json(200, { ok: true, upserted, deleted_stale: deletedStale ?? 0 });
   },
 ));
