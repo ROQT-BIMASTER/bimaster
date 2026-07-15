@@ -57177,6 +57177,30 @@ export type Database = {
           },
         ]
       }
+      vw_bom_ativa: {
+        Row: {
+          ativo: boolean | null
+          empresa: number | null
+          filho_cod: number | null
+          pai_cod: number | null
+          quantidade: number | null
+        }
+        Insert: {
+          ativo?: never
+          empresa?: number | null
+          filho_cod?: number | null
+          pai_cod?: number | null
+          quantidade?: never
+        }
+        Update: {
+          ativo?: never
+          empresa?: number | null
+          filho_cod?: number | null
+          pai_cod?: number | null
+          quantidade?: never
+        }
+        Relationships: []
+      }
       vw_bom_path: {
         Row: {
           caminho: number[] | null
