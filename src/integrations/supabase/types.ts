@@ -26919,6 +26919,7 @@ export type Database = {
       fornecedor_estoque_sync_log: {
         Row: {
           created_at: string
+          deleted_stale: number
           erro: string | null
           finished_at: string | null
           id: number
@@ -26930,6 +26931,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_stale?: number
           erro?: string | null
           finished_at?: string | null
           id?: never
@@ -26941,6 +26943,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_stale?: number
           erro?: string | null
           finished_at?: string | null
           id?: never
