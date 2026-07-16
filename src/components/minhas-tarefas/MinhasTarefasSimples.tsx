@@ -999,6 +999,19 @@ export function MinhasTarefasSimples() {
                     projetoPessoalId={projetoPessoalId}
                   />
                 ))}
+                {truncadoConcluidas && (
+                  <div className="flex items-center justify-center py-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isFetching}
+                      onClick={() => carregarMaisConcluidas?.()}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Mostrando {concluidasNaLista} de {stats?.concluidas ?? 0} concluídas · Carregar todas
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </Card>
