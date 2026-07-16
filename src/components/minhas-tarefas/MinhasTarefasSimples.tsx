@@ -582,6 +582,74 @@ export function MinhasTarefasSimples() {
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
   }, [queryClient, user?.id]);
 
+  /* ------------------------- Seleção múltipla / lote --------------------- */
+  const handleToggleSelect = useCallback((t: MinaTarefa, checked: boolean) => {
+    if (!user?.id || t.criador_id !== user.id) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(t.id); else next.delete(t.id);
+      return next;
+    });
+  }, [user?.id]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((v) => {
+      if (v) setSelectedIds(new Set());
+      return !v;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!user?.id) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({ quantidade: ids.length });
+    if (!ok) return;
+    setBulkDeleting(true);
+    const { data, error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: user.id } as any)
+      .in("id", ids)
+      .eq("criador_id", user.id)
+      .select("id");
+    setBulkDeleting(false);
+    if (error) {
+      toast.error("Falha ao excluir em lote: " + error.message);
+      return;
+    }
+    const updated = data?.length ?? 0;
+    const failed = ids.length - updated;
+    if (updated > 0) {
+      toast.success(
+        `${updated} tarefa${updated > 1 ? "s" : ""} movida${updated > 1 ? "s" : ""} para a lixeira`,
+        { description: "Permanecerão por 30 dias." },
+      );
+    }
+    if (failed > 0) {
+      toast.warning(`${failed} tarefa(s) não puderam ser excluídas (apenas o criador pode).`);
+    }
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [selectedIds, user?.id, queryClient]);
+
+  // Auto-limpa seleção de itens que sumiram da lista
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const visible = new Set(tarefas.map((t) => t.id));
+    let changed = false;
+    const next = new Set<string>();
+    selectedIds.forEach((id) => {
+      if (visible.has(id)) next.add(id); else changed = true;
+    });
+    if (changed) setSelectedIds(next);
+  }, [tarefas, selectedIds]);
+
+
   /* ----------------------------- Detalhe sheet ---------------------------- */
   const handleSelect = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
