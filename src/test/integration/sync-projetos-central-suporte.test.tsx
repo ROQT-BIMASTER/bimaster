@@ -260,10 +260,6 @@ describe("Sync #2 — SuporteTicketDrawer garante participação do observador",
 // 3 & 4. ChatThread — fallback via useConversaInfo
 // ===========================================================================
 
-// Estado partilhado — cada teste seta seus retornos antes do render.
-const mockConversas = vi.fn();
-const mockConversaInfo = vi.fn();
-
 vi.mock("@/hooks/chat/useConversas", () => ({
   useConversas: () => mockConversas(),
 }));
