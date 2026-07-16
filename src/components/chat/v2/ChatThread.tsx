@@ -151,9 +151,9 @@ export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenC
         <button onClick={onShowInfo} className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80">
           <div className="relative">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={conv.avatar_url ?? conv.outroUsuario?.avatar_url ?? undefined} />
+              <AvatarImage src={convOrInfo.avatar_url ?? convOrInfo.outroUsuario?.avatar_url ?? undefined} />
               <AvatarFallback className={cn(isGrupo ? "bg-primary/15 text-primary" : "")}>
-                {isGrupo ? <Users className="h-4 w-4" /> : initials(conv.outroUsuario?.nome, conv.outroUsuario?.email)}
+                {isGrupo ? <Users className="h-4 w-4" /> : initials(convOrInfo.outroUsuario?.nome, convOrInfo.outroUsuario?.email)}
               </AvatarFallback>
             </Avatar>
             {!isGrupo && (() => {
@@ -166,7 +166,7 @@ export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenC
             })()}
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold truncate">{nome}</h3>
+            <h3 className="text-sm font-semibold truncate">{nome || convOrInfo.nome || ""}</h3>
             <p className="text-[11px] text-muted-foreground truncate">
               {digitandoUserIds.length > 0
                 ? <span className="text-primary">digitando...</span>
@@ -188,28 +188,30 @@ export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenC
         >
           <Search className="h-4 w-4" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onShowInfo}><Info className="h-4 w-4 mr-2" /> Informações</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => actions.setParticipanteFlag.mutate({ conversaId, patch: { favorita: !conv.favorita } })}>
-              <Star className="h-4 w-4 mr-2" /> {conv.favorita ? "Remover favorito" : "Marcar favorito"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              const ate = conv.silenciada_ate ? null : new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
-              actions.setParticipanteFlag.mutate({ conversaId, patch: { silenciada_ate: ate } });
-            }}>
-              {conv.silenciada_ate ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
-              {conv.silenciada_ate ? "Reativar notif." : "Silenciar 8h"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => actions.setParticipanteFlag.mutate({ conversaId, patch: { arquivada: !conv.arquivada } })}>
-              <Archive className="h-4 w-4 mr-2" /> {conv.arquivada ? "Desarquivar" : "Arquivar"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {conv && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onShowInfo}><Info className="h-4 w-4 mr-2" /> Informações</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => actions.setParticipanteFlag.mutate({ conversaId, patch: { favorita: !conv.favorita } })}>
+                <Star className="h-4 w-4 mr-2" /> {conv.favorita ? "Remover favorito" : "Marcar favorito"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const ate = conv.silenciada_ate ? null : new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+                actions.setParticipanteFlag.mutate({ conversaId, patch: { silenciada_ate: ate } });
+              }}>
+                {conv.silenciada_ate ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
+                {conv.silenciada_ate ? "Reativar notif." : "Silenciar 8h"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => actions.setParticipanteFlag.mutate({ conversaId, patch: { arquivada: !conv.arquivada } })}>
+                <Archive className="h-4 w-4 mr-2" /> {conv.arquivada ? "Desarquivar" : "Arquivar"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </header>
 
       <MyProtocolsBar conversaId={conversaId} />
