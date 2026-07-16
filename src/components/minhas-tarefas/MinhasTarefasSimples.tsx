@@ -1135,9 +1135,10 @@ export function MinhasTarefasSimples() {
                 <div
                   className={cn(
                     "grid items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/40 bg-background",
-                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+                    "grid-cols-[24px_24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
                   )}
                 >
+                  <span />
                   <span />
                   <span>Nome</span>
                   <span>Data de conclusão</span>
@@ -1156,6 +1157,9 @@ export function MinhasTarefasSimples() {
                     onDelete={handleDeleteTarefa}
                     currentUserId={user?.id ?? null}
                     projetoPessoalId={projetoPessoalId}
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelect={handleToggleSelect}
                   />
                 ))}
               </>
