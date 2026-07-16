@@ -377,7 +377,7 @@ const ListSection = memo(function ListSection({
         </Badge>
       </button>
       {!collapsed && (
-        splitByRole && [responsavelItems, colaboradorItems, seguidorItems, criadorItems].filter((items) => items.length > 0).length > 1 ? (
+        splitByRole && [responsavelItems, colaboradorItems, seguidorItems].filter((items) => items.length > 0).length > 1 ? (
           <>
             {renderSubgroup(
               "responsavel",
@@ -396,12 +396,6 @@ const ListSection = memo(function ListSection({
               "Como seguidor",
               <Eye className="h-3 w-3 text-muted-foreground" />,
               seguidorItems,
-            )}
-            {renderSubgroup(
-              "criador",
-              "Criadas por mim",
-              <UserPlus className="h-3 w-3 text-warning" />,
-              criadorItems,
             )}
           </>
         ) : (
