@@ -184,6 +184,7 @@ function VisibilidadeBadge({ value }: { value: string | null }) {
 
 function Row({
   t, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
+  selectionMode, isSelected, onToggleSelect,
 }: {
   t: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
@@ -191,6 +192,9 @@ function Row({
   onDelete: (t: MinaTarefa) => void;
   currentUserId: string | null;
   projetoPessoalId: string | null;
+  selectionMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (t: MinaTarefa, checked: boolean) => void;
 }) {
   const done = t.status === "concluida";
   const prazo = parseLocalDate(t.data_prazo);
@@ -203,14 +207,32 @@ function Row({
     <div
       className={cn(
         "group grid items-center gap-3 px-4 py-2 border-b border-border/30 hover:bg-muted/30 cursor-pointer transition-colors",
-        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+        "grid-cols-[24px_24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+        isSelected && "bg-primary/5 hover:bg-primary/10",
       )}
-      onClick={() => onSelect(t)}
+      onClick={() => {
+        if (selectionMode) {
+          if (podeExcluir) onToggleSelect(t, !isSelected);
+          return;
+        }
+        onSelect(t);
+      }}
     >
+      <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+        {selectionMode && podeExcluir ? (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(c) => onToggleSelect(t, !!c)}
+            className="h-4 w-4"
+            aria-label="Selecionar tarefa"
+          />
+        ) : null}
+      </div>
       <Checkbox
         checked={done}
         onCheckedChange={(c) => onToggle(t.id, !!c)}
         onClick={(e) => e.stopPropagation()}
+        disabled={selectionMode}
         className="h-4 w-4"
       />
       <div className="min-w-0 flex items-center gap-2">
@@ -246,7 +268,7 @@ function Row({
       </div>
       <VisibilidadeBadge value={t.visibilidade} />
       <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-        {podeExcluir ? (
+        {podeExcluir && !selectionMode ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
