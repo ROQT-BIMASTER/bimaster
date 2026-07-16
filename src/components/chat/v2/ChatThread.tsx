@@ -28,7 +28,7 @@ interface Props {
 export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
-  const { data: conversas = [] } = useConversas();
+  const { data: conversas = [], isLoading: conversasLoading } = useConversas();
   const conv = conversas.find((c) => c.id === conversaId);
   const { mensagens, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useMensagens(conversaId);
   const { online } = useGlobalPresence();
@@ -113,7 +113,34 @@ export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenC
     return out;
   }, [visiveis]);
 
-  if (!conv) return <div className="flex-1 flex items-center justify-center text-muted-foreground">Conversa não encontrada</div>;
+  // Fallback: quando o usuário ainda não é participante da conversa (ex.: aberto
+  // via drawer do Suporte antes do add_conversa_participante_if_missing propagar),
+  // usamos useConversaInfo como fonte alternativa em vez de bloquear o chat.
+  if (!conv) {
+    if (conversasLoading || (!info && !info)) {
+      // Enquanto carrega (ou info ainda não chegou), mostra skeleton em vez do erro seco.
+      if (conversasLoading) {
+        return (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando conversa…
+          </div>
+        );
+      }
+    }
+    if (!info?.conversa) {
+      return <div className="flex-1 flex items-center justify-center text-muted-foreground">Conversa não encontrada</div>;
+    }
+  }
+  const convOrInfo = conv ?? {
+    id: info!.conversa.id,
+    nome: info!.conversa.nome,
+    tipo: info!.conversa.tipo,
+    avatar_url: info!.conversa.avatar_url,
+    outroUsuario: undefined as any,
+    favorita: false,
+    silenciada_ate: null,
+    participantes_count: info?.participantes?.length ?? 0,
+  } as any;
 
   return (
     // flex-1 garante que o ChatThread ocupa todo o espaço disponível dentro

@@ -19,12 +19,14 @@ import {
 } from "@/hooks/suporte/types";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   ticket: SuporteChamado | null;
@@ -33,9 +35,30 @@ interface Props {
 
 export function SuporteTicketDrawer({ ticket, onClose }: Props) {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { assumir, mudarStatus } = useSuporteAcoes();
   const [transferOpen, setTransferOpen] = useState(false);
   const [escalonarOpen, setEscalonarOpen] = useState(false);
+
+  // Garante que o observador (dono, solicitante, responsável, fila) do ticket
+  // é participante ativo da conversa antes do ChatThread renderizar. Sem isso
+  // usuários fora da conversa veem "Conversa não encontrada" mesmo com histórico.
+  useEffect(() => {
+    if (!ticket?.conversa_id || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await (supabase.rpc as any)(
+        "add_conversa_participante_if_missing",
+        { _conversa_id: ticket.conversa_id },
+      );
+      if (!cancelled && !error) {
+        qc.invalidateQueries({ queryKey: ["chat", "conversas", user.id] });
+        qc.invalidateQueries({ queryKey: ["chat", "conversa-info", ticket.conversa_id] });
+        qc.invalidateQueries({ queryKey: ["chat", "mensagens", ticket.conversa_id] });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ticket?.id, ticket?.conversa_id, user?.id, qc]);
 
   return (
     <>

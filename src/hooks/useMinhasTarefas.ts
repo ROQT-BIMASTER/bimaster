@@ -35,6 +35,17 @@ export interface MinaTarefa {
   created_at: string;
   updated_at: string;
   papel: "responsavel" | "colaborador" | "seguidor";
+  // Espelho do ticket de Suporte vinculado (mesma fonte que Kanban/Central de Suporte).
+  ticket_id: string | null;
+  ticket_protocolo: string | null;
+  ticket_status: string | null;
+  ticket_sla_status: string | null;
+  ticket_prazo_resolucao_em: string | null;
+  ticket_fila_id: string | null;
+  ticket_fila_nome: string | null;
+  ticket_ultima_interacao_em: string | null;
+  ticket_prioridade: string | null;
+  ticket_conversa_id: string | null;
 }
 
 export interface TarefaGroup {
@@ -105,6 +116,16 @@ export function useMinhasTarefas() {
         created_at: t.created_at,
         updated_at: t.updated_at,
         papel: t.papel === "seguidor" ? "seguidor" : t.papel === "colaborador" ? "colaborador" : "responsavel",
+        ticket_id: t.ticket_id ?? null,
+        ticket_protocolo: t.ticket_protocolo ?? null,
+        ticket_status: t.ticket_status ?? null,
+        ticket_sla_status: t.ticket_sla_status ?? null,
+        ticket_prazo_resolucao_em: t.ticket_prazo_resolucao_em ?? null,
+        ticket_fila_id: t.ticket_fila_id ?? null,
+        ticket_fila_nome: t.ticket_fila_nome ?? null,
+        ticket_ultima_interacao_em: t.ticket_ultima_interacao_em ?? null,
+        ticket_prioridade: t.ticket_prioridade ?? null,
+        ticket_conversa_id: t.ticket_conversa_id ?? null,
       }));
     },
     enabled: !!user?.id,
@@ -158,6 +179,13 @@ export function useMinhasTarefas() {
           table: "projeto_tarefa_colaboradores",
           filter: `user_id=eq.${user.id}`,
         },
+        invalidate,
+      )
+      .on(
+        "postgres_changes",
+        // Mudanças de etapa/SLA/atribuição no ticket refletem imediatamente
+        // na Central de Trabalho (mesmo mecanismo do Kanban).
+        { event: "*", schema: "public", table: "suporte_tickets" },
         invalidate,
       )
       .subscribe((status, err) => {

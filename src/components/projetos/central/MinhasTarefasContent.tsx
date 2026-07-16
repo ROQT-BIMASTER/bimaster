@@ -165,6 +165,41 @@ const ListRow = memo(function ListRow({
             </Tooltip>
           </TooltipProvider>
         )}
+        {tarefa.ticket_protocolo && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 text-[10px] h-5 px-1.5 font-mono border-border/60"
+                >
+                  {tarefa.ticket_protocolo}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                {tarefa.ticket_fila_nome ? `Fila: ${tarefa.ticket_fila_nome}` : "Ticket vinculado"}
+                {tarefa.ticket_status ? ` · Etapa: ${tarefa.ticket_status.replace(/_/g, " ")}` : ""}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {tarefa.ticket_sla_status && tarefa.ticket_sla_status !== "dentro" && (
+          <Badge
+            variant="outline"
+            className={
+              "shrink-0 text-[10px] h-5 px-1.5 " +
+              (tarefa.ticket_sla_status === "violado"
+                ? "border-red-500/40 bg-red-500/10 text-red-700"
+                : tarefa.ticket_sla_status === "em_risco"
+                ? "border-orange-500/40 bg-orange-500/10 text-orange-700"
+                : tarefa.ticket_sla_status === "cumprido"
+                ? "border-green-500/40 bg-green-500/10 text-green-700"
+                : "border-border/60 bg-muted text-muted-foreground")
+            }
+          >
+            SLA {tarefa.ticket_sla_status === "em_risco" ? "em risco" : tarefa.ticket_sla_status}
+          </Badge>
+        )}
         <span
           className="text-xs hidden lg:inline-flex items-center min-w-0 max-w-[45%] truncate"
           title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
