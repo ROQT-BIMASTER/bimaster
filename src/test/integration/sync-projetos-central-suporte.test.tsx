@@ -94,6 +94,15 @@ beforeEach(() => {
   channelOn.mockClear();
   channelSubscribe.mockClear();
   removeChannel.mockClear();
+  // jsdom não implementa scrollIntoView, usado pelo ChatThread.
+  if (!(Element.prototype as any).scrollIntoView) {
+    (Element.prototype as any).scrollIntoView = vi.fn();
+  }
+});
+  rpc.mockReset();
+  channelOn.mockClear();
+  channelSubscribe.mockClear();
+  removeChannel.mockClear();
 });
 
 // ===========================================================================
