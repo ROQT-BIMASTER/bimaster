@@ -108,13 +108,8 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
           active={currentRole === "seguidor"}
           onClick={() => onSelectRole(currentRole === "seguidor" ? "all" : "seguidor")}
         />
-        <RoleRow
-          icon={<UserPlus className="h-4 w-4 text-warning" />}
-          label="Criadas por mim"
-          stats={stats.criador}
-          active={currentRole === "criador"}
-          onClick={() => onSelectRole(currentRole === "criador" ? "all" : "criador")}
-        />
+      </div>
+
       </div>
 
       <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2">
