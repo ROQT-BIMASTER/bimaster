@@ -1691,12 +1691,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                 Estou seguindo
               </div>
             </SelectItem>
-            <SelectItem value="criador">
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-3.5 w-3.5 text-warning" />
-                Criadas por mim
-              </div>
-            </SelectItem>
+            {/* "Criadas por mim" migrado para a aba "Delegadas por mim". */}
+
           </SelectContent>
         </Select>
 
