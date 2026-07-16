@@ -58104,6 +58104,10 @@ export type Database = {
         Args: { p_expires_at?: string; p_reason: string; p_user_id: string }
         Returns: undefined
       }
+      add_conversa_participante_if_missing: {
+        Args: { _conversa_id: string }
+        Returns: boolean
+      }
       admin_copilot_v2_stats: {
         Args: { p_days?: number }
         Returns: {
@@ -59982,6 +59986,16 @@ export type Database = {
           secao_id: string
           secao_nome: string
           status: string
+          ticket_conversa_id: string
+          ticket_fila_id: string
+          ticket_fila_nome: string
+          ticket_id: string
+          ticket_prazo_resolucao_em: string
+          ticket_prioridade: string
+          ticket_protocolo: string
+          ticket_sla_status: string
+          ticket_status: string
+          ticket_ultima_interacao_em: string
           titulo: string
           updated_at: string
           visibilidade: string
@@ -60573,6 +60587,10 @@ export type Database = {
       }
       recalcular_estoque_niveis: { Args: never; Returns: number }
       recalculate_contas_pagar_status: { Args: never; Returns: Json }
+      recompute_ticket_sla_status: {
+        Args: { _ticket_id: string }
+        Returns: string
+      }
       record_login_attempt: {
         Args: { p_email: string; p_ip?: string; p_success: boolean }
         Returns: undefined
@@ -62431,6 +62449,7 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: string
       }
+      sweep_ticket_sla_status: { Args: never; Returns: number }
       tem_acesso_marca: { Args: { p_marca_id: string }; Returns: boolean }
       test_get_minhas_tarefas_central: { Args: never; Returns: Json }
       test_rpc_comentar_item_aprovacao: {
