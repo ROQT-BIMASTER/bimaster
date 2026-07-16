@@ -34758,7 +34758,7 @@ export type Database = {
           created_at: string
           id: string
           recurso_codigo: string | null
-          recurso_id: string
+          recurso_id: string | null
           recurso_nome: string | null
           tabela: string
           usuario_alvo: string
@@ -34770,7 +34770,7 @@ export type Database = {
           created_at?: string
           id?: string
           recurso_codigo?: string | null
-          recurso_id: string
+          recurso_id?: string | null
           recurso_nome?: string | null
           tabela: string
           usuario_alvo: string
@@ -34782,7 +34782,7 @@ export type Database = {
           created_at?: string
           id?: string
           recurso_codigo?: string | null
-          recurso_id?: string
+          recurso_id?: string | null
           recurso_nome?: string | null
           tabela?: string
           usuario_alvo?: string

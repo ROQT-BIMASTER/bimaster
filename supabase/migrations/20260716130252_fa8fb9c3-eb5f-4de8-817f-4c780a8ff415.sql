@@ -1,0 +1,1 @@
+ALTER TABLE public.permissoes_auditoria ALTER COLUMN recurso_id DROP NOT NULL;
