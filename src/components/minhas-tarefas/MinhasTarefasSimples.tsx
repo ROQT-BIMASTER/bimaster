@@ -458,6 +458,23 @@ export function MinhasTarefasSimples() {
     return sorted;
   }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, papelFilter, projetoPessoalId, search, sortMode]);
 
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    quickFilter !== "all" ||
+    priorityFilter !== "all" ||
+    projectFilter !== "all" ||
+    originFilter !== "all" ||
+    papelFilter !== "all";
+
+  const handleClearFilters = useCallback(() => {
+    setSearch("");
+    setQuickFilter("all");
+    setPriorityFilter("all");
+    setProjectFilter("all");
+    setOriginFilter("all");
+    setPapelFilter("all");
+  }, []);
+
   // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
   // (sem os grupos Asana de pendentes).
   const groups = useMemo(() => {
@@ -956,12 +973,22 @@ export function MinhasTarefasSimples() {
               <div className="p-10">
                 <EmptyState
                   icon={CheckCircle2}
-                  title="Você não tem tarefas atribuídas"
-                  description="Quando alguém te atribuir uma tarefa, ela aparece aqui."
+                  title={tarefas.length > 0 && hasActiveFilters
+                    ? "Nenhuma tarefa encontrada com os filtros atuais"
+                    : "Você não tem tarefas vinculadas"}
+                  description={tarefas.length > 0 && hasActiveFilters
+                    ? "Ajuste ou limpe os filtros para ver suas tarefas."
+                    : "Quando você criar, seguir, colaborar ou receber uma tarefa, ela aparece aqui."}
                 >
-                  <Button size="sm" onClick={() => setShowNewTask(true)} className="gap-1.5">
-                    <Plus className="h-4 w-4" /> Criar minha primeira tarefa
-                  </Button>
+                  {tarefas.length > 0 && hasActiveFilters ? (
+                    <Button size="sm" variant="outline" onClick={handleClearFilters}>
+                      Limpar filtros
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => setShowNewTask(true)} className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Criar minha primeira tarefa
+                    </Button>
+                  )}
                 </EmptyState>
               </div>
             ) : (

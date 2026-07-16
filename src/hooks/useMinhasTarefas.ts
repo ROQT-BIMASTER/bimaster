@@ -65,7 +65,10 @@ export function useMinhasTarefas() {
 
       const startedAt = performance.now();
       const { data, error } = await (supabase as any)
-        .rpc("get_minhas_tarefas_central");
+        .rpc("get_minhas_tarefas_central", {
+          p_limite_concluidas: 50,
+          p_incluir_criador: true,
+        });
 
       if (error) throw error;
 
