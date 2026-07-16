@@ -16,7 +16,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff, ListChecks,
-  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
+  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon, UserPlus,
   ArrowUpDown,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -165,6 +165,42 @@ const ListRow = memo(function ListRow({
             </Tooltip>
           </TooltipProvider>
         )}
+        {tarefa.papel === "seguidor" && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-muted-foreground/40 bg-muted/40 text-muted-foreground text-[10px] h-5 px-1.5"
+                >
+                  <Eye className="h-3 w-3" />
+                  Seguindo
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Você acompanha esta tarefa como seguidor.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {tarefa.papel === "criador" && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-warning/50 bg-warning/10 text-warning text-[10px] h-5 px-1.5"
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Criada por mim
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Você criou esta tarefa, mesmo sem estar como responsável ou colaborador.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {tarefa.ticket_protocolo && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -293,6 +329,14 @@ const ListSection = memo(function ListSection({
     () => group.items.filter((t) => t.papel === "colaborador"),
     [group.items],
   );
+  const seguidorItems = useMemo(
+    () => group.items.filter((t) => t.papel === "seguidor"),
+    [group.items],
+  );
+  const criadorItems = useMemo(
+    () => group.items.filter((t) => t.papel === "criador"),
+    [group.items],
+  );
 
   const renderRow = (t: MinaTarefa) => (
     <ListRow
@@ -307,7 +351,7 @@ const ListSection = memo(function ListSection({
   );
 
   const renderSubgroup = (
-    key: "responsavel" | "colaborador",
+    key: "responsavel" | "colaborador" | "seguidor" | "criador",
     label: string,
     icon: React.ReactNode,
     items: MinaTarefa[],
@@ -349,7 +393,7 @@ const ListSection = memo(function ListSection({
         </Badge>
       </button>
       {!collapsed && (
-        splitByRole && responsavelItems.length > 0 && colaboradorItems.length > 0 ? (
+        splitByRole && [responsavelItems, colaboradorItems, seguidorItems, criadorItems].filter((items) => items.length > 0).length > 1 ? (
           <>
             {renderSubgroup(
               "responsavel",
@@ -362,6 +406,18 @@ const ListSection = memo(function ListSection({
               "Como colaborador",
               <Users className="h-3 w-3 text-info" />,
               colaboradorItems,
+            )}
+            {renderSubgroup(
+              "seguidor",
+              "Como seguidor",
+              <Eye className="h-3 w-3 text-muted-foreground" />,
+              seguidorItems,
+            )}
+            {renderSubgroup(
+              "criador",
+              "Criadas por mim",
+              <UserPlus className="h-3 w-3 text-warning" />,
+              criadorItems,
             )}
           </>
         ) : (
@@ -419,7 +475,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [sortMode, setSortMode] = useState<CentralSort>(
     normalizeSort(searchParams.get("sort"), "default"),
   );
-  // Filter by user's role on each task ("all" | "responsavel" | "colaborador").
+  // Filter by user's role on each task.
   const [filterRole, setFilterRole] = useState<CentralRole>(
     normalizeRole(
       searchParams.get("role"),
@@ -1644,6 +1700,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
               <div className="flex items-center gap-2">
                 <Users className="h-3.5 w-3.5 text-info" />
                 Sou colaborador
+              </div>
+            </SelectItem>
+            <SelectItem value="seguidor">
+              <div className="flex items-center gap-2">
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                Estou seguindo
+              </div>
+            </SelectItem>
+            <SelectItem value="criador">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-3.5 w-3.5 text-warning" />
+                Criadas por mim
               </div>
             </SelectItem>
           </SelectContent>
