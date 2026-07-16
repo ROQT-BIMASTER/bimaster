@@ -184,20 +184,9 @@ const ListRow = memo(function ListRow({
             </Tooltip>
           </TooltipProvider>
         )}
-        {tarefa.papel === "criador" && (
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className="shrink-0 gap-1 border-warning/50 bg-warning/10 text-warning text-[10px] h-5 px-1.5"
-                >
-                  <UserPlus className="h-3 w-3" />
-                  Criada por mim
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                Você criou esta tarefa, mesmo sem estar como responsável ou colaborador.
+        {/* "Criada por mim" removido: tarefas criadas sem envolvimento direto
+            ficam agora na aba "Delegadas por mim" (padrão Asana/Jira). */}
+
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
