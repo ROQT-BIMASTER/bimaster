@@ -1,6 +1,7 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMinhasTarefas, groupTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { useMinhasTarefasStats } from "@/hooks/useMinhasTarefasStats";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -433,7 +434,12 @@ interface Props {
 }
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
-  const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const minhasTarefasQuery = useMinhasTarefas();
+  const { data: tarefas = [], isLoading } = minhasTarefasQuery;
+  const { carregarMaisConcluidas, concluidasExpandidas, isFetching } = minhasTarefasQuery as any;
+  const { data: minhasStats } = useMinhasTarefasStats();
+  const concluidasNaLista = (tarefas as MinaTarefa[]).filter((t) => t.status === "concluida").length;
+  const truncadoConcluidas = !concluidasExpandidas && !!minhasStats && minhasStats.concluidas > concluidasNaLista;
   const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -2187,18 +2193,33 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   />
                 </div>
               ) : (
-                groups.map((g) => (
-                  <ListSection
-                    key={g.key}
-                    group={g}
-                    onToggle={handleToggle}
-                    onSelect={handleSelectTask}
-                    selectedIds={selectedIds}
-                    onSelectToggle={handleSelectToggle}
-                    messageCounts={messageCounts}
-                    splitByRole={filterRole === "all" && sortMode !== "urgent"}
-                  />
-                ))
+                <>
+                  {groups.map((g) => (
+                    <ListSection
+                      key={g.key}
+                      group={g}
+                      onToggle={handleToggle}
+                      onSelect={handleSelectTask}
+                      selectedIds={selectedIds}
+                      onSelectToggle={handleSelectToggle}
+                      messageCounts={messageCounts}
+                      splitByRole={filterRole === "all" && sortMode !== "urgent"}
+                    />
+                  ))}
+                  {truncadoConcluidas && (
+                    <div className="flex items-center justify-center py-3 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isFetching}
+                        onClick={() => carregarMaisConcluidas?.()}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Mostrando {concluidasNaLista} de {minhasStats?.concluidas ?? 0} concluídas · Carregar todas
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
             </Card>

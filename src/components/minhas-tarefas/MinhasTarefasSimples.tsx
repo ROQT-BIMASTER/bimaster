@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { useMinhasTarefasStats } from "@/hooks/useMinhasTarefasStats";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseLocalDate, getToday, getCurrentHourBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
@@ -324,7 +325,12 @@ function Section({
 export function MinhasTarefasSimples() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const minhasTarefasQuery = useMinhasTarefas();
+  const { data: tarefas = [], isLoading } = minhasTarefasQuery;
+  const { carregarMaisConcluidas, concluidasExpandidas, isFetching } = minhasTarefasQuery as any;
+  const { data: stats } = useMinhasTarefasStats();
+  const concluidasNaLista = (tarefas as MinaTarefa[]).filter((t) => t.status === "concluida").length;
+  const truncadoConcluidas = !concluidasExpandidas && !!stats && stats.concluidas > concluidasNaLista;
   const { data: pessoal } = useProjetoPessoal();
   const projetoPessoalId = pessoal?.projeto_id ?? null;
 
@@ -993,6 +999,19 @@ export function MinhasTarefasSimples() {
                     projetoPessoalId={projetoPessoalId}
                   />
                 ))}
+                {truncadoConcluidas && (
+                  <div className="flex items-center justify-center py-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isFetching}
+                      onClick={() => carregarMaisConcluidas?.()}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Mostrando {concluidasNaLista} de {stats?.concluidas ?? 0} concluídas · Carregar todas
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </Card>
