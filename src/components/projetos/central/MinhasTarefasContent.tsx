@@ -187,10 +187,6 @@ const ListRow = memo(function ListRow({
         {/* "Criada por mim" removido: tarefas criadas sem envolvimento direto
             ficam agora na aba "Delegadas por mim" (padrão Asana/Jira). */}
 
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
         {tarefa.ticket_protocolo && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
