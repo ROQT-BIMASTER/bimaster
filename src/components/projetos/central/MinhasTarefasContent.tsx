@@ -335,7 +335,7 @@ const ListSection = memo(function ListSection({
   );
 
   const renderSubgroup = (
-    key: "responsavel" | "colaborador" | "seguidor" | "criador",
+    key: "responsavel" | "colaborador" | "seguidor",
     label: string,
     icon: React.ReactNode,
     items: MinaTarefa[],
