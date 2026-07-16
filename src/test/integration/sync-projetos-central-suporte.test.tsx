@@ -190,9 +190,8 @@ vi.mock("@/hooks/suporte/useSuporteAcoes", () => ({
     mudarStatus: { mutate: vi.fn(), isPending: false },
   }),
 }));
-vi.mock("@/components/chat/v2/ChatThread", () => ({
-  ChatThread: () => React.createElement("div", { "data-testid": "chat-thread" }),
-}));
+// ChatThread NÃO é mockado: os testes #3/#4 exercitam o próprio componente
+// (as dependências internas do chat estão mockadas mais abaixo).
 vi.mock("@/components/suporte/CsatPrompt", () => ({ CsatPrompt: () => null }));
 vi.mock("@/components/suporte/TicketEtapaBadge", () => ({
   TicketEtapaBadge: () => null,
