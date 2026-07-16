@@ -54,6 +54,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
       if (!cancelled && !error) {
         qc.invalidateQueries({ queryKey: ["chat", "conversas", user.id] });
         qc.invalidateQueries({ queryKey: ["chat", "conversa-info", ticket.conversa_id] });
+        qc.invalidateQueries({ queryKey: ["chat", "mensagens", ticket.conversa_id] });
       }
     })();
     return () => { cancelled = true; };
