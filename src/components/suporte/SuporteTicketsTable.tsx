@@ -406,12 +406,26 @@ function CellRenderer({
           {SUPORTE_PRIORIDADE_LABEL[t.prioridade]}
         </Badge>
       );
-    case "sla":
+    case "sla": {
+      if (t.status === "resolvido") {
+        if (t.sla_status === "cumprido") return <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20">Cumprido</Badge>;
+        if (t.sla_status === "violado") return <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700 border-red-500/20">Violado</Badge>;
+        return <span className="text-muted-foreground">—</span>;
+      }
       if (t.sla_status === "violado") return <Badge className="text-[10px] bg-red-600 text-white">Violado</Badge>;
       if (t.sla_status === "em_risco") return <Badge className="text-[10px] bg-orange-500 text-white">Em risco</Badge>;
       if (t.sla_status === "cumprido") return <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20">Cumprido</Badge>;
       if (t.sla_status === "pausado") return <Badge variant="outline" className="text-[10px] text-muted-foreground">Pausado</Badge>;
+      const prazo = t.primeira_resposta_em ? t.prazo_resolucao_em : t.prazo_primeira_resposta_em;
+      if (prazo) {
+        return (
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+            {formatDistanceToNow(new Date(prazo), { addSuffix: true, locale: ptBR })}
+          </Badge>
+        );
+      }
       return <span className="text-muted-foreground">—</span>;
+    }
     case "categoria":
       return t.categoria ? <span className="text-muted-foreground">{CATEGORIA_LABEL[t.categoria] ?? t.categoria}</span> : <span className="text-muted-foreground">—</span>;
     case "canal":
