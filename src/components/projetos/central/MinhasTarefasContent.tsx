@@ -17,7 +17,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff, ListChecks,
-  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon, UserPlus,
+  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
   ArrowUpDown,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
