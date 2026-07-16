@@ -434,7 +434,12 @@ interface Props {
 }
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
-  const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const minhasTarefasQuery = useMinhasTarefas();
+  const { data: tarefas = [], isLoading } = minhasTarefasQuery;
+  const { carregarMaisConcluidas, concluidasExpandidas, isFetching } = minhasTarefasQuery as any;
+  const { data: minhasStats } = useMinhasTarefasStats();
+  const concluidasNaLista = (tarefas as MinaTarefa[]).filter((t) => t.status === "concluida").length;
+  const truncadoConcluidas = !concluidasExpandidas && !!minhasStats && minhasStats.concluidas > concluidasNaLista;
   const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
