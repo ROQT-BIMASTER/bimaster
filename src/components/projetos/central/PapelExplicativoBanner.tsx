@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, UserCheck, Users, Eye } from "lucide-react";
+import { X, UserCheck, Users, Eye, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 
 const STORAGE_KEY = "central:papel-banner-dismissed";
 
@@ -74,13 +73,13 @@ export function PapelExplicativoBanner() {
             acompanha a tarefa para receber contexto e atualizações.
           </span>
         </li>
-        <li className="flex items-start gap-2 text-[11px] text-muted-foreground/80 pl-5">
-          Tarefas que você <strong className="text-foreground">criou e delegou</strong> a
-          outra pessoa aparecem na aba <strong className="text-foreground">Delegadas por mim</strong>,
-          não aqui — padrão Asana/Jira: "Minhas Tarefas" reflete apenas trabalho
-          que exige sua ação direta.
+        <li className="flex items-start gap-2">
+          <UserPlus className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+          <span>
+            <strong className="text-foreground">Criadas por mim</strong> —
+            tarefas que você criou também entram na sua lista pessoal.
+          </span>
         </li>
-
       </ul>
       <div className="mt-3 flex justify-end">
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={dismiss}>

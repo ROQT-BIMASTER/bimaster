@@ -34,7 +34,7 @@ export interface MinaTarefa {
   produto_id: string | null;
   created_at: string;
   updated_at: string;
-  papel: "responsavel" | "colaborador" | "seguidor";
+  papel: "responsavel" | "colaborador" | "seguidor" | "criador";
   // Espelho do ticket de Suporte vinculado (mesma fonte que Kanban/Central de Suporte).
   ticket_id: string | null;
   ticket_protocolo: string | null;
@@ -127,6 +127,8 @@ export function useMinhasTarefas() {
           ? "seguidor"
           : t.papel === "colaborador"
           ? "colaborador"
+          : t.papel === "criador"
+          ? "criador"
           : "responsavel",
         ticket_id: t.ticket_id ?? null,
         ticket_protocolo: t.ticket_protocolo ?? null,
