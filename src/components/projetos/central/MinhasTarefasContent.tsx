@@ -319,10 +319,8 @@ const ListSection = memo(function ListSection({
     () => group.items.filter((t) => t.papel === "seguidor"),
     [group.items],
   );
-  const criadorItems = useMemo(
-    () => group.items.filter((t) => t.papel === "criador"),
-    [group.items],
-  );
+
+
 
   const renderRow = (t: MinaTarefa) => (
     <ListRow
