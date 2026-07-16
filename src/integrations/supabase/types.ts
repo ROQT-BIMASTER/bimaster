@@ -59960,89 +59960,47 @@ export type Database = {
           visibilidade: string
         }[]
       }
-      get_minhas_tarefas_central:
-        | {
-            Args: never
-            Returns: {
-              codigo: string
-              created_at: string
-              criador_id: string
-              data_conclusao: string
-              data_inicio_planejada: string
-              data_prazo: string
-              descricao: string
-              estagio: string
-              id: string
-              ordem: number
-              papel: string
-              parent_tarefa_id: string
-              prioridade: string
-              produto_id: string
-              projeto_cor: string
-              projeto_id: string
-              projeto_nome: string
-              responsavel_avatar_url: string
-              responsavel_id: string
-              responsavel_nome: string
-              secao_id: string
-              secao_nome: string
-              status: string
-              ticket_conversa_id: string
-              ticket_fila_id: string
-              ticket_fila_nome: string
-              ticket_id: string
-              ticket_prazo_resolucao_em: string
-              ticket_prioridade: string
-              ticket_protocolo: string
-              ticket_sla_status: string
-              ticket_status: string
-              ticket_ultima_interacao_em: string
-              titulo: string
-              updated_at: string
-              visibilidade: string
-            }[]
-          }
-        | {
-            Args: { p_limite_concluidas?: number }
-            Returns: {
-              codigo: string
-              created_at: string
-              criador_id: string
-              data_conclusao: string
-              data_inicio_planejada: string
-              data_prazo: string
-              descricao: string
-              estagio: string
-              id: string
-              ordem: number
-              papel: string
-              parent_tarefa_id: string
-              prioridade: string
-              produto_id: string
-              projeto_cor: string
-              projeto_id: string
-              projeto_nome: string
-              responsavel_avatar_url: string
-              responsavel_id: string
-              responsavel_nome: string
-              secao_id: string
-              secao_nome: string
-              status: string
-              ticket_conversa_id: string
-              ticket_fila_id: string
-              ticket_fila_nome: string
-              ticket_id: string
-              ticket_prazo_resolucao_em: string
-              ticket_prioridade: string
-              ticket_protocolo: string
-              ticket_sla_status: string
-              ticket_status: string
-              ticket_ultima_interacao_em: string
-              titulo: string
-              updated_at: string
-              visibilidade: string
-            }[]
-          }
+      get_minhas_tarefas_central: {
+        Args: never
+        Returns: {
+          codigo: string
+          created_at: string
+          criador_id: string
+          data_conclusao: string
+          data_inicio_planejada: string
+          data_prazo: string
+          descricao: string
+          estagio: string
+          id: string
+          ordem: number
+          papel: string
+          parent_tarefa_id: string
+          prioridade: string
+          produto_id: string
+          projeto_cor: string
+          projeto_id: string
+          projeto_nome: string
+          responsavel_avatar_url: string
+          responsavel_id: string
+          responsavel_nome: string
+          secao_id: string
+          secao_nome: string
+          status: string
+          ticket_conversa_id: string
+          ticket_fila_id: string
+          ticket_fila_nome: string
+          ticket_id: string
+          ticket_prazo_resolucao_em: string
+          ticket_prioridade: string
+          ticket_protocolo: string
+          ticket_sla_status: string
+          ticket_status: string
+          ticket_ultima_interacao_em: string
+          titulo: string
+          updated_at: string
+          visibilidade: string
+        }[]
+      }
       get_notion_access_token: { Args: { p_user_id: string }; Returns: string }
       get_or_create_projeto_pessoal: {
         Args: never

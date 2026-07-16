@@ -164,7 +164,7 @@ describe("Sync #1 — Central de Trabalho expõe estado do ticket (Kanban)", () 
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(rpc).toHaveBeenCalledWith("get_minhas_tarefas_central", expect.objectContaining({ p_limite_concluidas: expect.any(Number) }));
+    expect(rpc).toHaveBeenCalledWith("get_minhas_tarefas_central");
     const row = result.current.data![0];
     expect(row.ticket_id).toBe("tic-1");
     expect(row.ticket_protocolo).toBe("RR-20260714-8C2707");

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,28 +54,20 @@ export interface TarefaGroup {
   items: MinaTarefa[];
 }
 
-// Limite padrão de tarefas CONCLUÍDAS retornadas pela RPC. Ativas são sempre
-// integrais (invariante crítica). 250 mantém o payload total < 1000 linhas
-// (teto do PostgREST) mesmo para usuários com >4k tarefas históricas.
-export const LIMITE_CONCLUIDAS_PADRAO = 250;
-export const LIMITE_CONCLUIDAS_EXPANDIDO = 5000;
-
 export function useMinhasTarefas() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [limiteConcluidas, setLimiteConcluidas] = useState<number>(LIMITE_CONCLUIDAS_PADRAO);
 
   const query = useQuery({
-    queryKey: ["minhas-tarefas", user?.id, limiteConcluidas],
+    queryKey: ["minhas-tarefas", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
       const startedAt = performance.now();
       const { data, error } = await (supabase as any)
-        .rpc("get_minhas_tarefas_central", { p_limite_concluidas: limiteConcluidas });
+        .rpc("get_minhas_tarefas_central");
 
       if (error) throw error;
-
 
       // Diagnóstico: quantas linhas o RPC devolveu por status. Comparar com o
       // resultado de `useMinhasTarefasStats` (contagem autoritativa do banco)
@@ -216,15 +208,7 @@ export function useMinhasTarefas() {
     };
   }, [user?.id, qc]);
 
-  const carregarMaisConcluidas = useCallback(() => {
-    setLimiteConcluidas(LIMITE_CONCLUIDAS_EXPANDIDO);
-  }, []);
-
-  return Object.assign(query, {
-    limiteConcluidas,
-    carregarMaisConcluidas,
-    concluidasExpandidas: limiteConcluidas >= LIMITE_CONCLUIDAS_EXPANDIDO,
-  });
+  return query;
 }
 
 export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
