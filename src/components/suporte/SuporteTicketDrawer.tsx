@@ -19,12 +19,14 @@ import {
 } from "@/hooks/suporte/types";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { EscalonarChamadoDialog } from "@/components/suporte/EscalonarChamadoDialog";
 import { SuporteSlaCountdown } from "@/components/suporte/SuporteSlaCountdown";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PareceresTab } from "@/components/suporte/pareceres/PareceresTab";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   ticket: SuporteChamado | null;
