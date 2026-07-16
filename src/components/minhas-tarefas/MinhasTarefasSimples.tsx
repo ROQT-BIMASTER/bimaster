@@ -324,7 +324,12 @@ function Section({
 export function MinhasTarefasSimples() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const minhasTarefasQuery = useMinhasTarefas();
+  const { data: tarefas = [], isLoading } = minhasTarefasQuery;
+  const { carregarMaisConcluidas, concluidasExpandidas, isFetching } = minhasTarefasQuery as any;
+  const { data: stats } = useMinhasTarefasStats();
+  const concluidasNaLista = (tarefas as MinaTarefa[]).filter((t) => t.status === "concluida").length;
+  const truncadoConcluidas = !concluidasExpandidas && !!stats && stats.concluidas > concluidasNaLista;
   const { data: pessoal } = useProjetoPessoal();
   const projetoPessoalId = pessoal?.projeto_id ?? null;
 
