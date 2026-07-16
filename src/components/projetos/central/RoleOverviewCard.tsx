@@ -110,7 +110,6 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
         />
       </div>
 
-      </div>
 
       <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2">
         <span>
