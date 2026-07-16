@@ -12,7 +12,9 @@ import {
   FolderPlus,
   Sparkles,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
