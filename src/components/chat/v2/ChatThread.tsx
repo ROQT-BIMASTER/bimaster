@@ -28,7 +28,7 @@ interface Props {
 export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
-  const { data: conversas = [] } = useConversas();
+  const { data: conversas = [], isLoading: conversasLoading } = useConversas();
   const conv = conversas.find((c) => c.id === conversaId);
   const { mensagens, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useMensagens(conversaId);
   const { online } = useGlobalPresence();
