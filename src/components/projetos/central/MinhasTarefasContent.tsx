@@ -731,6 +731,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       created_at: detailTarefa.created_at,
       updated_at: detailTarefa.updated_at,
       produto_id: detailTarefa.produto_id,
+      ticket_id: detailTarefa.ticket_id,
+      ticket_protocolo: detailTarefa.ticket_protocolo,
+      ticket_conversa_id: detailTarefa.ticket_conversa_id,
       subtarefas: bridgedSubtarefas,
     } as ProjetoTarefa;
   }, [detailTarefa, bridgedSubtarefas, bridgedJunctions, bridgedPlanning]);
