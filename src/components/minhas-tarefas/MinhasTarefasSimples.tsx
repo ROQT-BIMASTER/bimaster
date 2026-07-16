@@ -928,11 +928,49 @@ export function MinhasTarefasSimples() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={selectionMode ? "secondary" : "outline"}
+              onClick={toggleSelectionMode}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              {selectionMode ? "Cancelar seleção" : "Selecionar"}
+            </Button>
             <Button size="sm" onClick={() => setShowNewTask(true)} className="gap-1.5">
               <Plus className="h-4 w-4" /> Adicionar tarefa
             </Button>
           </div>
         </div>
+
+        {/* Barra de ação em lote */}
+        {selectionMode && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+            <div className="text-sm">
+              <strong>{selectedIds.size}</strong> selecionada{selectedIds.size === 1 ? "" : "s"}
+              <span className="text-muted-foreground ml-2">
+                (apenas tarefas criadas por você podem ser selecionadas)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedIds.size > 0 && (
+                <Button size="sm" variant="ghost" onClick={clearSelection}>
+                  Limpar
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={selectedIds.size === 0 || bulkDeleting}
+                onClick={handleBulkDelete}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Tabs + filtros */}
         <div className="flex flex-wrap items-center justify-between gap-3">
