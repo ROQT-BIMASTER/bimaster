@@ -292,6 +292,7 @@ function Row({
 
 function Section({
   group, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
+  selectionMode, selectedIds, onToggleSelect,
 }: {
   group: SimpleGroup;
   onToggle: (id: string, done: boolean) => void;
@@ -299,6 +300,9 @@ function Section({
   onDelete: (t: MinaTarefa) => void;
   currentUserId: string | null;
   projetoPessoalId: string | null;
+  selectionMode: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (t: MinaTarefa, checked: boolean) => void;
 }) {
   const [collapsed, setCollapsed] = useState(!!group.defaultCollapsed);
   return (
@@ -326,6 +330,9 @@ function Section({
               onDelete={onDelete}
               currentUserId={currentUserId}
               projetoPessoalId={projetoPessoalId}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(t.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))}
           <button
