@@ -56,13 +56,13 @@ type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
 type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
 type OriginFilter = "all" | "pessoal" | "projetos";
-type PapelFilter = "all" | "responsavel" | "colaborador" | "seguidor" | "criador";
+type PapelFilter = "all" | "responsavel" | "colaborador" | "seguidor";
 
 const PAPEL_BADGE: Record<string, { label: string; tone: string }> = {
   colaborador: { label: "Colaborador", tone: "bg-muted text-muted-foreground" },
   seguidor: { label: "Seguindo", tone: "bg-muted text-muted-foreground" },
-  criador: { label: "Criada por mim", tone: "bg-warning/10 text-warning" },
 };
+
 
 function PapelBadge({ papel }: { papel: MinaTarefa["papel"] }) {
   const meta = PAPEL_BADGE[papel];
@@ -871,7 +871,7 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="responsavel">Responsável</SelectItem>
                 <SelectItem value="colaborador">Colaborador</SelectItem>
                 <SelectItem value="seguidor">Seguindo</SelectItem>
-                <SelectItem value="criador">Criadas por mim</SelectItem>
+                {/* "Criadas por mim" migrado para a aba "Delegadas por mim". */}
               </SelectContent>
             </Select>
             <Select

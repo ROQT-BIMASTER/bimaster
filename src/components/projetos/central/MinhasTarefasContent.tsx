@@ -17,7 +17,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff, ListChecks,
-  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon, UserPlus,
+  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
   ArrowUpDown,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -184,24 +184,9 @@ const ListRow = memo(function ListRow({
             </Tooltip>
           </TooltipProvider>
         )}
-        {tarefa.papel === "criador" && (
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className="shrink-0 gap-1 border-warning/50 bg-warning/10 text-warning text-[10px] h-5 px-1.5"
-                >
-                  <UserPlus className="h-3 w-3" />
-                  Criada por mim
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                Você criou esta tarefa, mesmo sem estar como responsável ou colaborador.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        {/* "Criada por mim" removido: tarefas criadas sem envolvimento direto
+            ficam agora na aba "Delegadas por mim" (padrão Asana/Jira). */}
+
         {tarefa.ticket_protocolo && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -334,10 +319,8 @@ const ListSection = memo(function ListSection({
     () => group.items.filter((t) => t.papel === "seguidor"),
     [group.items],
   );
-  const criadorItems = useMemo(
-    () => group.items.filter((t) => t.papel === "criador"),
-    [group.items],
-  );
+
+
 
   const renderRow = (t: MinaTarefa) => (
     <ListRow
@@ -352,7 +335,7 @@ const ListSection = memo(function ListSection({
   );
 
   const renderSubgroup = (
-    key: "responsavel" | "colaborador" | "seguidor" | "criador",
+    key: "responsavel" | "colaborador" | "seguidor",
     label: string,
     icon: React.ReactNode,
     items: MinaTarefa[],
@@ -394,7 +377,7 @@ const ListSection = memo(function ListSection({
         </Badge>
       </button>
       {!collapsed && (
-        splitByRole && [responsavelItems, colaboradorItems, seguidorItems, criadorItems].filter((items) => items.length > 0).length > 1 ? (
+        splitByRole && [responsavelItems, colaboradorItems, seguidorItems].filter((items) => items.length > 0).length > 1 ? (
           <>
             {renderSubgroup(
               "responsavel",
@@ -413,12 +396,6 @@ const ListSection = memo(function ListSection({
               "Como seguidor",
               <Eye className="h-3 w-3 text-muted-foreground" />,
               seguidorItems,
-            )}
-            {renderSubgroup(
-              "criador",
-              "Criadas por mim",
-              <UserPlus className="h-3 w-3 text-warning" />,
-              criadorItems,
             )}
           </>
         ) : (
@@ -1714,12 +1691,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                 Estou seguindo
               </div>
             </SelectItem>
-            <SelectItem value="criador">
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-3.5 w-3.5 text-warning" />
-                Criadas por mim
-              </div>
-            </SelectItem>
+            {/* "Criadas por mim" migrado para a aba "Delegadas por mim". */}
+
           </SelectContent>
         </Select>
 

@@ -2,22 +2,26 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Users, ChevronRight, EyeOff, UserPlus, Eye } from "lucide-react";
+import { UserCheck, Users, ChevronRight, EyeOff, Eye } from "lucide-react";
 import { isToday, startOfDay } from "date-fns";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
   tarefas: MinaTarefa[];
-  currentRole: "all" | "responsavel" | "colaborador" | "seguidor" | "criador";
-  onSelectRole: (role: "all" | "responsavel" | "colaborador" | "seguidor" | "criador") => void;
+  currentRole: "all" | "responsavel" | "colaborador" | "seguidor";
+  onSelectRole: (role: "all" | "responsavel" | "colaborador" | "seguidor") => void;
   onHide: () => void;
 }
 
 /**
  * Card consolidado mostrando, em uma só visão, quantas tarefas o usuário
-  * tem como responsável, colaborador, seguidor ou criador, com totais de ativas e
+ * tem como responsável, colaborador ou seguidor, com totais de ativas e
  * atrasadas. Cada linha aplica o filtro "Meu papel" correspondente.
+ *
+ * Tarefas em que o usuário é apenas criador (sem ser responsável/colaborador
+ * /seguidor) ficam na aba "Delegadas por mim" — padrão Asana/Jira: "Minhas
+ * Tarefas" reflete apenas trabalho que exige ação direta.
  */
 export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }: Props) {
   const stats = useMemo(() => {
@@ -26,13 +30,10 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
     const responsavel = init();
     const colaborador = init();
     const seguidor = init();
-    const criador = init();
     let concluidasHoje = 0;
 
     for (const t of tarefas) {
-      const bucket = t.papel === "criador"
-        ? criador
-        : t.papel === "seguidor"
+      const bucket = t.papel === "seguidor"
         ? seguidor
         : t.papel === "colaborador"
         ? colaborador
@@ -60,8 +61,7 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
       responsavel,
       colaborador,
       seguidor,
-      criador,
-      totalAtivas: responsavel.ativas + colaborador.ativas + seguidor.ativas + criador.ativas,
+      totalAtivas: responsavel.ativas + colaborador.ativas + seguidor.ativas,
       concluidasHoje,
     };
   }, [tarefas]);
@@ -108,14 +108,8 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
           active={currentRole === "seguidor"}
           onClick={() => onSelectRole(currentRole === "seguidor" ? "all" : "seguidor")}
         />
-        <RoleRow
-          icon={<UserPlus className="h-4 w-4 text-warning" />}
-          label="Criadas por mim"
-          stats={stats.criador}
-          active={currentRole === "criador"}
-          onClick={() => onSelectRole(currentRole === "criador" ? "all" : "criador")}
-        />
       </div>
+
 
       <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2">
         <span>
