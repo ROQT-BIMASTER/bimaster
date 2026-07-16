@@ -2193,18 +2193,33 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   />
                 </div>
               ) : (
-                groups.map((g) => (
-                  <ListSection
-                    key={g.key}
-                    group={g}
-                    onToggle={handleToggle}
-                    onSelect={handleSelectTask}
-                    selectedIds={selectedIds}
-                    onSelectToggle={handleSelectToggle}
-                    messageCounts={messageCounts}
-                    splitByRole={filterRole === "all" && sortMode !== "urgent"}
-                  />
-                ))
+                <>
+                  {groups.map((g) => (
+                    <ListSection
+                      key={g.key}
+                      group={g}
+                      onToggle={handleToggle}
+                      onSelect={handleSelectTask}
+                      selectedIds={selectedIds}
+                      onSelectToggle={handleSelectToggle}
+                      messageCounts={messageCounts}
+                      splitByRole={filterRole === "all" && sortMode !== "urgent"}
+                    />
+                  ))}
+                  {truncadoConcluidas && (
+                    <div className="flex items-center justify-center py-3 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isFetching}
+                        onClick={() => carregarMaisConcluidas?.()}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Mostrando {concluidasNaLista} de {minhasStats?.concluidas ?? 0} concluídas · Carregar todas
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
             </Card>
