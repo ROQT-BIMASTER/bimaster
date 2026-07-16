@@ -54,20 +54,28 @@ export interface TarefaGroup {
   items: MinaTarefa[];
 }
 
+// Limite padrão de tarefas CONCLUÍDAS retornadas pela RPC. Ativas são sempre
+// integrais (invariante crítica). 250 mantém o payload total < 1000 linhas
+// (teto do PostgREST) mesmo para usuários com >4k tarefas históricas.
+export const LIMITE_CONCLUIDAS_PADRAO = 250;
+export const LIMITE_CONCLUIDAS_EXPANDIDO = 5000;
+
 export function useMinhasTarefas() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [limiteConcluidas, setLimiteConcluidas] = useState<number>(LIMITE_CONCLUIDAS_PADRAO);
 
   const query = useQuery({
-    queryKey: ["minhas-tarefas", user?.id],
+    queryKey: ["minhas-tarefas", user?.id, limiteConcluidas],
     queryFn: async () => {
       if (!user?.id) return [];
 
       const startedAt = performance.now();
       const { data, error } = await (supabase as any)
-        .rpc("get_minhas_tarefas_central");
+        .rpc("get_minhas_tarefas_central", { p_limite_concluidas: limiteConcluidas });
 
       if (error) throw error;
+
 
       // Diagnóstico: quantas linhas o RPC devolveu por status. Comparar com o
       // resultado de `useMinhasTarefasStats` (contagem autoritativa do banco)
