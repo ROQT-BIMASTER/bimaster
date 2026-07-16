@@ -387,6 +387,9 @@ export function MinhasTarefasSimples() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const { isSaving: isBridgeSaving, attemptSave } = useBridgeSaveRetry();
 
   const projects = useMemo(() => {
