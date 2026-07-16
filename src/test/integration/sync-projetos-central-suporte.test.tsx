@@ -99,11 +99,6 @@ beforeEach(() => {
     (Element.prototype as any).scrollIntoView = vi.fn();
   }
 });
-  rpc.mockReset();
-  channelOn.mockClear();
-  channelSubscribe.mockClear();
-  removeChannel.mockClear();
-});
 
 // ===========================================================================
 // 1. useMinhasTarefas — RPC + realtime em suporte_tickets
