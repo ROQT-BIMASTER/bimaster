@@ -12,7 +12,9 @@ import {
   FolderPlus,
   Sparkles,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +83,47 @@ export function CentralHeader({
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
   const { data: lixeiraCount = 0 } = useMinhasTarefasLixeiraCount();
+  const [isReloading, setIsReloading] = useState(false);
+
+  /**
+   * Força recarga total das tarefas do usuário: limpa caches HTTP do Service
+   * Worker (Workbox NetworkFirst pode servir resposta antiga por poucos
+   * segundos após um deploy), remove queries em cache do TanStack Query e
+   * dispara refetch imediato. Não desregistra o SW — para isso o heartbeat
+   * de versão já faz reload automático.
+   */
+  const handleReloadTarefas = async () => {
+    if (isReloading) return;
+    setIsReloading(true);
+    try {
+      if ("caches" in window) {
+        try {
+          const names = await caches.keys();
+          const alvos = names.filter((n) => /runtime|api|supabase|rpc/i.test(n));
+          await Promise.allSettled(alvos.map((n) => caches.delete(n)));
+        } catch {
+          // caches API pode falhar em contexto não-seguro; segue sem quebrar
+        }
+      }
+      const keys = [
+        "minhas-tarefas",
+        "meus-projetos-recentes",
+        "minhas-tarefas-lixeira",
+        "minhas-tarefas-lixeira-count",
+        "projeto-tarefas-v2",
+        "inbox-scope-tipos",
+        "tarefa-planning",
+      ];
+      keys.forEach((k) => queryClient.removeQueries({ queryKey: [k] }));
+      await queryClient.refetchQueries({ queryKey: ["minhas-tarefas"], type: "active" });
+      await queryClient.refetchQueries({ queryKey: ["meus-projetos-recentes"], type: "active" });
+      toast.success("Minhas tarefas recarregadas do servidor");
+    } catch (err) {
+      toast.error("Não foi possível recarregar. Tente novamente.");
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   // Ctrl/Cmd + J → toggle Copiloto
   useEffect(() => {
@@ -174,6 +217,27 @@ export function CentralHeader({
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 Assistente pessoal multi-projeto. Atalho: Ctrl/Cmd + J
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5"
+                  onClick={handleReloadTarefas}
+                  disabled={isReloading}
+                  aria-label="Recarregar minhas tarefas"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isReloading ? "animate-spin" : ""}`} />
+                  <span className="hidden md:inline">Recarregar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Força busca no servidor ignorando cache local. Use se alguma tarefa parece não estar aparecendo.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
