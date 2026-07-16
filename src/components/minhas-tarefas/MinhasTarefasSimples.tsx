@@ -871,7 +871,7 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="responsavel">Responsável</SelectItem>
                 <SelectItem value="colaborador">Colaborador</SelectItem>
                 <SelectItem value="seguidor">Seguindo</SelectItem>
-                <SelectItem value="criador">Criadas por mim</SelectItem>
+                {/* "Criadas por mim" migrado para a aba "Delegadas por mim". */}
               </SelectContent>
             </Select>
             <Select
