@@ -184,6 +184,7 @@ function VisibilidadeBadge({ value }: { value: string | null }) {
 
 function Row({
   t, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
+  selectionMode, isSelected, onToggleSelect,
 }: {
   t: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
@@ -191,6 +192,9 @@ function Row({
   onDelete: (t: MinaTarefa) => void;
   currentUserId: string | null;
   projetoPessoalId: string | null;
+  selectionMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (t: MinaTarefa, checked: boolean) => void;
 }) {
   const done = t.status === "concluida";
   const prazo = parseLocalDate(t.data_prazo);
@@ -203,14 +207,32 @@ function Row({
     <div
       className={cn(
         "group grid items-center gap-3 px-4 py-2 border-b border-border/30 hover:bg-muted/30 cursor-pointer transition-colors",
-        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+        "grid-cols-[24px_24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+        isSelected && "bg-primary/5 hover:bg-primary/10",
       )}
-      onClick={() => onSelect(t)}
+      onClick={() => {
+        if (selectionMode) {
+          if (podeExcluir) onToggleSelect(t, !isSelected);
+          return;
+        }
+        onSelect(t);
+      }}
     >
+      <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+        {selectionMode && podeExcluir ? (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(c) => onToggleSelect(t, !!c)}
+            className="h-4 w-4"
+            aria-label="Selecionar tarefa"
+          />
+        ) : null}
+      </div>
       <Checkbox
         checked={done}
         onCheckedChange={(c) => onToggle(t.id, !!c)}
         onClick={(e) => e.stopPropagation()}
+        disabled={selectionMode}
         className="h-4 w-4"
       />
       <div className="min-w-0 flex items-center gap-2">
@@ -246,7 +268,7 @@ function Row({
       </div>
       <VisibilidadeBadge value={t.visibilidade} />
       <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-        {podeExcluir ? (
+        {podeExcluir && !selectionMode ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -270,6 +292,7 @@ function Row({
 
 function Section({
   group, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
+  selectionMode, selectedIds, onToggleSelect,
 }: {
   group: SimpleGroup;
   onToggle: (id: string, done: boolean) => void;
@@ -277,6 +300,9 @@ function Section({
   onDelete: (t: MinaTarefa) => void;
   currentUserId: string | null;
   projetoPessoalId: string | null;
+  selectionMode: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (t: MinaTarefa, checked: boolean) => void;
 }) {
   const [collapsed, setCollapsed] = useState(!!group.defaultCollapsed);
   return (
@@ -304,6 +330,9 @@ function Section({
               onDelete={onDelete}
               currentUserId={currentUserId}
               projetoPessoalId={projetoPessoalId}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(t.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))}
           <button
@@ -358,6 +387,9 @@ export function MinhasTarefasSimples() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const { isSaving: isBridgeSaving, attemptSave } = useBridgeSaveRetry();
 
   const projects = useMemo(() => {
@@ -549,6 +581,74 @@ export function MinhasTarefasSimples() {
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
   }, [queryClient, user?.id]);
+
+  /* ------------------------- Seleção múltipla / lote --------------------- */
+  const handleToggleSelect = useCallback((t: MinaTarefa, checked: boolean) => {
+    if (!user?.id || t.criador_id !== user.id) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(t.id); else next.delete(t.id);
+      return next;
+    });
+  }, [user?.id]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((v) => {
+      if (v) setSelectedIds(new Set());
+      return !v;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!user?.id) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({ quantidade: ids.length });
+    if (!ok) return;
+    setBulkDeleting(true);
+    const { data, error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: user.id } as any)
+      .in("id", ids)
+      .eq("criador_id", user.id)
+      .select("id");
+    setBulkDeleting(false);
+    if (error) {
+      toast.error("Falha ao excluir em lote: " + error.message);
+      return;
+    }
+    const updated = data?.length ?? 0;
+    const failed = ids.length - updated;
+    if (updated > 0) {
+      toast.success(
+        `${updated} tarefa${updated > 1 ? "s" : ""} movida${updated > 1 ? "s" : ""} para a lixeira`,
+        { description: "Permanecerão por 30 dias." },
+      );
+    }
+    if (failed > 0) {
+      toast.warning(`${failed} tarefa(s) não puderam ser excluídas (apenas o criador pode).`);
+    }
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [selectedIds, user?.id, queryClient]);
+
+  // Auto-limpa seleção de itens que sumiram da lista
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const visible = new Set(tarefas.map((t) => t.id));
+    let changed = false;
+    const next = new Set<string>();
+    selectedIds.forEach((id) => {
+      if (visible.has(id)) next.add(id); else changed = true;
+    });
+    if (changed) setSelectedIds(next);
+  }, [tarefas, selectedIds]);
+
 
   /* ----------------------------- Detalhe sheet ---------------------------- */
   const handleSelect = useCallback((t: MinaTarefa) => {
@@ -828,11 +928,49 @@ export function MinhasTarefasSimples() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={selectionMode ? "secondary" : "outline"}
+              onClick={toggleSelectionMode}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              {selectionMode ? "Cancelar seleção" : "Selecionar"}
+            </Button>
             <Button size="sm" onClick={() => setShowNewTask(true)} className="gap-1.5">
               <Plus className="h-4 w-4" /> Adicionar tarefa
             </Button>
           </div>
         </div>
+
+        {/* Barra de ação em lote */}
+        {selectionMode && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+            <div className="text-sm">
+              <strong>{selectedIds.size}</strong> selecionada{selectedIds.size === 1 ? "" : "s"}
+              <span className="text-muted-foreground ml-2">
+                (apenas tarefas criadas por você podem ser selecionadas)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedIds.size > 0 && (
+                <Button size="sm" variant="ghost" onClick={clearSelection}>
+                  Limpar
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={selectedIds.size === 0 || bulkDeleting}
+                onClick={handleBulkDelete}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Tabs + filtros */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -997,9 +1135,10 @@ export function MinhasTarefasSimples() {
                 <div
                   className={cn(
                     "grid items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/40 bg-background",
-                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
+                    "grid-cols-[24px_24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
                   )}
                 >
+                  <span />
                   <span />
                   <span>Nome</span>
                   <span>Data de conclusão</span>
@@ -1018,6 +1157,9 @@ export function MinhasTarefasSimples() {
                     onDelete={handleDeleteTarefa}
                     currentUserId={user?.id ?? null}
                     projetoPessoalId={projetoPessoalId}
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelect={handleToggleSelect}
                   />
                 ))}
               </>
