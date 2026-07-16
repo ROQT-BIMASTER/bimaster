@@ -35,6 +35,17 @@ export interface MinaTarefa {
   created_at: string;
   updated_at: string;
   papel: "responsavel" | "colaborador" | "seguidor";
+  // Espelho do ticket de Suporte vinculado (mesma fonte que Kanban/Central de Suporte).
+  ticket_id: string | null;
+  ticket_protocolo: string | null;
+  ticket_status: string | null;
+  ticket_sla_status: string | null;
+  ticket_prazo_resolucao_em: string | null;
+  ticket_fila_id: string | null;
+  ticket_fila_nome: string | null;
+  ticket_ultima_interacao_em: string | null;
+  ticket_prioridade: string | null;
+  ticket_conversa_id: string | null;
 }
 
 export interface TarefaGroup {
