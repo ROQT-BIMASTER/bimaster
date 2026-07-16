@@ -216,7 +216,15 @@ export function useMinhasTarefas() {
     };
   }, [user?.id, qc]);
 
-  return query;
+  const carregarMaisConcluidas = useCallback(() => {
+    setLimiteConcluidas(LIMITE_CONCLUIDAS_EXPANDIDO);
+  }, []);
+
+  return Object.assign(query, {
+    limiteConcluidas,
+    carregarMaisConcluidas,
+    concluidasExpandidas: limiteConcluidas >= LIMITE_CONCLUIDAS_EXPANDIDO,
+  });
 }
 
 export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
