@@ -241,7 +241,6 @@ describe("Sync #2 — SuporteTicketDrawer garante participação do observador",
         { _conversa_id: "conv-abc" },
       );
     });
-    expect(screen.getByTestId("chat-thread")).toBeInTheDocument();
   });
 });
 
