@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, UserCheck, Users, Send } from "lucide-react";
+import { X, UserCheck, Users, Eye, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "central:papel-banner-dismissed";
@@ -8,8 +8,8 @@ const STORAGE_KEY = "central:papel-banner-dismissed";
  * Banner one-time que esclarece os três papéis em que uma tarefa pode aparecer
  * para o usuário na Central de Trabalho:
  *  - Responsável: dono, precisa entregar
- *  - Colaborador: foi adicionado para acompanhar/contribuir
- *  - Delegada: ele criou e atribuiu a outra pessoa (vive na aba "Delegadas")
+  *  - Colaborador/seguidor: foi adicionado para acompanhar/contribuir
+  *  - Criador: criou a tarefa, mesmo sem ser responsável direto
  *
  * Fica oculto após dispensa via flag em localStorage.
  */
@@ -67,11 +67,17 @@ export function PapelExplicativoBanner() {
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <Send className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+          <Eye className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
           <span>
-            <strong className="text-foreground">Delegadas</strong> — tarefas
-            que você criou e atribuiu a outras pessoas vivem na aba
-            <em> Delegadas</em>.
+            <strong className="text-foreground">Estou seguindo</strong> — você
+            acompanha a tarefa para receber contexto e atualizações.
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <UserPlus className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+          <span>
+            <strong className="text-foreground">Criadas por mim</strong> —
+            tarefas que você criou também entram na sua lista pessoal.
           </span>
         </li>
       </ul>
