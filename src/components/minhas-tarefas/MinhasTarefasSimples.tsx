@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { useMinhasTarefasStats } from "@/hooks/useMinhasTarefasStats";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseLocalDate, getToday, getCurrentHourBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
