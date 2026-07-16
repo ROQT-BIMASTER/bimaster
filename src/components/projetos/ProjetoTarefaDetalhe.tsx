@@ -3,7 +3,7 @@ import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,7 @@ import { TarefaBriefingsSection } from "./tarefa-detalhe/TarefaBriefingsSection"
 import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSection";
 import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
+import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
 import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
@@ -167,6 +168,7 @@ export function ProjetoTarefaDetalhe({
   const projetoId = projetoIdOverride || routeProjetoId;
   const { isAdmin } = useUserRole();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const {
     comentarios, addComentario, editComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, removeFromCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
@@ -183,12 +185,45 @@ export function ProjetoTarefaDetalhe({
   const [inicioPicker, setInicioPicker] = useState(false);
   const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [supportChatReady, setSupportChatReady] = useState(false);
   const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
   // Navegação para subtarefas agora é elevada ao dono do drawer via `onOpenSubtarefa`,
   // que troca `?tarefa=` na URL. Isso mantém UM único Sheet montado (sem pilha, sem flicker).
+
+  const supportTicketConversaId = ((tarefa as any)?.ticket_conversa_id as string | null | undefined) ?? null;
+  const supportTicketProtocolo = ((tarefa as any)?.ticket_protocolo as string | null | undefined) ?? null;
+
+  useEffect(() => {
+    if (!chatOpen || !supportTicketConversaId || !user?.id) {
+      setSupportChatReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSupportChatReady(false);
+
+    (async () => {
+      const { error } = await (supabase.rpc as any)(
+        "add_conversa_participante_if_missing",
+        { _conversa_id: supportTicketConversaId },
+      );
+
+      if (cancelled) return;
+      if (error) {
+        toast.error("Não foi possível liberar a conversa do protocolo.");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["chat", "conversas", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["chat", "conversa-info", supportTicketConversaId] });
+        queryClient.invalidateQueries({ queryKey: ["chat", "mensagens", supportTicketConversaId] });
+      }
+      setSupportChatReady(true);
+    })();
+
+    return () => { cancelled = true; };
+  }, [chatOpen, supportTicketConversaId, user?.id, queryClient]);
 
 
   // Quando esta tarefa é uma subtarefa, busca título da tarefa pai para o botão "Voltar".
@@ -1608,19 +1643,48 @@ export function ProjetoTarefaDetalhe({
 
             {/* Lateral Chat */}
             {chatOpen && (
-              <TarefaChatPanel
-                messages={messages}
-                sendMessage={sendMessage}
-                teamMembers={teamMembers}
-                currentUserId={user?.id || null}
-                onClose={() => setChatOpen(false)}
-                uploadAnexo={uploadAnexo}
-                getAnexoUrl={getAnexoUrl}
-                sendToCofre={sendToCofre}
-                canPromoteToCofre={currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador"}
-                produtoId={(tarefa as any)?.produto_id ?? null}
-                projetoId={projetoId}
-              />
+              supportTicketConversaId ? (
+                <div className="w-[460px] max-w-[45vw] flex flex-col bg-muted/10 border-l border-border/50 min-h-0">
+                  <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between gap-2 bg-card">
+                    <h4 className="text-xs font-semibold flex items-center gap-1.5 min-w-0">
+                      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {supportTicketProtocolo ? `Conversa ${supportTicketProtocolo}` : "Conversa do protocolo"}
+                      </span>
+                    </h4>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setChatOpen(false)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex-1 min-h-0 flex">
+                    {supportChatReady ? (
+                      <ChatThread
+                        conversaId={supportTicketConversaId}
+                        onShowInfo={() => {}}
+                        onBack={() => setChatOpen(false)}
+                      />
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando conversa…
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <TarefaChatPanel
+                  messages={messages}
+                  sendMessage={sendMessage}
+                  teamMembers={teamMembers}
+                  currentUserId={user?.id || null}
+                  onClose={() => setChatOpen(false)}
+                  uploadAnexo={uploadAnexo}
+                  getAnexoUrl={getAnexoUrl}
+                  sendToCofre={sendToCofre}
+                  canPromoteToCofre={currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador"}
+                  produtoId={(tarefa as any)?.produto_id ?? null}
+                  projetoId={projetoId}
+                />
+              )
             )}
           </div>
         </SheetContent>
