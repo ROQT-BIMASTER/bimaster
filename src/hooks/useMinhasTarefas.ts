@@ -181,6 +181,13 @@ export function useMinhasTarefas() {
         },
         invalidate,
       )
+      .on(
+        "postgres_changes",
+        // Mudanças de etapa/SLA/atribuição no ticket refletem imediatamente
+        // na Central de Trabalho (mesmo mecanismo do Kanban).
+        { event: "*", schema: "public", table: "suporte_tickets" },
+        invalidate,
+      )
       .subscribe((status, err) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           logger.warn(`[useMinhasTarefas] Realtime status=${status}`, { error: err });
