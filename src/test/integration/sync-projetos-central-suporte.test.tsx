@@ -94,11 +94,19 @@ beforeEach(() => {
   channelOn.mockClear();
   channelSubscribe.mockClear();
   removeChannel.mockClear();
+  // Defaults seguros para hooks de chat (ver mocks abaixo).
+  mockConversas.mockReturnValue({ data: [], isLoading: false });
+  mockConversaInfo.mockReturnValue({ data: null });
   // jsdom não implementa scrollIntoView, usado pelo ChatThread.
   if (!(Element.prototype as any).scrollIntoView) {
     (Element.prototype as any).scrollIntoView = vi.fn();
   }
 });
+
+// Estado partilhado dos hooks de chat — declarado no topo (hoisted) para ficar
+// disponível dentro do `beforeEach` e nos `vi.mock` mais abaixo.
+const mockConversas = vi.fn();
+const mockConversaInfo = vi.fn();
 
 // ===========================================================================
 // 1. useMinhasTarefas — RPC + realtime em suporte_tickets
