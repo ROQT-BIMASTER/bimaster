@@ -2,21 +2,21 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Users, ChevronRight, EyeOff } from "lucide-react";
+import { UserCheck, Users, ChevronRight, EyeOff, UserPlus } from "lucide-react";
 import { isToday, startOfDay } from "date-fns";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
   tarefas: MinaTarefa[];
-  currentRole: "all" | "responsavel" | "colaborador";
-  onSelectRole: (role: "all" | "responsavel" | "colaborador") => void;
+  currentRole: "all" | "responsavel" | "colaborador" | "seguidor" | "criador";
+  onSelectRole: (role: "all" | "responsavel" | "colaborador" | "seguidor" | "criador") => void;
   onHide: () => void;
 }
 
 /**
  * Card consolidado mostrando, em uma só visão, quantas tarefas o usuário
- * tem como responsável vs como colaborador, com totais de ativas e
+  * tem como responsável, colaborador ou criador, com totais de ativas e
  * atrasadas. Cada linha aplica o filtro "Meu papel" correspondente.
  */
 export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }: Props) {
@@ -25,10 +25,15 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
     const init = () => ({ ativas: 0, atrasadas: 0, hoje: 0 });
     const responsavel = init();
     const colaborador = init();
+    const criador = init();
     let concluidasHoje = 0;
 
     for (const t of tarefas) {
-      const bucket = t.papel === "colaborador" ? colaborador : responsavel;
+      const bucket = t.papel === "criador"
+        ? criador
+        : t.papel === "colaborador" || t.papel === "seguidor"
+        ? colaborador
+        : responsavel;
       const isDone = t.status === "concluida";
 
       if (isDone) {
@@ -51,7 +56,8 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
     return {
       responsavel,
       colaborador,
-      totalAtivas: responsavel.ativas + colaborador.ativas,
+      criador,
+      totalAtivas: responsavel.ativas + colaborador.ativas + criador.ativas,
       concluidasHoje,
     };
   }, [tarefas]);
@@ -62,7 +68,7 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
         <div>
           <h3 className="text-sm font-semibold text-foreground">Visão geral por papel</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Sua carga total separada entre o que você entrega e o que acompanha.
+            Sua carga total separada entre o que você entrega, acompanha e criou.
           </p>
         </div>
         <Button
@@ -76,7 +82,7 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
         </Button>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 lg:grid-cols-3">
         <RoleRow
           icon={<UserCheck className="h-4 w-4 text-primary" />}
           label="Sou responsável"
@@ -90,6 +96,13 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
           stats={stats.colaborador}
           active={currentRole === "colaborador"}
           onClick={() => onSelectRole(currentRole === "colaborador" ? "all" : "colaborador")}
+        />
+        <RoleRow
+          icon={<UserPlus className="h-4 w-4 text-warning" />}
+          label="Criadas por mim"
+          stats={stats.criador}
+          active={currentRole === "criador"}
+          onClick={() => onSelectRole(currentRole === "criador" ? "all" : "criador")}
         />
       </div>
 

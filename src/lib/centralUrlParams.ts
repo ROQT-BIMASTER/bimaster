@@ -38,7 +38,7 @@ export type CentralFilter = typeof VALID_FILTERS[number];
 export const VALID_SORTS = ["default", "urgent", "prazo", "status", "prioridade"] as const;
 export type CentralSort = typeof VALID_SORTS[number];
 
-export const VALID_ROLES = ["all", "responsavel", "colaborador"] as const;
+export const VALID_ROLES = ["all", "responsavel", "colaborador", "seguidor", "criador"] as const;
 export type CentralRole = typeof VALID_ROLES[number];
 
 export const VALID_INBOX_SUBTABS = ["atividade", "mencoes", "favoritas", "arquivadas"] as const;
