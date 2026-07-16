@@ -221,6 +221,27 @@ export function CentralHeader({
             </Tooltip>
           </TooltipProvider>
 
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5"
+                  onClick={handleReloadTarefas}
+                  disabled={isReloading}
+                  aria-label="Recarregar minhas tarefas"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isReloading ? "animate-spin" : ""}`} />
+                  <span className="hidden md:inline">Recarregar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Força busca no servidor ignorando cache local. Use se alguma tarefa parece não estar aparecendo.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <ProjetoDensityToggle />
 
           <TooltipProvider delayDuration={200}>
