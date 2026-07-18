@@ -6,6 +6,7 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getAtrioToken, atrioHeaders } from "../_shared/atrio-auth.ts";
 
 // ─── SQL Server connection via tedious ───
 import { Connection, Request as TdsRequest } from "npm:tedious@19.0.0";
@@ -764,120 +765,265 @@ async function handleSyncPaginated(
   }
 }
 
-// ─── Sync por empresa (segmentado) ───
+// ─── Contas a Receber via API Atrio REST ───
+//
+// Substituição completa do acesso SQL Server (tedious/ConsultaPowerBIReceber).
+// Migração para REST: novos registros usam erp_id "rest-{e}-{t}-{n}-{s}";
+// registros legados (atrio_numero IS NULL) permanecem como histórico.
+// Não há hard-sync (deletar) porque a API só retorna títulos com saldo > 0.
+
+const AR_TOKEN_EMPRESA_ID = 1; // token Atrio é global — usamos empresa_id=1 como chave de cache
+const AR_EMPRESAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; // base única SIGED, IDs 1–11
+
+function parseAtrioDate(value: unknown): string | null {
+  if (!value) return null;
+  const s = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  return parseDate(value);
+}
+
+function transformContasReceberAtrio(titulo: any, syncStamp: string): Record<string, unknown> {
+  const empresa = Number(titulo.empresa ?? titulo.empresaId ?? 1);
+  const tipo = Number(titulo.tipo ?? 0);
+  const numero = Number(titulo.numero ?? 0);
+  const sequencia = Number(titulo.sequencia ?? titulo.seq ?? 1);
+
+  const valorOriginal = Number(titulo.valorTitulo ?? titulo.valorOriginal ?? titulo.valor ?? 0);
+  const saldoRaw = Number(titulo.saldo ?? titulo.valorAberto ?? titulo.saldoDevedor ?? 0);
+  const saldo = Math.abs(saldoRaw) < 0.01 ? 0 : saldoRaw;
+  const valorPago = Math.max(0, valorOriginal - saldo);
+  const dataVencimento = parseAtrioDate(titulo.dataVencimento ?? titulo.vencimento);
+
+  // Mapeamento de status: situacao (estilo AP) ou incluirBaixados (UPPERCASE)
+  const situacao = String(titulo.situacao ?? titulo.incluirBaixados ?? "").toUpperCase();
+  let status: string;
+  if (situacao === "BAIXADO" || situacao === "TOTAL") {
+    status = "recebido";
+  } else if (situacao === "PARCIAL" || (saldo > 0 && valorPago > 0)) {
+    status = "parcial";
+  } else {
+    status = deriveStatus(saldo, valorPago, dataVencimento);
+  }
+
+  return {
+    erp_id: `rest-${empresa}-${tipo}-${numero}-${sequencia}`,
+    empresa_id: empresa,
+    atrio_tipo: tipo,
+    atrio_numero: numero,
+    atrio_sequencia: sequencia,
+    atrio_cliente_id: titulo.clienteId != null ? Number(titulo.clienteId) : null,
+    empresa_nome: titulo.nomeEmpresa ?? null,
+    tipo_documento: String(tipo),
+    numero_documento: String(numero),
+    parcela: sequencia,
+    cliente_codigo: titulo.codigoCliente != null ? String(titulo.codigoCliente) : null,
+    cliente_nome: titulo.nomeCliente ?? titulo.cliente ?? titulo.sacado ?? null,
+    valor_original: valorOriginal,
+    valor_aberto: saldo,
+    valor_recebido: valorPago,
+    valor_juros: Number(titulo.valorJuros ?? 0),
+    valor_desconto: Number(titulo.valorDesconto ?? 0),
+    valor_ajustes: 0,
+    data_emissao: parseAtrioDate(titulo.dataEmissao ?? titulo.emissao),
+    data_vencimento: dataVencimento,
+    data_recebimento: parseAtrioDate(titulo.dataPagamento ?? titulo.dataBaixa),
+    status,
+    portador: titulo.nomePortador ?? null,
+    portador_id: titulo.portadorId != null ? String(titulo.portadorId) : null,
+    vendedor: titulo.vendedor ?? null,
+    vendedor_nome: titulo.nomeVendedor ?? titulo.vendedor ?? null,
+    tabela: null,
+    conta: titulo.nomeConta ?? null,
+    sincronizado_em: syncStamp,
+  };
+}
+
+async function fetchAtrioTitulosReceber(
+  baseUrl: string,
+  token: string,
+  empresaId: number,
+  dataInicio: string,
+  dataFim: string
+): Promise<any[]> {
+  const url = `${baseUrl}/contas-receber?empresa=${empresaId}&dataEmissaoInicio=${dataInicio}&dataEmissaoFim=${dataFim}`;
+  const res = await fetch(url, { headers: atrioHeaders(token) });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`GET /contas-receber HTTP ${res.status} empresa=${empresaId}: ${body.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  // Resposta confirmada: { "titulos": [...] } — Postman 24/06/2026
+  return Array.isArray(data) ? data : (data?.titulos ?? data?.data ?? []);
+}
+
+// ─── Sync por empresa (REST Atrio) ───
 
 async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) {
   const body = await req.clone().json();
-  const empresaId = body.empresa_id;
-  const startPage = body.start_page || 0;
-  const maxPages = body.max_pages || 999;
-  if (!empresaId || isNaN(Number(empresaId))) {
-    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  const empresaId = Number(body.empresa_id);
+  if (!empresaId || isNaN(empresaId) || empresaId < 1 || empresaId > 11) {
+    return errorResponse(400, "invalid_empresa", "empresa_id deve ser de 1 a 11", req, startMs);
   }
-  return handleSyncPaginated(
-    req, startMs,
-    "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
-    transformContasReceber, "erp_id",
-    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages), pageSize: 1000 }
-  );
+
+  const hoje = new Date();
+  const defaultFim = hoje.toISOString().substring(0, 10);
+  const defaultInicio = new Date(hoje.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+  const dataInicio = String(body.data_inicio || defaultInicio);
+  const dataFim = String(body.data_fim || defaultFim);
+
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  try {
+    const { token, baseUrl } = await getAtrioToken(supabase, AR_TOKEN_EMPRESA_ID);
+    const titulos = await fetchAtrioTitulosReceber(baseUrl, token, empresaId, dataInicio, dataFim);
+
+    logger.log(`📥 CR Atrio empresa=${empresaId}: ${titulos.length} títulos (${dataInicio} → ${dataFim})`);
+
+    const syncStamp = new Date().toISOString();
+    const transformed = titulos.map((t: any) => transformContasReceberAtrio(t, syncStamp));
+    const { inserted, errors, deadlockRetries } = await batchUpsert(supabase, "contas_receber", transformed, "erp_id");
+
+    await recordSync(supabase, "contas_receber", {
+      status: errors.length > 0 ? "partial" : "success",
+      totalRegistros: titulos.length,
+      registrosInseridos: inserted,
+      duracaoMs: Date.now() - startMs,
+      erroMensagem: errors.length > 0 ? errors.slice(0, 5).join("; ") : undefined,
+      empresaId,
+    });
+
+    return jsonResponse({
+      success: true,
+      entity: "contas_receber",
+      source: "atrio_rest",
+      empresaId,
+      totalRows: titulos.length,
+      upserted: inserted,
+      dateRange: { dataInicio, dataFim },
+      deadlockRetries: deadlockRetries > 0 ? deadlockRetries : undefined,
+      errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
+    }, 200, req, { startMs });
+  } catch (e: any) {
+    const msg = e.message ?? "Erro";
+    await recordSync(createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!), "contas_receber", {
+      status: "error", totalRegistros: 0, registrosInseridos: 0, duracaoMs: Date.now() - startMs, erroMensagem: msg, empresaId,
+    });
+    return errorResponse(502, "atrio_sync_failed", msg, req, startMs);
+  }
 }
 
-// ─── Sync full orquestrando por empresa ───
+// ─── Sync full — todas as empresas (1–11) ───
 
 async function handleSyncContasReceberFull(req: Request, startMs: number) {
-  let connection: Connection | null = null;
-  let empresaIds: number[] = [];
-  try {
-    connection = await connectToSqlServer();
-    const rows = await executeSqlQuery(connection, "SELECT DISTINCT [ID Empresa] FROM [ConsultaPowerBIReceber]");
-    empresaIds = rows.map((r) => Number(r["ID Empresa"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
-  } finally {
-    if (connection) try { connection.close(); } catch (_) {}
-  }
-
-  if (empresaIds.length === 0) {
-    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
-  }
-
-  logger.log(`🏢 Full sync (external fetch): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const hoje = new Date();
+  const dataFim = hoje.toISOString().substring(0, 10);
+  const dataInicio = new Date(hoje.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+
+  logger.log(`🏢 CR Atrio Full sync: ${AR_EMPRESAS.length} empresas (${dataInicio} → ${dataFim})`);
+
   const results: Record<string, unknown> = {};
   let totalAll = 0;
   let upsertedAll = 0;
 
-  const CONCURRENCY = 1; // CR: serial to reduce tempdb pressure on ERP SQL Server
-  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
-    const batch = empresaIds.slice(i, i + CONCURRENCY);
-    const promises = batch.map(async (empId) => {
-      try {
-        logger.log(`🚀 Dispatching external sync for empresa ${empId}...`);
-        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${serviceKey}`,
-          },
-          body: JSON.stringify({ path: "sync-contas-receber-por-empresa", empresa_id: empId }),
-        });
-        const data = await resp.json();
-        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
-        totalAll += data.totalRows || 0;
-        upsertedAll += data.upserted || 0;
-        logger.log(`✅ Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Erro";
-        results[`empresa_${empId}`] = { success: false, error: msg };
-        logger.error(`❌ Empresa ${empId} failed: ${msg}`);
-      }
-    });
-    await Promise.all(promises);
+  // Serial: token Atrio é global — serial evita cache stampede entre invocações paralelas
+  for (const empId of AR_EMPRESAS) {
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ path: "sync-contas-receber-por-empresa", empresa_id: empId, data_inicio: dataInicio, data_fim: dataFim }),
+      });
+      const data = await resp.json();
+      results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+      totalAll += data.totalRows || 0;
+      upsertedAll += data.upserted || 0;
+      logger.log(`✅ CR Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro";
+      results[`empresa_${empId}`] = { success: false, error: msg };
+      logger.error(`❌ CR Empresa ${empId} failed: ${msg}`);
+    }
   }
 
   return jsonResponse({
     success: true,
     entity: "contas_receber_full",
-    empresas: empresaIds.length,
+    source: "atrio_rest",
+    empresas: AR_EMPRESAS.length,
     totalRows: totalAll,
     upserted: upsertedAll,
     results,
   }, 200, req, { startMs });
 }
 
-// ─── Sync incremental (state-based — last successful sync timestamp) ───
+// ─── Sync incremental (janela baseada na última sync bem-sucedida) ───
 
 async function handleSyncContasReceberIncremental(req: Request, startMs: number) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Get last successful sync timestamp
   const lastSync = await getLastSyncTimestamp(supabase, "contas_receber_incremental");
-  
-  let whereClause: string;
+
+  const hoje = new Date();
+  const dataFim = hoje.toISOString().substring(0, 10);
+  let dataInicio: string;
+
   if (lastSync) {
-    const syncDate = new Date(lastSync);
-    const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
-    // Captura pagamentos recentes E títulos na janela de vencimento ±7 dias com saldo aberto
-    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    logger.log(`📅 Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
+    const d = new Date(lastSync);
+    d.setUTCDate(d.getUTCDate() - 7); // recua 7 dias para cobrir emissões retroativas
+    dataInicio = d.toISOString().substring(0, 10);
+    logger.log(`📅 CR Incremental (Atrio): desde ${dataInicio} (lastSync - 7 dias)`);
   } else {
-    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    logger.log(`📅 Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
+    dataInicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+    logger.log(`📅 CR Incremental (Atrio): fallback últimos 30 dias`);
   }
 
-  // maxPages=5 — expanded filter captures more records
-  return handleSyncPaginated(
-    req, startMs,
-    "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
-    transformContasReceber, "erp_id",
-    { whereClause, maxPages: 5, pageSize: 1000 }
-  );
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  for (const empId of AR_EMPRESAS) {
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ path: "sync-contas-receber-por-empresa", empresa_id: empId, data_inicio: dataInicio, data_fim: dataFim }),
+      });
+      const data = await resp.json();
+      results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted };
+      totalAll += data.totalRows || 0;
+      upsertedAll += data.upserted || 0;
+    } catch (e) {
+      results[`empresa_${empId}`] = { success: false, error: e instanceof Error ? e.message : "Erro" };
+    }
+  }
+
+  await recordSync(createClient(supabaseUrl, serviceKey), "contas_receber_incremental", {
+    status: "success",
+    totalRegistros: totalAll,
+    registrosInseridos: upsertedAll,
+    duracaoMs: Date.now() - startMs,
+  });
+
+  return jsonResponse({
+    success: true,
+    entity: "contas_receber_incremental",
+    source: "atrio_rest",
+    empresas: AR_EMPRESAS.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    dateRange: { dataInicio, dataFim },
+    results,
+  }, 200, req, { startMs });
 }
 
 async function handleSyncContasReceber(req: Request, startMs: number) {
-  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id", { pageSize: 1000 });
+  // Alias legado — delega ao full (180 dias × 11 empresas)
+  return handleSyncContasReceberFull(req, startMs);
 }
 
 async function handleSyncContasPagar(req: Request, startMs: number) {
@@ -1623,6 +1769,7 @@ async function handleStatus(req: Request, startMs: number) {
     .from("sync_control").select("ultima_sync, status, total_registros, duracao_ms")
     .eq("entidade", "contas_pagar").order("ultima_sync", { ascending: false }).limit(1).maybeSingle();
 
+  // SQL Server: ainda usado por vendas, estoque e composição
   let sqlOk = false;
   let sqlError = "";
   let connection: Connection | null = null;
@@ -1636,20 +1783,32 @@ async function handleStatus(req: Request, startMs: number) {
     if (connection) try { connection.close(); } catch (_) {}
   }
 
+  // Atrio REST: usado por contas_receber (CR) e erp-export-payment (AP export)
+  let atrioOk = false;
+  let atrioError = "";
+  try {
+    await getAtrioToken(supabase, AR_TOKEN_EMPRESA_ID);
+    atrioOk = true;
+  } catch (e) {
+    atrioError = e instanceof Error ? e.message : "Erro";
+  }
+
   return jsonResponse({
     success: true,
     sqlServerConnected: sqlOk,
     sqlServerError: sqlError || undefined,
     sslEnabled: false,
+    atrioConnected: atrioOk,
+    atrioError: atrioError || undefined,
     lastSync: {
       contas_receber: lastCR || null,
       contas_pagar: lastCP || null,
     },
     connectionInfo: {
-      // Redigido: não expor host/porta/database do ERP na resposta (só presença de config).
       hostConfigured: !!Deno.env.get("ERP_SQL_HOST"),
       portConfigured: !!Deno.env.get("ERP_SQL_PORT"),
       databaseConfigured: !!Deno.env.get("ERP_SQL_DATABASE"),
+      atrioClientConfigured: !!Deno.env.get("ATRIO_CLIENT_ID"),
     },
   }, 200, req, { startMs });
 }
@@ -1791,25 +1950,22 @@ Deno.serve(secureHandler({
       default:
         return jsonResponse({
           success: true,
-          message: "ERP Sync Engine — Pipeline Direto SQL Server (SSL)",
+          message: "ERP Sync Engine — CR: API Atrio REST | Vendas/Estoque/Composição: SQL Server",
           availableRoutes: [
-            "POST /test-connection — Testa conexão SQL Server",
-            "POST /list-tables — Lista tabelas/views disponíveis",
+            "POST /test-connection — Testa conexão SQL Server (vendas/estoque/composição)",
+            "POST /list-tables — Lista tabelas/views disponíveis no SQL Server",
             "POST /preview-table — Preview de 10 rows de uma tabela (body: { table })",
-            "POST /sync-contas-receber — Sync legado (sem filtro)",
-            "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
-            "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
-            "POST /sync-contas-receber-incremental — Sync incremental baseado em estado",
-            "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar (full sem filtro)",
-            "POST /sync-contas-pagar-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
-            "POST /sync-contas-pagar-full — Sync completo segmentado por empresa (auto)",
-            "POST /sync-contas-pagar-incremental — Sync incremental baseado em estado",
+            "POST /sync-contas-receber — Sync CR via Atrio REST (180 dias × 11 empresas)",
+            "POST /sync-contas-receber-por-empresa — Sync CR por empresa via Atrio REST (body: { empresa_id, data_inicio?, data_fim? })",
+            "POST /sync-contas-receber-full — Sync CR completo 180 dias × 11 empresas via Atrio REST",
+            "POST /sync-contas-receber-incremental — Sync CR incremental (janela desde lastSync - 7d) via Atrio REST",
+            "POST /sync-contas-pagar — [APOSENTADO] Fonte agora é ELT connector-contas-pagar",
             "POST /sync-vendas-por-empresa — Sync de vendas filtrado por empresa (≥2025; body: { empresa_id })",
             "POST /sync-vendas-full — Sync completo de vendas segmentado por empresa (≥2025)",
             "POST /sync-vendas-incremental — Sync incremental de vendas (janela ±2 dias da última sync)",
-            "POST /sync-estoque-live — Sync do saldo disponível do força de vendas (Live_function_EstoqueProdutos → erp_estoque_live)",
+            "POST /sync-estoque-live — Sync do saldo disponível do força de vendas → erp_estoque_live",
             "POST /sync-all — Sync de todas as entidades",
-            "POST /status — Status da conexão e última sync por entidade",
+            "POST /status — Status: SQL Server (vendas/estoque) + Atrio REST (CR/CP) + última sync",
           ],
         }, 200, req, { startMs });
     }
