@@ -28,22 +28,24 @@ const ExportSchema = z.object({
 
 // ── Mapeamento forma de pagamento → código int32 Atrio ───────────────────────
 
+// Códigos confirmados via GET /forma-pagamento na Integra-H (24/06/2026) — ERP_ATRIO_API.md §4 Pergunta 6
 const FORMA_PAGAMENTO_MAP: Record<string, number> = {
   pix:           9,
   PIX:           9,
   ted:           2,
   TED:           2,
   transferencia: 2,
+  deposito:      2,
   boleto:        1,
   Boleto:        1,
+  cheque:        1,
   doc:           3,
   DOC:           3,
   debito:        7,
   "Débito Automático": 7,
   cartao:        11,
   Cartão:        11,
-  dinheiro:      1,  // fallback
-  cheque:        1,
+  dinheiro:      0,  // DINHEIRO = 0, separado de cheque = 1 (confirmado na Integra-H)
 };
 
 function toAtrioFormaPagamento(label: string | null): number {
@@ -230,21 +232,28 @@ async function handleExport(
       const historicoId = atrioConfig?.historico_id_default ?? 1;
       const portadorId  = atrioConfig?.portador_id_default  ?? 1;
 
+      // CNPJ limpo — necessário tanto no lançamento quanto como pré-req do fornecedor
+      const cnpjFornecedor = (item.supplier_document || "").replace(/\D/g, "");
+
+      // Spec confirmada (ERP_ATRIO_API.md §3.2 + teste Integra-H 24/06/2026):
+      // campo é cnpjFornecedor (string), não fornecedorId; datas são dataEmissao/dataVencimento
       const lancamentoPayload = [{
-        empresa:       resolvedEmpresaId,
-        tipo:          atrioTipo,
-        numero:        atrioNumero,
-        sequencia:     atrioSequencia,
-        fornecedorId,
-        emissao:       cp?.data_emissao ?? new Date().toISOString().substring(0, 10),
-        vencimento:    item.due_date ?? cp?.data_vencimento ?? new Date().toISOString().substring(0, 10),
-        valor:         Number(item.amount) || Number(cp?.valor_aberto) || 0,
+        empresa:         resolvedEmpresaId,
+        tipo:            atrioTipo,
+        numero:          atrioNumero,
+        sequencia:       atrioSequencia,
+        cnpjFornecedor,
+        dataEmissao:     cp?.data_emissao ?? new Date().toISOString().substring(0, 10),
+        dataVencimento:  item.due_date ?? cp?.data_vencimento ?? new Date().toISOString().substring(0, 10),
+        valorTitulo:     Number(item.amount) || Number(cp?.valor_aberto) || 0,
         historicoId,
-        centroCustoId: historicoId,  // derivado do histórico conforme instrução de Daniel
-        complemento:   observacao || item.description || "",
+        centroCustoId:   historicoId,  // derivado do histórico conforme instrução de Daniel
+        complemento:     (observacao || item.description || "").substring(0, 80),
         portadorId,
-        linhaEditavel: "",  // sempre vazio — campo obrigatório por design (confirmado Daniel)
-        codBarras:     "",  // sempre vazio — idem
+        desconto:        0,
+        juros:           0,
+        linhaEditavel:   "",  // sempre vazio — campo obrigatório por design (confirmado Daniel)
+        codBarras:       "",  // sempre vazio — idem
       }];
 
       const lancRes = await fetch(`${baseUrl}/contas-pagar/titulos`, {
@@ -259,7 +268,9 @@ async function handleExport(
       }
 
       const lancJson = await lancRes.json();
-      if (lancJson?.status !== "LANCADO") {
+      // API pode retornar array ou objeto single — tratar ambos defensivamente
+      const lancData = Array.isArray(lancJson) ? lancJson[0] : lancJson;
+      if (lancData?.status !== "LANCADO") {
         throw new Error(`Lançamento retornou status inesperado: ${JSON.stringify(lancJson)}`);
       }
 
@@ -286,31 +297,27 @@ async function handleExport(
       throw new Error("conta_id obrigatório para baixa. Selecione a conta bancária de saída.");
     }
 
-    const { data: atrioConfig } = await supabase
-      .from("atrio_empresa_config")
-      .select("portador_id_default")
-      .eq("empresa_id", resolvedEmpresaId)
-      .single();
-
-    const portadorId = atrioConfig?.portador_id_default ?? 1;
-
     // usuario: email do JWT, max 30 chars (campo obrigatório na baixa)
     const usuario = (ctx.email || "sistema").substring(0, 30);
 
+    // Spec confirmada (ERP_ATRIO_API.md §3.3 + teste Integra-H 24/06/2026):
+    // campos dataBaixa, valorBaixa, fornecedorId obrigatórios; portadorId NÃO está no schema de baixa
     const baixaPayload = {
-      empresa:       resolvedEmpresaId,
-      tipo:          atrioTipo,
-      numero:        atrioNumero,
-      sequencia:     atrioSequencia,
-      valor:         Number(item.amount) || 0,
-      dataPagamento: item.paid_at
+      empresa:        resolvedEmpresaId,
+      tipo:           atrioTipo,
+      numero:         atrioNumero,
+      sequencia:      atrioSequencia,
+      fornecedorId,   // obrigatório na baixa — obtido no passo 5
+      dataBaixa:      item.paid_at
         ? new Date(item.paid_at).toISOString().substring(0, 10)
         : new Date().toISOString().substring(0, 10),
-      contaId:       resolvedContaId,
+      valorBaixa:     Number(item.amount) || 0,
+      desconto:       0,
+      juros:          0,
       formaPagamento: toAtrioFormaPagamento(item.payment_method),
+      contaId:        resolvedContaId,
       usuario,
-      observacao,
-      portadorId,
+      observacao:     (observacao || "").substring(0, 80),
     };
 
     const baixaRes = await fetch(`${baseUrl}/contas-pagar/titulos/baixa`, {
