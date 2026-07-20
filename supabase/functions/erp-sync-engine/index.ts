@@ -1680,10 +1680,14 @@ Deno.serve(secureHandler({
   if (!isCron && cronSecret && serviceRoleKey) {
     try {
       const verifier = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
-      const { data: ok } = await verifier.rpc("verify_cron_secret", { _secret: cronSecret });
+      const { data: ok, error: rpcErr } = await verifier.rpc("verify_cron_secret", { _secret: cronSecret });
+      console.log("[cron-fallback] verify_cron_secret →", { ok, rpcErr: rpcErr?.message });
       if (ok === true) isCron = true;
-    } catch (_e) { /* segue o fluxo normal */ }
+    } catch (e) {
+      console.log("[cron-fallback] threw:", (e as Error).message);
+    }
   }
+
 
 
   let authUserId: string | undefined;
