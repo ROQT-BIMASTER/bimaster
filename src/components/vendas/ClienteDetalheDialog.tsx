@@ -28,7 +28,7 @@ function KPI({ label, value, tone }: { label: string; value: string; tone?: "pos
   );
 }
 
-export function ClienteDetalheDialog({ open, onClose, row, dim, ano }: Props) {
+export function ClienteDetalheDialog({ open, onClose, row, dim, ano, source = "futura" }: Props) {
   const [showForecast, setShowForecast] = useState(false);
 
   // reset ao trocar de cliente ou fechar
