@@ -12,6 +12,7 @@ interface Props {
   row: VendasYoyRow | null;
   dim: YoyDim;
   ano: number;
+  source?: "futura" | "rubysp";
 }
 
 function KPI({ label, value, tone }: { label: string; value: string; tone?: "positivo" | "negativo" | "neutro" }) {
