@@ -28,3 +28,7 @@ verify_jwt = false
 
 [functions.ipaper-push]
 verify_jwt = false
+
+[functions.erp-sync-engine]
+verify_jwt = false
+

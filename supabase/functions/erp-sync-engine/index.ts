@@ -1672,9 +1672,21 @@ Deno.serve(secureHandler({
   const bearer = req.headers.get("Authorization")?.startsWith("Bearer ")
     ? req.headers.get("Authorization")!.replace("Bearer ", "")
     : "";
-  const isCron =
+  let isCron =
     (!!cronSecret && !!expectedCronSecret && timingSafeEqual(cronSecret, expectedCronSecret)) ||
     (!!bearer && !!serviceRoleKey && timingSafeEqual(bearer, serviceRoleKey));
+
+  // Fallback: valida x-cron-secret contra o vault via RPC (source of truth do _get_cron_secret)
+  if (!isCron && cronSecret && serviceRoleKey) {
+    try {
+      const verifier = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+      const { data: ok } = await verifier.rpc("verify_cron_secret", { _secret: cronSecret });
+      if (ok === true) isCron = true;
+    } catch (_e) { /* segue o fluxo normal */ }
+  }
+
+
+
 
   let authUserId: string | undefined;
   if (!isCron) {

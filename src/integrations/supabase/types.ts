@@ -63035,6 +63035,7 @@ export type Database = {
           variacao: number
         }[]
       }
+      verify_cron_secret: { Args: { _secret: string }; Returns: boolean }
       verify_user_password: { Args: { password: string }; Returns: boolean }
       vincular_modulo_a_etapa: {
         Args: {
