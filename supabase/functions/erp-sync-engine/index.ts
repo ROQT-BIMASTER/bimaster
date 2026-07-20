@@ -835,6 +835,7 @@ function transformContasReceberAtrio(titulo: any, syncStamp: string): Record<str
     tabela: null,
     conta: titulo.nomeConta ?? null,
     sincronizado_em: syncStamp,
+    atrio_sincronizado_em: syncStamp,
   };
 }
 
