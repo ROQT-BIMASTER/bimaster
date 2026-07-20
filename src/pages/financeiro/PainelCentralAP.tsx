@@ -1052,7 +1052,7 @@ export default function PainelCentralAP() {
           onOpenChange={(o) => !o && setErpPrompt(null)}
           tituloId={erpPrompt?.paymentQueueId || ""}
           empresaId={erpPrompt?.empresaId || 1}
-          onConfirm={async (contaId: number) => {
+          onConfirm={async (contaId: number | null) => {
             if (!erpPrompt) return;
             const { error } = await supabase.functions.invoke("erp-export-payment", {
               body: {

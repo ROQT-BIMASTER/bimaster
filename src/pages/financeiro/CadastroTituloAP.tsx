@@ -590,6 +590,7 @@ export default function CadastroTituloAP() {
             }
           }}
           tituloId={erpPromptId || ""}
+          skipContaSelection
           onConfirm={async () => {
             await enqueueErpSync({
               contaPagarId: erpPromptId!,

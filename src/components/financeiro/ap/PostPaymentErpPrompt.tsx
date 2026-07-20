@@ -27,12 +27,13 @@ interface AtrioContaBancaria {
 }
 
 interface PostPaymentErpPromptProps {
-  open:          boolean;
-  onOpenChange:  (open: boolean) => void;
-  tituloId:      string;
-  empresaId?:    number;  // empresa_id do título/fila; default 1
-  onConfirm:     (contaId: number) => Promise<void>;
-  onSkip:        () => void;
+  open:                boolean;
+  onOpenChange:        (open: boolean) => void;
+  tituloId:            string;
+  empresaId?:          number;   // empresa_id do título/fila; default 1
+  onConfirm:           (contaId: number | null) => Promise<void>;
+  onSkip:              () => void;
+  skipContaSelection?: boolean;  // true = oculta seletor (fluxos de provisão/legado)
 }
 
 export function PostPaymentErpPrompt({
@@ -42,15 +43,16 @@ export function PostPaymentErpPrompt({
   empresaId = 1,
   onConfirm,
   onSkip,
+  skipContaSelection = false,
 }: PostPaymentErpPromptProps) {
   const [loading,      setLoading]      = useState(false);
   const [contaId,      setContaId]      = useState<number | null>(null);
   const [contas,       setContas]        = useState<AtrioContaBancaria[]>([]);
   const [loadingContas, setLoadingContas] = useState(false);
 
-  // Carregar lista de contas bancárias quando o dialog abre
+  // Carregar lista de contas bancárias quando o dialog abre (somente se necessário)
   useEffect(() => {
-    if (!open || !tituloId) return;
+    if (!open || !tituloId || skipContaSelection) return;
 
     setContaId(null);
     setContas([]);
@@ -63,7 +65,7 @@ export function PostPaymentErpPrompt({
         setContas(data.contas as AtrioContaBancaria[]);
       }
     }).finally(() => setLoadingContas(false));
-  }, [open, tituloId, empresaId]);
+  }, [open, tituloId, empresaId, skipContaSelection]);
 
   const handleConfirm = async () => {
     if (!contaId) return;
@@ -82,7 +84,7 @@ export function PostPaymentErpPrompt({
     setContas([]);
   };
 
-  const canConfirm = contaId !== null && !loading;
+  const canConfirm = (skipContaSelection || contaId !== null) && !loading;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -97,36 +99,38 @@ export function PostPaymentErpPrompt({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-2 py-2">
-          <Label>Conta bancária de saída</Label>
-          {loadingContas ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando contas...
-            </div>
-          ) : (
-            <Select
-              value={contaId ? String(contaId) : ""}
-              onValueChange={(v) => setContaId(Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta..." />
-              </SelectTrigger>
-              <SelectContent>
-                {contas.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.descricao}{c.banco ? ` — ${c.banco}` : ""}
-                  </SelectItem>
-                ))}
-                {contas.length === 0 && (
-                  <SelectItem value="__none__" disabled>
-                    Nenhuma conta disponível
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+        {!skipContaSelection && (
+          <div className="space-y-2 py-2">
+            <Label>Conta bancária de saída</Label>
+            {loadingContas ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando contas...
+              </div>
+            ) : (
+              <Select
+                value={contaId ? String(contaId) : ""}
+                onValueChange={(v) => setContaId(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {contas.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.descricao}{c.banco ? ` — ${c.banco}` : ""}
+                    </SelectItem>
+                  ))}
+                  {contas.length === 0 && (
+                    <SelectItem value="__none__" disabled>
+                      Nenhuma conta disponível
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
 
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleSkip} disabled={loading}>
