@@ -203,7 +203,7 @@ async function handleExport(
     fornecedorId = Number(cp.atrio_fornecedor_id);
   } else {
     try {
-      fornecedorId = await upsertFornecedorAtrio(baseUrl, token, item);
+      fornecedorId = await upsertFornecedorAtrio(baseUrl, token, item, resolvedEmpresaId);
     } catch (e: any) {
       await markExportError(supabase, exportRecord.id, `Fornecedor: ${e.message}`);
       return errorResponse(502, "ATRIO_FORNECEDOR_ERROR", e.message, req, startMs);
@@ -366,56 +366,81 @@ async function handleExport(
 }
 
 // ── Upsert de fornecedor no Atrio ────────────────────────────────────────────
+// Estratégia: GET primeiro (sem risco de validação) → POST só se 404.
+// POST /fornecedores exige campos obrigatórios que o GET não exige — confirmado Integra-H 20/07/2026.
 
-async function upsertFornecedorAtrio(baseUrl: string, token: string, item: any): Promise<number> {
+async function upsertFornecedorAtrio(
+  baseUrl: string,
+  token: string,
+  item: any,
+  empresaId: number,
+): Promise<number> {
   const cnpj = (item.supplier_document || "").replace(/\D/g, "");
   if (!cnpj) throw new Error("CNPJ do fornecedor ausente em financial_payment_queue.supplier_document");
 
-  // BrasilAPI: dados completos do CNPJ (endereço, município, cep, etc.)
-  // Fallback gracioso: se API estiver indisponível, usa dados mínimos do payment_queue.
-  // POST /fornecedores no Atrio é idempotente — retorna ID existente se CNPJ já cadastrado.
+  // Passo 1: verificar se fornecedor já existe pelo CNPJ (evita POST com validação pesada)
+  const getRes = await fetch(`${baseUrl}/fornecedores?cnpj=${cnpj}&empresa=${empresaId}`, {
+    headers: atrioHeaders(token),
+  });
+  if (getRes.ok) {
+    const getData = await getRes.json().catch(() => null);
+    const list: any[] = Array.isArray(getData) ? getData : (getData?.data ?? []);
+    const found = list.find((f: any) => (f.cnpj ?? "").replace(/\D/g, "") === cnpj);
+    if (found) {
+      const id = found.id ?? found.fornecedorId;
+      if (id) return Number(id);
+    }
+  }
+
+  // Passo 2: não existe — criar com todos os campos obrigatórios
+  // BrasilAPI fornece endereço, município, CEP, telefone, IBGE.
   let brasil: Record<string, unknown> = {};
   try {
     const brasilRes = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
     if (brasilRes.ok) brasil = await brasilRes.json();
-  } catch { /* BrasilAPI indisponível — prosseguir com dados mínimos */ }
+  } catch { /* BrasilAPI indisponível — prosseguir com defaults */ }
 
-  // Código BGF: 7 dígitos sem o dígito verificador (8º dígito)
-  // Usando os 7 primeiros do CNPJ como identificador único do fornecedor
-  const codBgf = cnpj.substring(0, 7);
+  const razaoSocial  = String(brasil.razao_social  || item.supplier_name || cnpj);
+  const nomeFantasia = String(brasil.nome_fantasia  || brasil.razao_social || item.supplier_name || "");
+  // nomeAbreviado: obrigatório; usar até 20 chars do nome fantasia/razao social
+  const nomeAbreviado = (nomeFantasia || razaoSocial).substring(0, 20).trim();
+  // email: obrigatório; BrasilAPI retorna null na maioria dos casos — usar placeholder único
+  const email = String(brasil.email || `${cnpj}@fornecedor.temp`);
 
   const fornecedorPayload = {
-    empresa:            1,          // sempre empresa 1 para fornecedores (instrução Daniel Vilanova)
+    empresa:            empresaId,
     cnpj,
-    razaoSocial:        brasil.razao_social || item.supplier_name || cnpj,
-    nomeFantasia:       brasil.nome_fantasia || brasil.razao_social || item.supplier_name || "",
-    endereco:           brasil.logradouro || "",
-    numero:             brasil.numero || "S/N",
-    complemento:        brasil.complemento || "",
-    bairro:             brasil.bairro || "",
-    cidade:             brasil.municipio || "",
-    uf:                 brasil.uf || "",
-    cep:                (brasil.cep || "").replace(/\D/g, ""),
+    razaoSocial,
+    nomeFantasia,
+    nomeAbreviado,
+    endereco:           String(brasil.logradouro    || "NAO INFORMADO"),
+    numero:             String(brasil.numero         || "S/N"),
+    complemento:        String(brasil.complemento   || ""),
+    bairro:             String(brasil.bairro         || "NAO INFORMADO"),
+    cidade:             String(brasil.municipio      || "NAO INFORMADO"),
+    uf:                 String(brasil.uf             || "SP"),
+    cep:                String(brasil.cep            || "").replace(/\D/g, ""),
     codIbge:            String(brasil.municipio_codigo_ibge || ""),
-    telefone:           (brasil.ddd_telefone_1 || "").replace(/\D/g, ""),
-    email:              "",
-    codBgf,
-    inscricaoEstadual:  "",
+    telefone:           String(brasil.ddd_telefone_1 || "").replace(/\D/g, ""),
+    email,
+    inscricaoEstadual:  "ISENTO",
+    centroCustoId:      1,
+    historicoId:        1,
+    codBgf:             cnpj.substring(0, 7),
   };
 
-  // POST /fornecedores tem comportamento upsert: retorna ID existente se CNPJ já cadastrado
-  const res = await fetch(`${baseUrl}/fornecedores`, {
+  const postRes = await fetch(`${baseUrl}/fornecedores`, {
     method: "POST",
     headers: atrioHeaders(token),
     body: JSON.stringify(fornecedorPayload),
   });
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    throw new Error(`POST /fornecedores HTTP ${res.status}: ${errBody}`);
+  if (!postRes.ok) {
+    const errBody = await postRes.text().catch(() => "");
+    throw new Error(`POST /fornecedores HTTP ${postRes.status}: ${errBody}`);
   }
 
-  const json = await res.json();
+  const json = await postRes.json();
   const fornecedorId = json?.id ?? json?.fornecedorId;
   if (!fornecedorId) throw new Error(`POST /fornecedores não retornou ID: ${JSON.stringify(json)}`);
   return Number(fornecedorId);
