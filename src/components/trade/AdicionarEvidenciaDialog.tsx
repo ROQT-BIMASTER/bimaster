@@ -43,10 +43,19 @@ export function AdicionarEvidenciaDialog({
 
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Sessão expirada", { description: "Faça login novamente para enviar comprovantes." });
+        return;
+      }
+
       const newFiles: { name: string; url: string }[] = [];
 
       for (const file of Array.from(files)) {
-        const filePath = `trade-evidencias/${entry.id}/${Date.now()}-${file.name}`;
+        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+        // RLS do bucket `attachments` exige que o primeiro segmento do path
+        // seja o UID do usuário autenticado.
+        const filePath = `${user.id}/trade-evidencias/${entry.id}/${Date.now()}-${safeName}`;
 
         await resumableUpload({ bucket: "attachments", path: filePath, file, upsert: false });
 
