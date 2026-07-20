@@ -185,23 +185,27 @@ async function handleExport(
 
   // 4. Obter token Atrio
   let token: string;
+  let baseUrl: string;
   try {
     const auth = await getAtrioToken(supabase, resolvedEmpresaId);
     token = auth.token;
+    baseUrl = auth.baseUrl;
   } catch (e: any) {
     await markExportError(supabase, exportRecord.id, e.message);
     return errorResponse(502, "ATRIO_AUTH_ERROR", e.message, req, startMs);
   }
 
-  const baseUrl = "https://integra.alltomatize.com.br";
-
-  // 5. Upsert de fornecedor no Atrio (comportamento idempotente: retorna ID se já existe)
+  // 5. Upsert de fornecedor no Atrio — pular se já cadastrado (otimiza retry)
   let fornecedorId: number;
-  try {
-    fornecedorId = await upsertFornecedorAtrio(baseUrl, token, item);
-  } catch (e: any) {
-    await markExportError(supabase, exportRecord.id, `Fornecedor: ${e.message}`);
-    return errorResponse(502, "ATRIO_FORNECEDOR_ERROR", e.message, req, startMs);
+  if (cp?.atrio_fornecedor_id) {
+    fornecedorId = Number(cp.atrio_fornecedor_id);
+  } else {
+    try {
+      fornecedorId = await upsertFornecedorAtrio(baseUrl, token, item);
+    } catch (e: any) {
+      await markExportError(supabase, exportRecord.id, `Fornecedor: ${e.message}`);
+      return errorResponse(502, "ATRIO_FORNECEDOR_ERROR", e.message, req, startMs);
+    }
   }
 
   // 6. Lançamento — pular se atrio_numero já populado (idempotência pós-falha)
@@ -360,12 +364,14 @@ async function upsertFornecedorAtrio(baseUrl: string, token: string, item: any):
   const cnpj = (item.supplier_document || "").replace(/\D/g, "");
   if (!cnpj) throw new Error("CNPJ do fornecedor ausente em financial_payment_queue.supplier_document");
 
-  // BrasilAPI: busca dados completos do CNPJ (endereço, município, cep, etc.)
-  const brasilRes = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-  if (!brasilRes.ok) {
-    throw new Error(`BrasilAPI CNPJ ${cnpj}: HTTP ${brasilRes.status}`);
-  }
-  const brasil = await brasilRes.json();
+  // BrasilAPI: dados completos do CNPJ (endereço, município, cep, etc.)
+  // Fallback gracioso: se API estiver indisponível, usa dados mínimos do payment_queue.
+  // POST /fornecedores no Atrio é idempotente — retorna ID existente se CNPJ já cadastrado.
+  let brasil: Record<string, unknown> = {};
+  try {
+    const brasilRes = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+    if (brasilRes.ok) brasil = await brasilRes.json();
+  } catch { /* BrasilAPI indisponível — prosseguir com dados mínimos */ }
 
   // Código BGF: 7 dígitos sem o dígito verificador (8º dígito)
   // Usando os 7 primeiros do CNPJ como identificador único do fornecedor

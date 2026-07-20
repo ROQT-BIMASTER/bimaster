@@ -1,6 +1,5 @@
 // Retorna lista de contas bancárias por empresa via API Atrio
 // Usado pelo seletor obrigatório de conta no PostPaymentErpPrompt
-// Resultado cacheado em atrio_empresa_config.conta_ids_cache (1h) para minimizar chamadas
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";

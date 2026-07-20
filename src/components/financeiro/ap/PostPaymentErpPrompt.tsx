@@ -68,7 +68,7 @@ export function PostPaymentErpPrompt({
   }, [open, tituloId, empresaId, skipContaSelection]);
 
   const handleConfirm = async () => {
-    if (!contaId) return;
+    if (!skipContaSelection && !contaId) return;
     setLoading(true);
     try {
       await onConfirm(contaId);

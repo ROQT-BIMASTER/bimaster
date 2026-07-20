@@ -1002,15 +1002,21 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     }
   }
 
+  const failedEmpresas = Object.values(results).filter((r: any) => !r.success);
+  const syncStatus = failedEmpresas.length > 0 ? "partial" : "success";
+
   await recordSync(createClient(supabaseUrl, serviceKey), "contas_receber_incremental", {
-    status: "success",
+    status: syncStatus,
     totalRegistros: totalAll,
     registrosInseridos: upsertedAll,
     duracaoMs: Date.now() - startMs,
+    ...(failedEmpresas.length > 0
+      ? { erroMensagem: `${failedEmpresas.length} de ${AR_EMPRESAS.length} empresa(s) com falha` }
+      : {}),
   });
 
   return jsonResponse({
-    success: true,
+    success: syncStatus !== "error",
     entity: "contas_receber_incremental",
     source: "atrio_rest",
     empresas: AR_EMPRESAS.length,
@@ -1814,6 +1820,15 @@ async function handleStatus(req: Request, startMs: number) {
 }
 
 // ─── Main handler ───
+//
+// auth: "none" é INTENCIONAL — esta função aceita três tipos de caller simultâneos:
+//   1. Cron jobs (CRON_SECRET via x-cron-secret ou service-role bearer) — sem JWT
+//   2. Admin users logados (JWT via validateAnyAuth abaixo)
+//   3. Self-invoke: dispatch por empresa dentro do próprio handler (service-role)
+//
+// secureHandler não suporta multi-auth nativo; a auth gate manual (validateAnyAuth
+// + timingSafeEqual) abaixo equivale — rate limit e CORS do secureHandler ainda aplicam.
+// Futuro: separar em erp-sync-engine-cron (auth: "service_role") e erp-sync-admin (auth: "jwt").
 
 Deno.serve(secureHandler({
   auth: "none",
