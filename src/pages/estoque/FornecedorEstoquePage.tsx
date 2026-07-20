@@ -42,6 +42,7 @@ import {
   type CasadoFiltro,
   type FornecedorSortBy,
 } from '@/hooks/estoque/useFornecedorIntegrado';
+import { SyncHealthBadge } from '@/components/estoque/SyncHealthBadge';
 
 const PAGE_SIZE = 25;
 const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
