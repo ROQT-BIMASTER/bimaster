@@ -2489,6 +2489,44 @@ export type Database = {
           },
         ]
       }
+      atrio_empresa_config: {
+        Row: {
+          access_token: string
+          empresa_id: number
+          historico_id_default: number | null
+          numero_sequencia: number
+          portador_id_default: number | null
+          token_expires_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string
+          empresa_id: number
+          historico_id_default?: number | null
+          numero_sequencia?: number
+          portador_id_default?: number | null
+          token_expires_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          empresa_id?: number
+          historico_id_default?: number | null
+          numero_sequencia?: number
+          portador_id_default?: number | null
+          token_expires_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atrio_empresa_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log_immutable: {
         Row: {
           action: string
@@ -10690,6 +10728,12 @@ export type Database = {
       contas_pagar: {
         Row: {
           ativo_dre: boolean | null
+          atrio_fornecedor_id: number | null
+          atrio_numero: number | null
+          atrio_sequencia: number | null
+          atrio_sincronizado_em: string | null
+          atrio_situacao: string | null
+          atrio_tipo: string | null
           baixa_origem: string | null
           baixar_documento: boolean | null
           bloqueado: boolean | null
@@ -10794,6 +10838,12 @@ export type Database = {
         }
         Insert: {
           ativo_dre?: boolean | null
+          atrio_fornecedor_id?: number | null
+          atrio_numero?: number | null
+          atrio_sequencia?: number | null
+          atrio_sincronizado_em?: string | null
+          atrio_situacao?: string | null
+          atrio_tipo?: string | null
           baixa_origem?: string | null
           baixar_documento?: boolean | null
           bloqueado?: boolean | null
@@ -10898,6 +10948,12 @@ export type Database = {
         }
         Update: {
           ativo_dre?: boolean | null
+          atrio_fornecedor_id?: number | null
+          atrio_numero?: number | null
+          atrio_sequencia?: number | null
+          atrio_sincronizado_em?: string | null
+          atrio_situacao?: string | null
+          atrio_tipo?: string | null
           baixa_origem?: string | null
           baixar_documento?: boolean | null
           bloqueado?: boolean | null
@@ -11235,6 +11291,11 @@ export type Database = {
       contas_receber: {
         Row: {
           aprendizado_rateio: boolean | null
+          atrio_cliente_id: number | null
+          atrio_numero: number | null
+          atrio_sequencia: number | null
+          atrio_sincronizado_em: string | null
+          atrio_tipo: number | null
           baixar_documento: boolean | null
           bloqueado: boolean
           bloquear_baixa: boolean | null
@@ -11347,6 +11408,11 @@ export type Database = {
         }
         Insert: {
           aprendizado_rateio?: boolean | null
+          atrio_cliente_id?: number | null
+          atrio_numero?: number | null
+          atrio_sequencia?: number | null
+          atrio_sincronizado_em?: string | null
+          atrio_tipo?: number | null
           baixar_documento?: boolean | null
           bloqueado?: boolean
           bloquear_baixa?: boolean | null
@@ -11459,6 +11525,11 @@ export type Database = {
         }
         Update: {
           aprendizado_rateio?: boolean | null
+          atrio_cliente_id?: number | null
+          atrio_numero?: number | null
+          atrio_sequencia?: number | null
+          atrio_sincronizado_em?: string | null
+          atrio_tipo?: number | null
           baixar_documento?: boolean | null
           bloqueado?: boolean
           bloquear_baixa?: boolean | null
@@ -60337,6 +60408,10 @@ export type Database = {
       incident_snapshot: {
         Args: { _hours?: number; _user_id: string }
         Returns: Json
+      }
+      increment_atrio_numero: {
+        Args: { p_empresa_id: number }
+        Returns: number
       }
       insider_threat_metrics: { Args: never; Returns: Json }
       is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
