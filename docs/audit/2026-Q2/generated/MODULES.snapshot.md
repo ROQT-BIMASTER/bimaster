@@ -4,10 +4,10 @@
 
 ## Totais
 
-- Diretórios em `src/components/`: **65**
-- Páginas raiz em `src/pages/`: **235**
-- Subdiretórios em `src/pages/`: **20**
-- Hooks (`src/hooks/`): **330**
+- Diretórios em `src/components/`: **70**
+- Páginas raiz em `src/pages/`: **237**
+- Subdiretórios em `src/pages/`: **23**
+- Hooks (`src/hooks/`): **341**
 - Contexts (`src/contexts/`): **9**
 
 ## Diretórios de componentes
@@ -20,6 +20,7 @@ atividades
 auditoria
 auth
 briefings
+cadastros
 calendario
 chat
 china
@@ -46,15 +47,18 @@ fabrica
 financeiro
 fluxocaixa
 forms
+fornecedor
 huggs
 inbox
 kanban
+layout
 mapa
 marketing
 meetings
 minhas-tarefas
 navigation
 notifications
+orcamento
 painel-executivo
 performance
 portal
@@ -71,6 +75,7 @@ rr-tasks
 security
 shared
 simulador
+suporte
 tarefas
 theme
 tour
@@ -84,26 +89,29 @@ whatsapp
 
 | Subdiretório | Páginas (.tsx, recursivo) |
 | --- | ---: |
-| `admin` | 25 |
-| `estoque` | 12 |
-| `financeiro` | 12 |
+| `admin` | 30 |
+| `financeiro` | 16 |
+| `estoque` | 14 |
 | `modules` | 10 |
 | `trade` | 9 |
 | `crm` | 7 |
+| `fornecedor` | 7 |
 | `projetos` | 7 |
+| `suporte` | 7 |
+| `dashboard` | 4 |
+| `marketing` | 4 |
 | `processos` | 4 |
-| `dashboard` | 3 |
+| `compras` | 3 |
 | `fabrica` | 3 |
-| `marketing` | 3 |
 | `briefings` | 2 |
 | `portal` | 2 |
+| `vendas` | 2 |
 | `ajuda` | 1 |
 | `composicao` | 1 |
 | `configuracoes` | 1 |
 | `controladoria` | 1 |
 | `rr-tasks` | 1 |
 | `security` | 1 |
-| `vendas` | 1 |
 
 ## Contexts
 
