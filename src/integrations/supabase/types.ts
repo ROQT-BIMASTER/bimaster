@@ -18876,6 +18876,39 @@ export type Database = {
           },
         ]
       }
+      estoque_sync_health: {
+        Row: {
+          fonte: string
+          last_duration_ms: number | null
+          last_error: string | null
+          last_row_count: number | null
+          last_run_at: string | null
+          last_status: string | null
+          last_success_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          fonte: string
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_row_count?: number | null
+          last_run_at?: string | null
+          last_status?: string | null
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          fonte?: string
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_row_count?: number | null
+          last_run_at?: string | null
+          last_status?: string | null
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estoque_sync_logs: {
         Row: {
           created_at: string | null
@@ -58553,6 +58586,14 @@ export type Database = {
       check_endpoint_rate_limit: {
         Args: { p_endpoint: string; p_identifier: string }
         Returns: boolean
+      }
+      check_estoque_freshness: {
+        Args: never
+        Returns: {
+          fonte: string
+          minutos_atraso: number
+          ttl_minutos: number
+        }[]
       }
       check_throttle: {
         Args: {
