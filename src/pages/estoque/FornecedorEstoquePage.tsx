@@ -352,6 +352,7 @@ export default function FornecedorEstoquePage() {
             <Link to="/dashboard/fornecedor"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao módulo Fornecedor</Link>
           </Button>
           <div className="flex items-center gap-2">
+            <SyncHealthBadge />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm"><Columns3 className="mr-2 h-4 w-4" /> Colunas</Button>
