@@ -4,11 +4,11 @@
 
 ## Totais
 
-- Funções: **274**
-- `auth: "none"`: **119**
-- `rateLimit: 0`: **13**
-- `requireMfa: true`: **5**
-- `requireStepUp`: **6**
+- Funções: **310**
+- `auth: "none"`: **129**
+- `rateLimit: 0`: **11**
+- `requireMfa: true`: **6**
+- `requireStepUp`: **7**
 
 ## Inventário
 
@@ -22,7 +22,7 @@
 | `ai-filter` | jwt | 30 |  |  |
 | `ai-insights` | jwt | 20 |  |  |
 | `ai-map-csv-columns` | jwt | 10 |  |  |
-| `analisar-planilha-ia` | none | 10 |  |  |
+| `analisar-planilha-ia` | jwt | 10 |  |  |
 | `analyze-brand-positioning` | none | 10 |  |  |
 | `analyze-brand-website` | jwt | 10 |  |  |
 | `analyze-comments-sentiment` | jwt | 10 |  |  |
@@ -33,6 +33,7 @@
 | `analyze-shelf-photos` | jwt | 10 |  |  |
 | `analyze-whatsapp-sentiment` | jwt | 10 |  |  |
 | `anexos-api` | none | 60 |  |  |
+| `ap-reclassificar-contas` | jwt | 120 |  |  |
 | `api-health-check` | any | 600 |  |  |
 | `api-sandbox` | none | 60 |  |  |
 | `api-support-ai` | none | 60 |  |  |
@@ -41,6 +42,7 @@
 | `apify-sync-influencer` | none | 10 |  |  |
 | `asana-reimport-attachments` | none | 10 |  |  |
 | `asana-sync` | none | 10 |  |  |
+| `atrio-get-contas` | jwt | 60 |  |  |
 | `audit-briefing-tarefa` | apikey | 0 |  |  |
 | `audit-china-vinculo` | apikey | 0 |  |  |
 | `audit-produto-tarefa` | apikey | 0 |  |  |
@@ -56,6 +58,8 @@
 | `briefing-audio-transcribe` | jwt | 30 |  |  |
 | `briefing-export-summary` | jwt | 20 |  |  |
 | `briefing-rework-field` | jwt | 20 |  |  |
+| `cache-post-media` | ? | ? |  |  |
+| `canhoto-rubysp` | none | 120 |  |  |
 | `categorias-api` | none | 60 |  |  |
 | `central-copilot` | jwt | 30 |  |  |
 | `central-copilot-aplicar` | jwt | 20 |  |  |
@@ -80,6 +84,7 @@
 | `classificar-contas-batch` | jwt | 30 |  |  |
 | `classificar-contas-lote` | jwt | 60 |  |  |
 | `classificar-contas-pagar-ia` | jwt | 30 |  |  |
+| `classify-natureza-erp` | jwt | 6 |  |  |
 | `clientes-api` | none | 60 |  |  |
 | `cnae-api` | none | 60 |  |  |
 | `cnpjbiz-consulta` | none | 10 |  |  |
@@ -94,7 +99,7 @@
 | `contas-receber-api` | none | 60 |  |  |
 | `copilot-rag-indexer-hot` | any | 60 |  |  |
 | `create-admin-users` | jwt | 10 | ✓ | user.create.admin |
-| `create-admin-users-bootstrap` | jwt | 10 |  |  |
+| `create-admin-users-bootstrap` | jwt | 10 | ✓ | user.create.admin |
 | `crm-blip-backfill` | jwt | 5 |  |  |
 | `crm-blip-ingest` | none | 60 |  |  |
 | `crm-blip-test-connection` | jwt | 20 |  |  |
@@ -111,7 +116,7 @@
 | `elevenlabs-sfx` | jwt | 60 |  |  |
 | `elevenlabs-tts` | none | 10 |  |  |
 | `empresas-api` | none | 60 |  |  |
-| `erp-export-payment` | none | 60 |  |  |
+| `erp-export-payment` | jwt | 30 |  |  |
 | `erp-fornecedores-query` | jwt | 60 |  |  |
 | `erp-fornecedores-sync` | none | 60 |  |  |
 | `erp-key-expiration-notifier` | any | 10 |  |  |
@@ -130,8 +135,8 @@
 | `export-prospects` | any | 30 |  |  |
 | `extrair-ingredientes-ia` | jwt | 10 |  |  |
 | `extrair-insumos-imagem` | jwt | 10 |  |  |
-| `extrair-materia-prima-ia` | none | 10 |  |  |
-| `extrair-produto-ia` | none | 10 |  |  |
+| `extrair-materia-prima-ia` | jwt | 10 |  |  |
+| `extrair-produto-ia` | jwt | 10 |  |  |
 | `fal-video-generate` | jwt | 10 |  |  |
 | `fal-video-status` | jwt | 60 |  |  |
 | `fetch-influencer-content` | none | 10 |  |  |
@@ -164,10 +169,13 @@
 | `insider-threat` | jwt | 60 |  |  |
 | `instagram-insights` | none | 60 |  |  |
 | `integration-router` | none | 60 |  |  |
+| `ipaper-feed` | none | 60 |  |  |
+| `ipaper-push` | none | 10 |  |  |
 | `lancamentos-cc-api` | jwt | 60 |  |  |
 | `lead-insight` | jwt | 20 |  |  |
 | `log-domain-fallback` | none | 60 |  |  |
 | `marketing-insights` | jwt | 20 |  |  |
+| `mcp` | ? | ? |  |  |
 | `meeting-analyze` | none | 10 |  |  |
 | `meeting-analyze-phase2` | none | 10 |  |  |
 | `meeting-search` | none | 10 |  |  |
@@ -193,6 +201,8 @@
 | `paises-api` | none | 60 |  |  |
 | `parcelas-api` | none | 60 |  |  |
 | `parse-china-excel` | jwt | 10 |  |  |
+| `pedidos-copilot` | jwt | 30 |  |  |
+| `pedidos-copilot-v2` | jwt | 30 |  |  |
 | `pentest-runner` | jwt | 5 |  |  |
 | `pesquisar-lancamentos-api` | none | 60 |  |  |
 | `phyllo-create-sdk-token` | jwt | 60 |  |  |
@@ -204,13 +214,15 @@
 | `pollo-analyze-website` | jwt | 20 |  |  |
 | `pollo-check-status` | jwt | 120 |  |  |
 | `pollo-generate-image` | jwt | 10 |  |  |
-| `pollo-generate-video` | none | 10 |  |  |
+| `pollo-generate-video` | jwt | 10 |  |  |
 | `preview-transactional-email` | jwt | 20 |  |  |
 | `price-table-approval` | none | 30 |  |  |
 | `process-call-result` | none | 30 |  |  |
 | `process-email-queue` | apikey | 0 |  |  |
-| `process-nfe-xml` | none | 0 |  |  |
+| `process-nfe-xml` | jwt | 30 |  |  |
 | `process-photo-analysis-queue` | apikey | 0 |  |  |
+| `processo-instanciar-execucao` | jwt | 10 |  |  |
+| `processo-sla-escalador` | any | 60 |  |  |
 | `produtos-api` | none | 60 |  |  |
 | `projeto-copilot` | jwt | 30 |  |  |
 | `projeto-copilot-aplicar` | jwt | 20 |  |  |
@@ -219,14 +231,30 @@
 | `projeto-copilot-salvar-relatorio` | jwt | 30 |  |  |
 | `projeto-copilot-v2` | jwt | 30 |  |  |
 | `projeto-estimar-horas-historico` | jwt | 10 |  |  |
-| `projeto-ia-assistant` | none | 10 |  |  |
-| `projeto-monitor-atrasos` | apikey | 0 |  |  |
+| `projeto-ia-assistant` | jwt | 10 |  |  |
+| `projeto-monitor-atrasos` | none | 0 |  |  |
 | `projeto-resumo-diario` | any | 30 |  |  |
 | `projetos-api` | none | 60 |  |  |
 | `publish-scheduled-posts` | none | 30 |  |  |
 | `qa-agent` | jwt | 10 |  |  |
+| `qa-smoke-cleanup` | jwt | 5 |  |  |
+| `qa-smoke-seed` | jwt | 5 |  |  |
 | `realtime-call-session` | none | 30 |  |  |
+| `receber-ccusto-rubysp` | none | 60 |  |  |
+| `receber-compras-result` | none | 60 |  |  |
+| `receber-compras-vendas-mensal` | none | 60 |  |  |
+| `receber-contas-pagar-rubysp` | none | 60 |  |  |
+| `receber-cp-enriquecer-rubysp` | none | 60 |  |  |
+| `receber-estoque-fisico` | none | 60 |  |  |
 | `receber-estoque-fornecedor` | none | 60 |  |  |
+| `receber-faturamento-rubysp` | none | 60 |  |  |
+| `receber-financeiro-futura` | none | 60 |  |  |
+| `receber-fornecedores-rubysp` | none | 60 |  |  |
+| `receber-historico-rubysp` | none | 60 |  |  |
+| `receber-pagamentos-rubysp` | none | 60 |  |  |
+| `receber-pedidos-futura` | none | 60 |  |  |
+| `receber-pedidos-rubysp` | none | 60 |  |  |
+| `receber-plano-contas-rubysp` | none | 60 |  |  |
 | `receber-vendas-futura` | none | 60 |  |  |
 | `reports-alerts-evaluator` | any | 60 |  |  |
 | `reports-orchestrator` | jwt | 30 |  |  |
@@ -244,10 +272,10 @@
 | `security-admin` | jwt | 60 |  |  |
 | `security-ai-sentinel` | none | 10 |  |  |
 | `security-alerts` | jwt | 60 |  |  |
-| `security-correlation-engine` | none | 60 |  |  |
+| `security-correlation-engine` | apikey | 12 |  |  |
 | `security-metrics-v2` | jwt | 60 |  |  |
 | `security-pentest` | none | 10 |  |  |
-| `seed-demo-data` | none | 0 |  |  |
+| `seed-demo-data` | jwt | 2 |  |  |
 | `seed-system-projects` | none | 0 |  |  |
 | `send-department-expense-notification` | none | 30 |  |  |
 | `send-notifications` | none | 30 |  |  |
@@ -262,16 +290,23 @@
 | `shipsgo-webhook` | none | 60 |  |  |
 | `shipsgo-webhook-replay` | jwt | 20 |  |  |
 | `siem-correlate` | jwt | 10 |  |  |
+| `sla-projeto-escalador` | any | 60 |  |  |
 | `social-media-cron` | none | 10 |  |  |
 | `social-media-metrics` | jwt | 60 |  |  |
 | `sofia-voice-token` | none | 60 |  |  |
 | `stitch-proxy` | none | 60 |  |  |
+| `storage-bucket-upload-limits` | jwt | 5 |  |  |
 | `sugerir-municipios-vendedor` | jwt | 10 |  |  |
 | `suggest-form-fields` | jwt | 10 |  |  |
 | `suporte-agente` | jwt | 20 |  |  |
+| `suporte-agente-v2` | jwt | 20 |  |  |
+| `suporte-rotinas-escalar-sla` | ? | ? |  |  |
+| `suporte-rotinas-gerar-diarias` | ? | ? |  |  |
 | `suporte-ti-acao` | jwt | 30 |  |  |
-| `sync-all-accounts` | none | 10 |  |  |
+| `sync-all-accounts` | any | 10 |  |  |
+| `sync-control-rubysp` | none | 120 |  |  |
 | `sync-dimensao-vendedores` | none | 60 |  |  |
+| `sync-erp-clientes` | any | 12 |  |  |
 | `sync-erp-produto-catalogo` | jwt | 6 |  |  |
 | `sync-feriados` | none | 0 |  |  |
 | `team-form-submit` | any | 30 |  |  |
@@ -288,3 +323,4 @@
 | `webhook-subscriptions-api` | none | 60 |  |  |
 | `whatsapp-business-api` | none | 60 |  |  |
 | `whatsapp-webhook` | none | 60 |  |  |
+| `windsor-sync` | none | 5 |  |  |

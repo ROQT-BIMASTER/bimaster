@@ -92,7 +92,7 @@ export default function PainelCentralAP() {
   const [parcelasSheet, setParcelasSheet] = useState<any>(null);
   const [pagamentosSheet, setPagamentosSheet] = useState<any>(null);
   const [anexosSheet, setAnexosSheet] = useState<any>(null);
-  const [erpPrompt, setErpPrompt] = useState<string | null>(null);
+  const [erpPrompt, setErpPrompt] = useState<{ paymentQueueId: string; empresaId: number } | null>(null);
 
   // Confirmation dialogs for destructive actions
   const [erpConfirmId, setErpConfirmId] = useState<string | null>(null);
@@ -224,8 +224,11 @@ export default function PainelCentralAP() {
     mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/lancar-pagamento", ...body }),
     onSuccess: (data) => {
       toast.success("Pagamento registrado com sucesso!");
+      const pqId = data?.id || paymentModal?.id;
+      if (pqId) {
+        setErpPrompt({ paymentQueueId: pqId, empresaId: paymentModal?.empresa_id || 1 });
+      }
       setPaymentModal(null);
-      setErpPrompt(data?.id || paymentModal?.id);
       qc.invalidateQueries({ queryKey: ["ap-titulos"] });
       qc.invalidateQueries({ queryKey: ["ap-resumo"] });
     },
@@ -1047,13 +1050,25 @@ export default function PainelCentralAP() {
         <PostPaymentErpPrompt
           open={!!erpPrompt}
           onOpenChange={(o) => !o && setErpPrompt(null)}
-          tituloId={erpPrompt || ""}
-          onConfirm={async () => {
-            await callExportApi("/export-batch", "POST", {
-              ids: [erpPrompt],
-              channel: "rest_api",
-              export_type: "payment",
+          tituloId={erpPrompt?.paymentQueueId || ""}
+          empresaId={erpPrompt?.empresaId || 1}
+          onConfirm={async (contaId: number | null) => {
+            if (!erpPrompt) return;
+            const { error } = await supabase.functions.invoke("erp-export-payment", {
+              body: {
+                action: "export",
+                payment_queue_id: erpPrompt.paymentQueueId,
+                empresa_id: erpPrompt.empresaId,
+                conta_id: contaId,
+              },
             });
+            if (error) {
+              toast.error(`Erro ao exportar ao ERP: ${error.message}`);
+            } else {
+              toast.success("Baixa exportada ao ERP com sucesso!");
+              setErpPrompt(null);
+              qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
+            }
           }}
           onSkip={() => setErpPrompt(null)}
         />

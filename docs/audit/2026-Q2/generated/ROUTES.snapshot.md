@@ -5,18 +5,19 @@
 
 ## Totais
 
-- `<Route>` declarados: **356**
-- Paths únicos: **356**
+- `<Route>` declarados: **394**
+- Paths únicos: **394**
 
 ## Distribuição por primeiro segmento
 
 | Segmento | Rotas |
 | --- | ---: |
-| `/dashboard` | 312 |
-| `/admin` | 8 |
+| `/dashboard` | 344 |
+| `/admin` | 13 |
 | `/auth` | 3 |
 | `/configuracoes` | 3 |
 | `/portal` | 3 |
+| `/.lovable` | 1 |
 | `/*` | 1 |
 | `//` | 1 |
 | `/aguardando-aprovacao` | 1 |
@@ -50,22 +51,24 @@
 | Módulo | Rotas |
 | --- | ---: |
 | `trade` | 53 |
-| `financeiro` | 30 |
+| `financeiro` | 33 |
 | `fabrica` | 27 |
+| `estoque` | 20 |
 | `projetos` | 20 |
-| `estoque` | 18 |
-| `admin` | 17 |
+| `admin` | 19 |
 | `fabrica-china` | 17 |
+| `fornecedor` | 12 |
+| `marketing` | 10 |
 | `comercial` | 9 |
-| `marketing` | 9 |
-| `configuracoes` | 8 |
+| `configuracoes` | 9 |
+| `suporte` | 8 |
 | `precos` | 7 |
 | `processos` | 7 |
 | `prospects` | 7 |
 | `central` | 5 |
 | `departamentos` | 5 |
+| `compras` | 4 |
 | `eventos` | 4 |
-| `fornecedor` | 4 |
 | `integracoes` | 3 |
 | `oms` | 3 |
 | `briefings` | 2 |
@@ -101,10 +104,13 @@
 | `instalar-app` | 1 |
 | `integracao-erp` | 1 |
 | `metas` | 1 |
+| `orcamento` | 1 |
 | `pagamentos` | 1 |
 | `painel-executivo` | 1 |
 | `performance-vendas` | 1 |
 | `plano-contas` | 1 |
+| `portadores` | 1 |
+| `preferencias-ui` | 1 |
 | `produtos` | 1 |
 | `qa-agent` | 1 |
 | `ranking` | 1 |
@@ -127,13 +133,19 @@
 ```
 *
 /
+/.lovable/oauth/consent
 /admin/briefings-fluxos
 /admin/cofre-templates
+/admin/diagnostico-buckets
 /admin/documentacao-tecnica
 /admin/integracoes-saude
 /admin/integracoes/google-drive
+/admin/marketing-integracoes
+/admin/solicitacoes-acesso
 /admin/suporte
+/admin/telas-perdidas
 /admin/templates-alcadas
+/admin/uploads-rejeitados
 /admin/versoes-clientes
 /aguardando-aprovacao
 /auth/forgot-password
@@ -161,6 +173,8 @@
 /dashboard/admin/security/hardening
 /dashboard/admin/security/hardening-v2
 /dashboard/admin/security/security-definer
+/dashboard/admin/solicitacoes-acesso
+/dashboard/admin/telas-perdidas
 /dashboard/admin/visibilidade-detalhe-tarefa
 /dashboard/agente-huggs
 /dashboard/ai-analytics
@@ -192,14 +206,19 @@
 /dashboard/comercial/whitespace
 /dashboard/composicao
 /dashboard/composicao/sync
+/dashboard/compras
 /dashboard/compras-internacionais
 /dashboard/compras-internacionais/inbox
 /dashboard/compras-nacionais
+/dashboard/compras/entradas-futura
+/dashboard/compras/entradas-result
+/dashboard/compras/vendas
 /dashboard/configuracoes
 /dashboard/configuracoes/acesso
 /dashboard/configuracoes/api-health
 /dashboard/configuracoes/fornecedores-visibilidade
 /dashboard/configuracoes/lgpd
+/dashboard/configuracoes/matriz-permissoes
 /dashboard/configuracoes/menu
 /dashboard/configuracoes/permissoes-modulo
 /dashboard/configuracoes/permissoes-modulo/:moduleCode
@@ -227,6 +246,8 @@
 /dashboard/estoque/etiquetas
 /dashboard/estoque/fornecedor
 /dashboard/estoque/fornecedor-depara
+/dashboard/estoque/marca-niveis
+/dashboard/estoque/marca-vs-distribuidoras
 /dashboard/estoque/produtos-master
 /dashboard/estoque/reconciliacao-cores
 /dashboard/estoque/saldos
@@ -308,16 +329,27 @@
 /dashboard/financeiro/fornecedores
 /dashboard/financeiro/investimentos
 /dashboard/financeiro/plano-contas
+/dashboard/financeiro/plano-contas-v2/auditoria
 /dashboard/financeiro/plano-reducao/:planoId
 /dashboard/financeiro/plano-reducao/:planoId/consolidado
 /dashboard/financeiro/saldos-bancarios
+/dashboard/financeiro/torre-alertas
+/dashboard/financeiro/torre-despesas
 /dashboard/financeiro/trade
 /dashboard/financeiro/vendas/sync
 /dashboard/financeiro/visao-departamentos
 /dashboard/fornecedor
+/dashboard/fornecedor/analises
+/dashboard/fornecedor/clientes
+/dashboard/fornecedor/clientes/:id
 /dashboard/fornecedor/depara-ean
 /dashboard/fornecedor/estoque
+/dashboard/fornecedor/pedidos
+/dashboard/fornecedor/pedidos-result
+/dashboard/fornecedor/produtos
+/dashboard/fornecedor/produtos-result
 /dashboard/fornecedor/vendas
+/dashboard/fornecedor/vendas-result
 /dashboard/fornecedores
 /dashboard/geografico
 /dashboard/importar-clientes
@@ -334,15 +366,18 @@
 /dashboard/marketing/redes-sociais
 /dashboard/marketing/social
 /dashboard/marketing/strategy
+/dashboard/marketing/visao-geral
 /dashboard/marketing/whatsapp
 /dashboard/metas
 /dashboard/oms
 /dashboard/oms/condicoes-pagamento
 /dashboard/oms/pedidos/:id
+/dashboard/orcamento
 /dashboard/pagamentos
 /dashboard/painel-executivo
 /dashboard/performance-vendas
 /dashboard/plano-contas
+/dashboard/portadores
 /dashboard/precos
 /dashboard/precos/acesso
 /dashboard/precos/aprovacao
@@ -350,6 +385,7 @@
 /dashboard/precos/portal-cliente
 /dashboard/precos/simulador
 /dashboard/precos/tabelas
+/dashboard/preferencias-ui
 /dashboard/processos/consulta
 /dashboard/processos/etapas
 /dashboard/processos/etapas-gerenciamento
@@ -399,6 +435,14 @@
 /dashboard/security/mfa
 /dashboard/seguranca-dashboard
 /dashboard/simulacao
+/dashboard/suporte
+/dashboard/suporte/admin/sla
+/dashboard/suporte/desk
+/dashboard/suporte/processos
+/dashboard/suporte/processos/:id
+/dashboard/suporte/processos/:id/editar
+/dashboard/suporte/processos/novo
+/dashboard/suporte/rotinas-fixas
 /dashboard/tarefas
 /dashboard/trade
 /dashboard/trade/admin
