@@ -73,7 +73,7 @@ export function ClienteDetalheDialog({ open, onClose, row, dim, ano, source = "f
         </div>
 
         {showForecast && podeForecast && (
-          <ClienteForecastChart clienteFuturaId={row.chave as number} />
+          <ClienteForecastChart clienteFuturaId={row.chave as number} source={source} />
         )}
 
         <div className="px-6 py-4 border-t border-rv-linha flex justify-between items-center gap-3">
