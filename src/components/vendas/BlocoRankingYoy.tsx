@@ -308,6 +308,7 @@ export function BlocoRankingYoy({ ano, mes, empresa, tabelaPrecoId, uf, clienteI
         row={selecionada}
         dim={dim}
         ano={ano}
+        source={source}
       />
     </section>
   );

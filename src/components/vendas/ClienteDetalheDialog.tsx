@@ -12,6 +12,7 @@ interface Props {
   row: VendasYoyRow | null;
   dim: YoyDim;
   ano: number;
+  source?: "futura" | "rubysp";
 }
 
 function KPI({ label, value, tone }: { label: string; value: string; tone?: "positivo" | "negativo" | "neutro" }) {
@@ -27,7 +28,7 @@ function KPI({ label, value, tone }: { label: string; value: string; tone?: "pos
   );
 }
 
-export function ClienteDetalheDialog({ open, onClose, row, dim, ano }: Props) {
+export function ClienteDetalheDialog({ open, onClose, row, dim, ano, source = "futura" }: Props) {
   const [showForecast, setShowForecast] = useState(false);
 
   // reset ao trocar de cliente ou fechar
@@ -72,7 +73,7 @@ export function ClienteDetalheDialog({ open, onClose, row, dim, ano }: Props) {
         </div>
 
         {showForecast && podeForecast && (
-          <ClienteForecastChart clienteFuturaId={row.chave as number} />
+          <ClienteForecastChart clienteFuturaId={row.chave as number} source={source} />
         )}
 
         <div className="px-6 py-4 border-t border-rv-linha flex justify-between items-center gap-3">

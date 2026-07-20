@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/formatters";
 
 interface Props {
   clienteFuturaId: number;
+  source?: "futura" | "rubysp";
 }
 
 const MESES_ABREV = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -19,8 +20,8 @@ function labelMes(iso: string): string {
   return `${MESES_ABREV[(m - 1) % 12]}/${String(y).slice(2)}`;
 }
 
-export function ClienteForecastChart({ clienteFuturaId }: Props) {
-  const { data, isLoading, error } = useVendasSerieMensalCliente(clienteFuturaId);
+export function ClienteForecastChart({ clienteFuturaId, source = "futura" }: Props) {
+  const { data, isLoading, error } = useVendasSerieMensalCliente(clienteFuturaId, source);
 
   const { pontos, suficiente } = useMemo(() => {
     return buildForecast(data ?? [], { janela: 12, horizonte: 6 });
