@@ -1040,10 +1040,10 @@ function AppContent() {
              <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_consulta"><ConsultaProcessos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas"><ConfigEtapasProcesso /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_workflows"><ConfigDocWorkflows /></ScreenProtectedRoute></ModuleRoute>} />
-             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><PerfisProcesso /></ModuleRoute>} />
-             <Route path="/dashboard/processos/perfis/novo" element={<ModuleRoute moduleCode="processos"><NovoPerfilWizard /></ModuleRoute>} />
-             <Route path="/dashboard/processos/etapas-gerenciamento" element={<ModuleRoute moduleCode="processos"><EtapasGerenciamento /></ModuleRoute>} />
-             <Route path="/dashboard/processos/modulos-catalogo" element={<ModuleRoute moduleCode="processos"><CatalogoModulos /></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_perfis"><PerfisProcesso /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis/novo" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_perfis"><NovoPerfilWizard /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/etapas-gerenciamento" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas_gerenciamento"><EtapasGerenciamento /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/modulos-catalogo" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_modulos_catalogo"><CatalogoModulos /></ScreenProtectedRoute></ModuleRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
