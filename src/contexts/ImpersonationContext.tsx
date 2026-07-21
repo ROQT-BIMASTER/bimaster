@@ -210,6 +210,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
     if (realPermissions.isAdmin && impersonatedPermissions) {
       if (impersonatedPermissions.isAdmin) return true;
+      if (DEFAULT_SCREENS.has(screenCode)) return true;
       return impersonatedPermissions.screens.includes(screenCode);
     }
     return realPermissions.hasScreenPermission(screenCode);
