@@ -341,6 +341,8 @@ function ProjetoTarefaRowImpl({
             darkBg={darkBg}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            onDuplicar={onDuplicar}
+            onSalvarModelo={onSalvarModelo}
           />
         </div>
         )}
@@ -353,6 +355,8 @@ function ProjetoTarefaRowImpl({
               darkBg={darkBg}
               onUpdate={onUpdate}
               onDelete={onDelete}
+              onDuplicar={onDuplicar}
+              onSalvarModelo={onSalvarModelo}
             />
           </div>
         )}
@@ -363,6 +367,7 @@ function ProjetoTarefaRowImpl({
         <ProjetoTarefaRow
           key={(st as any).__clientKey || st.id} tarefa={st} indented
           onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} onDelete={onDelete}
+          onDuplicar={onDuplicar} onSalvarModelo={onSalvarModelo}
           teamMembers={teamMembers}
           onAddColaborador={onAddColaborador}
           onRemoveColaborador={onRemoveColaborador}
@@ -848,11 +853,15 @@ function TarefaActionsMenu({
   darkBg,
   onUpdate,
   onDelete,
+  onDuplicar,
+  onSalvarModelo,
 }: {
   tarefa: ProjetoTarefa;
   darkBg: boolean;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
   onDelete?: (id: string) => void;
+  onDuplicar?: (id: string) => void;
+  onSalvarModelo?: (id: string) => void;
 }) {
   const [calOpen, setCalOpen] = useState(false);
   const isCancelada = tarefa.status === "cancelada";
