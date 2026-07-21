@@ -110,14 +110,19 @@ export function useAplicarTarefaModelo() {
         parentTarefaId: input.parentTarefaId ?? null,
       });
 
-      // Contador best-effort (não bloqueia sucesso).
-      (supabase.from as any)("tarefa_modelos")
-        .update({ uso_count: (undefined as any), ultimo_uso_em: new Date().toISOString() })
-        .eq("id", input.modeloId)
-        .then(() => void 0);
-      supabase
-        .rpc("increment_tarefa_modelo_uso" as any, { p_id: input.modeloId })
-        .then(() => void 0);
+      // Contador de uso (best-effort — não bloqueia sucesso).
+      try {
+        const { data: cur } = await (supabase.from as any)("tarefa_modelos")
+          .select("uso_count")
+          .eq("id", input.modeloId)
+          .single();
+        const next = ((cur?.uso_count as number) ?? 0) + 1;
+        await (supabase.from as any)("tarefa_modelos")
+          .update({ uso_count: next, ultimo_uso_em: new Date().toISOString() })
+          .eq("id", input.modeloId);
+      } catch {
+        /* ignore */
+      }
 
       return newId;
     },
