@@ -833,8 +833,9 @@ export default function ProjetosMinhaEquipe() {
       return g ? `Equipe de ${g.nome}` : "Equipe selecionada";
     }
     if (hasFullView) return "Visão completa — Departamento de Projetos";
+    if (!isLeader) return "Meu desempenho";
     return "Sua equipe";
-  }, [hasFullView, equipeFilter, gerentesDisponiveis]);
+  }, [hasFullView, equipeFilter, gerentesDisponiveis, isLeader]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
     if (canOpenMember(member)) {
