@@ -217,12 +217,17 @@ export default function PedidosResultPage() {
 
         <LeadTimeKpisCard />
 
-        {(filialId !== "all" || apenasParados) && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {(filialId !== "all" || apenasParados || etapaId !== "all") && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <span>Filtros ativos:</span>
             {filialId !== "all" && (
               <Badge variant="secondary" className="gap-1">
                 {filiaisAtivas.find((f) => String(f.id_empresa) === filialId)?.nome_empresa ?? `Filial ${filialId}`}
+              </Badge>
+            )}
+            {etapaId !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Etapa: {KANBAN_COLUNAS_RESULT.find((c) => c.id === etapaId)?.label ?? etapaId}
               </Badge>
             )}
             {apenasParados && (
