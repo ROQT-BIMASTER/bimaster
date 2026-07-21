@@ -650,18 +650,18 @@ function AppContent() {
             
             {/* Outras funcionalidades */}
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_ranking"><Ranking /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
-            <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/dashboard/chat/aprovacoes" element={<ProtectedRoute><CentralAprovacoesChat /></ProtectedRoute>} />
+            <Route path="/dashboard/tarefas" element={<ScreenRoute screenCode="projetos_minhas_tarefas"><Tarefas /></ScreenRoute>} />
+            <Route path="/dashboard/chat" element={<ScreenRoute screenCode="chat"><Chat /></ScreenRoute>} />
+            <Route path="/dashboard/chat/aprovacoes" element={<ScreenRoute screenCode="aprovacoes"><CentralAprovacoesChat /></ScreenRoute>} />
             {/* Suporte v2 (help desk multi-departamento) — piloto atrás da flag ff_suporte_v2 */}
-            <Route path="/dashboard/suporte" element={<ProtectedRoute><SuporteMeusChamados /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/admin/sla" element={<ProtectedRoute><SuporteAdminSLA /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/rotinas-fixas" element={<ProtectedRoute><SuporteRotinasFixas /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos" element={<ProtectedRoute><SuporteCentralOperacional /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/novo" element={<ProtectedRoute><NovoProcessoWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/:id/editar" element={<ProtectedRoute><NovoProcessoWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/:id" element={<ProtectedRoute><SuporteProcessoDetalhe /></ProtectedRoute>} />
+            <Route path="/dashboard/suporte" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_meus_chamados"><SuporteMeusChamados /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/desk" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_desk"><SuporteDesk /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/admin/sla" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_admin_sla"><SuporteAdminSLA /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/rotinas-fixas" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_rotinas_fixas"><SuporteRotinasFixas /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><SuporteCentralOperacional /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/novo" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><NovoProcessoWizard /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/:id/editar" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><NovoProcessoWizard /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/:id" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><SuporteProcessoDetalhe /></ModuleScreenRoute>} />
 
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin" allowRoles={["suporte"]}><Configuracoes /></ScreenRoute>} />
 
