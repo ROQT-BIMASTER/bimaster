@@ -387,7 +387,26 @@ export function ProjetoSecao({
             </div>
           ))}
 
-          <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} darkBg={darkBg} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} darkBg={darkBg} />
+            </div>
+            {onAplicarModelo && (
+              <button
+                type="button"
+                onClick={() => onAplicarModelo(secaoId)}
+                className={cn(
+                  "text-[11px] px-2 py-1 rounded border transition-colors whitespace-nowrap",
+                  darkBg
+                    ? "border-white/20 text-white/80 hover:bg-white/10"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+                title="Aplicar um modelo salvo nesta seção"
+              >
+                Usar modelo
+              </button>
+            )}
+          </div>
         </div>
       )}
 
