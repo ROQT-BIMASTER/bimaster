@@ -34,7 +34,7 @@ describe("sidebar visibility — itemAllowed", () => {
   });
 
   it("supervisor: vê itens permitidos + admin-or-supervisor + neutras, bloqueia require_admin e órfãos", () => {
-    const perms = makePerms("supervisor", ["projetos_lista"]);
+    const perms = makePerms("supervisor", ["projetos_lista", "projetos_gerenciar"]);
     const labels = visibleLabels(SIDEBAR_FIXTURE, perms);
     expect(labels).toContain("Gerenciar Projetos");
     expect(labels).toContain("Meus Projetos");
