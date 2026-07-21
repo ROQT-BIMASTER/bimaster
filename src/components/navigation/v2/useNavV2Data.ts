@@ -60,14 +60,14 @@ export interface NavV2Tree {
  * páginas de perfil, etc. Filtro por módulo já garante o gate. Qualquer outro
  * item sem `screen_code` cai em default-deny para não-admin (fail-closed).
  */
-const NEUTRAL_ROUTES: ReadonlySet<string> = new Set([
+export const NEUTRAL_ROUTES: ReadonlySet<string> = new Set([
   "/dashboard",
   "/dashboard/perfil",
   "/dashboard/notificacoes",
   "/dashboard/central-trabalho",
 ]);
 
-function itemAllowed(
+export function itemAllowed(
   item: SidebarMenuItem,
   perms: {
     isAdmin: boolean;
