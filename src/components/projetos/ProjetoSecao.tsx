@@ -325,6 +325,8 @@ export function ProjetoSecao({
                 onSelect={onSelectTarefa}
                 onUpdate={onUpdateTarefa}
                 onDelete={onDeleteTarefa}
+                onDuplicar={onDuplicarTarefa}
+                onSalvarModelo={onSalvarTarefaComoModelo}
                 teamMembers={teamMembers}
                 onAddColaborador={onAddColaborador}
                 onRemoveColaborador={onRemoveColaborador}
