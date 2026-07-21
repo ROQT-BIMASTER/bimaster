@@ -68,6 +68,28 @@ const statusConfig: Record<PaymentQueueStatus, { label: string; color: string }>
   cancelled: { label: "Cancelado", color: "bg-gray-500" },
 };
 
+const fallbackStatus = { label: "Status não informado", color: "bg-gray-500" };
+
+const normalizeAttachments = (attachments: PaymentQueueItem["attachments"] | unknown) =>
+  Array.isArray(attachments)
+    ? attachments
+        .filter((attachment) => attachment && typeof attachment.url === "string" && attachment.url.length > 0)
+        .map((attachment) => ({
+          name: typeof attachment.name === "string" && attachment.name ? attachment.name : "Documento anexado",
+          url: attachment.url,
+          type: typeof attachment.type === "string" && attachment.type ? attachment.type : "application/octet-stream",
+          size: typeof attachment.size === "number" && Number.isFinite(attachment.size) ? attachment.size : 0,
+          uploaded_at: typeof attachment.uploaded_at === "string" ? attachment.uploaded_at : "",
+        }))
+    : [];
+
+const formatDateTimeSafe = (value: string | null | undefined) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+};
+
 export function PaymentReviewDialog({
   open,
   onOpenChange,
@@ -354,8 +376,9 @@ export function PaymentReviewDialog({
   const isAccepted = item.financial_status === 'accepted';
   const isPaid = item.financial_status === 'paid';
   const isRejected = item.financial_status === 'rejected';
-  const status = statusConfig[item.financial_status];
-  const hasAttachments = item.attachments && item.attachments.length > 0;
+  const status = statusConfig[item.financial_status] ?? fallbackStatus;
+  const attachments = normalizeAttachments(item.attachments);
+  const hasAttachments = attachments.length > 0;
   const canAccept = !hasAttachments || allAttachmentsAcknowledged;
   const showReceiptSection = isAccepted || isPaid;
 
@@ -570,7 +593,7 @@ export function PaymentReviewDialog({
                 <div>
                   <Label className="text-muted-foreground text-xs">Solicitado em</Label>
                   <p className="font-medium">
-                    {format(new Date(item.requested_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {formatDateTimeSafe(item.requested_at)}
                   </p>
                 </div>
               </div>
@@ -600,7 +623,7 @@ export function PaymentReviewDialog({
                       Solicitado por: {item.requester_name || 'Usuário não identificado'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(item.requested_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {formatDateTimeSafe(item.requested_at)}
                     </p>
                   </div>
                 </div>
@@ -615,10 +638,10 @@ export function PaymentReviewDialog({
                       </p>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-muted-foreground">
-                          {item.reviewed_at && format(new Date(item.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {formatDateTimeSafe(item.reviewed_at)}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {statusConfig[item.financial_status]?.label}
+                          {status.label}
                         </Badge>
                       </div>
                     </div>
@@ -672,11 +695,11 @@ export function PaymentReviewDialog({
                 <div className="flex items-center gap-2 mb-3">
                   <Paperclip className="h-4 w-4 text-primary" />
                   <Label className="font-medium">
-                    Documentos Anexados ({item.attachments.length})
+                    Documentos Anexados ({attachments.length})
                   </Label>
                 </div>
                 <AttachmentAcknowledgement
-                  attachments={item.attachments}
+                  attachments={attachments}
                   onAllAcknowledged={setAllAttachmentsAcknowledged}
                 />
                 {!canAccept && (
@@ -692,7 +715,7 @@ export function PaymentReviewDialog({
           )}
 
           {/* Document Audit - AI cross-reference */}
-          {(item.attachment_url || (item.attachments && item.attachments.length > 0)) && (
+          {(item.attachment_url || hasAttachments) && (
             <DocumentAuditCard
               item={item}
               onChaveAcessoChange={async (chave) => {
@@ -755,7 +778,7 @@ export function PaymentReviewDialog({
                 <p className="text-sm mt-1">{item.financial_notes}</p>
                 {item.reviewed_at && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Revisado em {format(new Date(item.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    Revisado em {formatDateTimeSafe(item.reviewed_at)}
                   </p>
                 )}
               </CardContent>
