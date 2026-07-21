@@ -1832,6 +1832,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "- Tabela `tarefa_modelos` com RLS: usuário vê seus modelos + do próprio departamento + da organização; edita/exclui apenas os que criou (ou admin).",
         "- Fallback silencioso caso a migration ainda não esteja aplicada em algum ambiente stale (lista vazia em vez de 400).",
         "",
+        "## APP_VERSION 3.6.4 (Route Guards Hardening)",
         "- Fechamento fail-closed de rotas `/dashboard/*` que antes checavam apenas autenticação: controladoria, rr-tasks, tarefas, chat, chat/aprovacoes, suporte/*, projetos/convites, integrações/notion e processos/{perfis,etapas-gerenciamento,modulos-catalogo} agora exigem tela/módulo via `ScreenRoute`/`ModuleScreenRoute`.",
         "- Fallback global: qualquer `/dashboard/*` não mapeado renderiza `<AccessDenied>` autenticado (não vaza para `<ErrorPage />` neutro).",
         "- Novas telas registradas em `telas_sistema`: controladoria, aprovacoes, suporte_meus_chamados, suporte_desk, suporte_admin_sla, suporte_rotinas_fixas, suporte_processos, projetos_convites, processos_perfis, processos_etapas_gerenciamento, processos_modulos_catalogo. Módulo `suporte` registrado em `modulos_sistema`.",
