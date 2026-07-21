@@ -641,7 +641,7 @@ export function PaymentReviewDialog({
                           {formatDateTimeSafe(item.reviewed_at)}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {statusConfig[item.financial_status]?.label}
+                          {status.label}
                         </Badge>
                       </div>
                     </div>
