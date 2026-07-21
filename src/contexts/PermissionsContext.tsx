@@ -26,7 +26,9 @@ const PermissionsContext = createContext<PermissionsContextType | null>(null);
 export const DEFAULT_MODULES: ReadonlySet<string> = new Set(["projetos"]);
 export const DEFAULT_SCREENS: ReadonlySet<string> = new Set([
   "projetos_home",
+  "projetos_dashboard",
   "projetos_minhas_tarefas",
+  "projetos_equipe",
   "projetos_aprovacoes",
   "projetos_aprovacoes_central",
 ]);
