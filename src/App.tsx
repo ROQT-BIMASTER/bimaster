@@ -19,6 +19,7 @@ import { CrmAdminRoute } from "@/components/auth/CrmAdminRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { ModuleScreenRoute } from "@/components/auth/ModuleScreenRoute";
+import { AccessDenied } from "@/components/common/AccessDenied";
 import { DashboardRedirect } from "@/components/auth/DashboardRedirect";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
@@ -624,8 +625,8 @@ function AppContent() {
 
             <Route path="/dashboard/briefings" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingsHome /></ModuleScreenRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingWorkspace /></ModuleScreenRoute>} />
-            <Route path="/dashboard/controladoria" element={<ProtectedRoute><ControladoriaProdutos /></ProtectedRoute>} />
-            <Route path="/dashboard/rr-tasks" element={<ProtectedRoute><RrTasksBoard /></ProtectedRoute>} />
+            <Route path="/dashboard/controladoria" element={<ScreenRoute screenCode="controladoria"><ControladoriaProdutos /></ScreenRoute>} />
+            <Route path="/dashboard/rr-tasks" element={<ScreenRoute screenCode="admin"><RrTasksBoard /></ScreenRoute>} />
             
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
@@ -650,18 +651,18 @@ function AppContent() {
             
             {/* Outras funcionalidades */}
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_ranking"><Ranking /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
-            <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/dashboard/chat/aprovacoes" element={<ProtectedRoute><CentralAprovacoesChat /></ProtectedRoute>} />
+            <Route path="/dashboard/tarefas" element={<ScreenRoute screenCode="projetos_minhas_tarefas"><Tarefas /></ScreenRoute>} />
+            <Route path="/dashboard/chat" element={<ScreenRoute screenCode="chat"><Chat /></ScreenRoute>} />
+            <Route path="/dashboard/chat/aprovacoes" element={<ScreenRoute screenCode="aprovacoes"><CentralAprovacoesChat /></ScreenRoute>} />
             {/* Suporte v2 (help desk multi-departamento) — piloto atrás da flag ff_suporte_v2 */}
-            <Route path="/dashboard/suporte" element={<ProtectedRoute><SuporteMeusChamados /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/admin/sla" element={<ProtectedRoute><SuporteAdminSLA /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/rotinas-fixas" element={<ProtectedRoute><SuporteRotinasFixas /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos" element={<ProtectedRoute><SuporteCentralOperacional /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/novo" element={<ProtectedRoute><NovoProcessoWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/:id/editar" element={<ProtectedRoute><NovoProcessoWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/suporte/processos/:id" element={<ProtectedRoute><SuporteProcessoDetalhe /></ProtectedRoute>} />
+            <Route path="/dashboard/suporte" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_meus_chamados"><SuporteMeusChamados /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/desk" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_desk"><SuporteDesk /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/admin/sla" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_admin_sla"><SuporteAdminSLA /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/rotinas-fixas" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_rotinas_fixas"><SuporteRotinasFixas /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><SuporteCentralOperacional /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/novo" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><NovoProcessoWizard /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/:id/editar" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><NovoProcessoWizard /></ModuleScreenRoute>} />
+            <Route path="/dashboard/suporte/processos/:id" element={<ModuleScreenRoute moduleCode="suporte" screenCode="suporte_processos"><SuporteProcessoDetalhe /></ModuleScreenRoute>} />
 
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin" allowRoles={["suporte"]}><Configuracoes /></ScreenRoute>} />
 
@@ -957,7 +958,7 @@ function AppContent() {
             <Route path="/dashboard/admin/checagem-semanal-tarefas" element={<ScreenRoute screenCode="admin"><ChecagemSemanalTarefas /></ScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/projetos/convites" element={<ProtectedRoute><ProjetosConvites /></ProtectedRoute>} />
+            <Route path="/dashboard/projetos/convites" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_convites"><ProjetosConvites /></ModuleScreenRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
@@ -1015,7 +1016,7 @@ function AppContent() {
             <Route path="/admin/documentacao-tecnica" element={<ScreenRoute screenCode="admin"><DocumentacaoTecnica /></ScreenRoute>} />
             <Route path="/admin/integracoes-saude" element={<ScreenRoute screenCode="admin"><IntegracoesSaude /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/asana" element={<ScreenRoute screenCode="admin"><AsanaIntegracao /></ScreenRoute>} />
-            <Route path="/configuracoes/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
+            <Route path="/configuracoes/integracoes/notion" element={<ScreenRoute screenCode="admin"><IntegracoesNotion /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/notion" element={<Navigate to="/configuracoes/integracoes/notion" replace />} />
             <Route path="/dashboard/integracoes/shipsgo" element={<ScreenRoute screenCode="admin"><ShipsgoIntegracao /></ScreenRoute>} />
             <Route path="/dashboard/admin/asana-sync" element={<ScreenRoute screenCode="admin"><AsanaSyncMonitor /></ScreenRoute>} />
@@ -1040,10 +1041,10 @@ function AppContent() {
              <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_consulta"><ConsultaProcessos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas"><ConfigEtapasProcesso /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_workflows"><ConfigDocWorkflows /></ScreenProtectedRoute></ModuleRoute>} />
-             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><PerfisProcesso /></ModuleRoute>} />
-             <Route path="/dashboard/processos/perfis/novo" element={<ModuleRoute moduleCode="processos"><NovoPerfilWizard /></ModuleRoute>} />
-             <Route path="/dashboard/processos/etapas-gerenciamento" element={<ModuleRoute moduleCode="processos"><EtapasGerenciamento /></ModuleRoute>} />
-             <Route path="/dashboard/processos/modulos-catalogo" element={<ModuleRoute moduleCode="processos"><CatalogoModulos /></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_perfis"><PerfisProcesso /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis/novo" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_perfis"><NovoPerfilWizard /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/etapas-gerenciamento" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas_gerenciamento"><EtapasGerenciamento /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/modulos-catalogo" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_modulos_catalogo"><CatalogoModulos /></ScreenProtectedRoute></ModuleRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
@@ -1065,6 +1066,8 @@ function AppContent() {
             <Route path="/index" element={<Navigate to="/" replace />} />
             <Route path="/index.html" element={<Navigate to="/" replace />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
+            {/* Fail-closed: qualquer /dashboard/* não mapeado cai em "acesso negado / não encontrado" para usuários autenticados */}
+            <Route path="/dashboard/*" element={<ProtectedRoute><AccessDenied message="Tela não encontrada ou sem permissão." /></ProtectedRoute>} />
             {/* Catch-all route - must be last */}
             <Route path="*" element={<ErrorPage />} />
           </Routes>
