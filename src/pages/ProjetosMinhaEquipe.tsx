@@ -759,6 +759,13 @@ export default function ProjetosMinhaEquipe() {
 
   const allMembersRaw = flattenMembers(team);
 
+  // Detect if current user is a leader (has subordinates) or admin/gerente/supervisor
+  const isLeader = useMemo(() => {
+    if (canManage) return true;
+    if (!user?.id) return false;
+    return allMembersRaw.some((m) => m.subordinados && m.subordinados.some((s) => s.id === user.id) === false && m.id === user.id && (m.subordinados?.length ?? 0) > 0);
+  }, [allMembersRaw, canManage, user?.id]);
+
   // Filter members by project participation
   const allMembers = useMemo(() => {
     if (projetoFilter === "todos") return allMembersRaw;
