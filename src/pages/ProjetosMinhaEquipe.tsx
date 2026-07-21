@@ -759,6 +759,14 @@ export default function ProjetosMinhaEquipe() {
 
   const allMembersRaw = flattenMembers(team);
 
+  // Detect if current user is a leader (has subordinates) or admin/gerente/supervisor
+  const isLeader = useMemo(() => {
+    if (canManage) return true;
+    if (!user?.id) return false;
+    const selfNode = allMembersRaw.find((m) => m.id === user.id);
+    return !!selfNode && (selfNode.subordinados?.length ?? 0) > 0;
+  }, [allMembersRaw, canManage, user?.id]);
+
   // Filter members by project participation
   const allMembers = useMemo(() => {
     if (projetoFilter === "todos") return allMembersRaw;
@@ -790,6 +798,11 @@ export default function ProjetosMinhaEquipe() {
 
   // Filtra a árvore para a sub-hierarquia do gerente escolhido
   const filteredTeam = useMemo(() => {
+    // Non-leaders só enxergam a si próprios
+    if (!isLeader) {
+      const self = allMembersRaw.find((m) => m.id === user?.id);
+      return self ? [{ ...self, subordinados: [] }] : [];
+    }
     if (!hasFullView || equipeFilter === "todas") return projetoFilteredTeam;
     const findNode = (members: ProjetoTeamMember[]): ProjetoTeamMember | null => {
       for (const m of members) {
@@ -803,7 +816,7 @@ export default function ProjetosMinhaEquipe() {
     };
     const node = findNode(projetoFilteredTeam);
     return node ? [node] : [];
-  }, [projetoFilteredTeam, equipeFilter, hasFullView]);
+  }, [projetoFilteredTeam, equipeFilter, hasFullView, isLeader, allMembersRaw, user?.id]);
 
   // Membros visíveis no escopo atual (para KPIs e ranking)
   const visibleMembers = useMemo(() => flattenMembers(filteredTeam), [filteredTeam]);
@@ -820,8 +833,9 @@ export default function ProjetosMinhaEquipe() {
       return g ? `Equipe de ${g.nome}` : "Equipe selecionada";
     }
     if (hasFullView) return "Visão completa — Departamento de Projetos";
+    if (!isLeader) return "Meu desempenho";
     return "Sua equipe";
-  }, [hasFullView, equipeFilter, gerentesDisponiveis]);
+  }, [hasFullView, equipeFilter, gerentesDisponiveis, isLeader]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
     if (canOpenMember(member)) {
@@ -985,41 +999,43 @@ export default function ProjetosMinhaEquipe() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap" data-tour="equipe-filters">
-        {hasFullView && gerentesDisponiveis.length > 0 && (
-          <Select value={equipeFilter} onValueChange={setEquipeFilter}>
-            <SelectTrigger className="h-8 text-xs w-[260px]">
-              <Users className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
-              <SelectValue placeholder="Equipe completa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Equipe completa (todas)</SelectItem>
-              {gerentesDisponiveis.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  Equipe de {g.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <ProjetoFilterSelect
-          projetos={projetos}
-          value={projetoFilter}
-          onChange={setProjetoFilter}
-        />
-        {projetoFilter !== "todos" && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
-            <X className="h-3.5 w-3.5" />
-            Limpar projeto
-          </Button>
-        )}
-        {hasFullView && equipeFilter !== "todas" && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setEquipeFilter("todas")}>
-            <X className="h-3.5 w-3.5" />
-            Limpar equipe
-          </Button>
-        )}
-      </div>
+      {isLeader && (
+        <div className="flex items-center gap-2 flex-wrap" data-tour="equipe-filters">
+          {hasFullView && gerentesDisponiveis.length > 0 && (
+            <Select value={equipeFilter} onValueChange={setEquipeFilter}>
+              <SelectTrigger className="h-8 text-xs w-[260px]">
+                <Users className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Equipe completa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Equipe completa (todas)</SelectItem>
+                {gerentesDisponiveis.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    Equipe de {g.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <ProjetoFilterSelect
+            projetos={projetos}
+            value={projetoFilter}
+            onChange={setProjetoFilter}
+          />
+          {projetoFilter !== "todos" && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
+              <X className="h-3.5 w-3.5" />
+              Limpar projeto
+            </Button>
+          )}
+          {hasFullView && equipeFilter !== "todas" && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setEquipeFilter("todas")}>
+              <X className="h-3.5 w-3.5" />
+              Limpar equipe
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6" data-tour="equipe-cards">
         {/* Hierarchy */}
@@ -1027,7 +1043,7 @@ export default function ProjetosMinhaEquipe() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Hierarquia da Equipe
+              {isLeader ? "Hierarquia da Equipe" : "Meu perfil"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 max-h-[500px] overflow-y-auto">
@@ -1044,7 +1060,7 @@ export default function ProjetosMinhaEquipe() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              Ranking de Produtividade
+              {isLeader ? "Ranking de Produtividade" : "Minha pontuação"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
