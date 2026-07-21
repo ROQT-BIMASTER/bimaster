@@ -55,6 +55,18 @@ export interface NavV2Tree {
   isLoading: boolean;
 }
 
+/**
+ * Rotas "neutras" que podem aparecer sem `screen_code` — dashboards de módulo,
+ * páginas de perfil, etc. Filtro por módulo já garante o gate. Qualquer outro
+ * item sem `screen_code` cai em default-deny para não-admin (fail-closed).
+ */
+const NEUTRAL_ROUTES: ReadonlySet<string> = new Set([
+  "/dashboard",
+  "/dashboard/perfil",
+  "/dashboard/notificacoes",
+  "/dashboard/central-trabalho",
+]);
+
 function itemAllowed(
   item: SidebarMenuItem,
   perms: {
@@ -66,11 +78,15 @@ function itemAllowed(
   if (!item.ativo) return false;
   if (item.require_admin && !perms.isAdmin) return false;
   if (item.require_admin_or_supervisor && !perms.isAdminOrSupervisor) return false;
-  if (item.screen_code && !perms.isAdmin && !perms.hasScreen(item.screen_code)) {
-    return false;
+  if (perms.isAdmin) return true;
+  if (item.screen_code) {
+    return perms.hasScreen(item.screen_code);
   }
-  return true;
+  // Sem screen_code: só permite rotas neutras conhecidas; caso contrário,
+  // fail-closed — o item precisa ter um screen_code cadastrado.
+  return item.route ? NEUTRAL_ROUTES.has(item.route) : false;
 }
+
 
 export function useNavV2Data(): NavV2Tree {
   const { categories: dbCategories, isLoading: configLoading } = useSidebarConfig();
