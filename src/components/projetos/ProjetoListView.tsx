@@ -337,6 +337,9 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onAddTarefa={handleAddTarefa}
             onUpdateTarefa={handleUpdateTarefa}
             onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
+            onDuplicarTarefa={handleDuplicarTarefa}
+            onSalvarTarefaComoModelo={handleSalvarModelo}
+            onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
             onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
             onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
             onCreateBriefingTasks={handleCreateBriefingTasks}
