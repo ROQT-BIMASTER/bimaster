@@ -453,6 +453,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const hasModulePermission = useCallback((moduleCode: string): boolean => {
     if (isAdmin) return true;
+    if (DEFAULT_MODULES.has(moduleCode)) return true;
     // Alias: 'fornecedor_vendas' e 'fornecedor_vendas_result' são agrupamentos de menu que herdam a permissão de 'fornecedor'.
     if (moduleCode === "fornecedor_vendas" || moduleCode === "fornecedor_vendas_result") return modulesSet.has("fornecedor");
     return modulesSet.has(moduleCode);
@@ -460,6 +461,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
     if (isAdmin) return true;
+    if (DEFAULT_SCREENS.has(screenCode)) return true;
     return screensSet.has(screenCode);
   }, [screensSet, isAdmin]);
 
