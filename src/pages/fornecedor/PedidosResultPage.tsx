@@ -44,9 +44,13 @@ export default function PedidosResultPage() {
     } catch { return "parado"; }
   });
   const [apenasParados, setApenasParados] = useState(false);
+  const [etapaId, setEtapaId] = useState<string>(() => {
+    try { return localStorage.getItem(ETAPA_KEY) ?? "all"; } catch { return "all"; }
+  });
 
   useEffect(() => { try { localStorage.setItem(FILIAL_KEY, filialId); } catch { /* ignore */ } }, [filialId]);
   useEffect(() => { try { localStorage.setItem(ORDEM_KEY, ordem); } catch { /* ignore */ } }, [ordem]);
+  useEffect(() => { try { localStorage.setItem(ETAPA_KEY, etapaId); } catch { /* ignore */ } }, [etapaId]);
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
   const { data: filiais = [] } = useDimEmpresas();
