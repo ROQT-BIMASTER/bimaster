@@ -392,6 +392,22 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         createFromFile={createFromFile}
         loading={iaLoading === "create_tasks" || iaLoading === "create_from_file"}
       />
+
+      <SalvarTarefaComoModeloDialog
+        open={!!modeloTarefaId}
+        onOpenChange={(v) => { if (!v) setModeloTarefaId(null); }}
+        tarefaId={modeloTarefaId}
+        tarefaTitulo={modeloTarefaTitulo}
+      />
+
+      {aplicarSecaoId && (
+        <AplicarTarefaModeloDialog
+          open={!!aplicarSecaoId}
+          onOpenChange={(v) => { if (!v) setAplicarSecaoId(null); }}
+          projetoId={projetoId}
+          secaoId={aplicarSecaoId}
+        />
+      )}
     </>
   );
 }
