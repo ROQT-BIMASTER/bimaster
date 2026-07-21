@@ -1015,7 +1015,7 @@ function AppContent() {
             <Route path="/admin/documentacao-tecnica" element={<ScreenRoute screenCode="admin"><DocumentacaoTecnica /></ScreenRoute>} />
             <Route path="/admin/integracoes-saude" element={<ScreenRoute screenCode="admin"><IntegracoesSaude /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/asana" element={<ScreenRoute screenCode="admin"><AsanaIntegracao /></ScreenRoute>} />
-            <Route path="/configuracoes/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
+            <Route path="/configuracoes/integracoes/notion" element={<ScreenRoute screenCode="admin"><IntegracoesNotion /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/notion" element={<Navigate to="/configuracoes/integracoes/notion" replace />} />
             <Route path="/dashboard/integracoes/shipsgo" element={<ScreenRoute screenCode="admin"><ShipsgoIntegracao /></ScreenRoute>} />
             <Route path="/dashboard/admin/asana-sync" element={<ScreenRoute screenCode="admin"><AsanaSyncMonitor /></ScreenRoute>} />
