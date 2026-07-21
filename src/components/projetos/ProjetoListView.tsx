@@ -50,6 +50,36 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const { isAdmin } = useUserRole();
   const currentUserId = user?.id ?? null;
   const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
+  const queryClient = useQueryClient();
+  const [modeloTarefaId, setModeloTarefaId] = useState<string | null>(null);
+  const [modeloTarefaTitulo, setModeloTarefaTitulo] = useState<string>("");
+  const [aplicarSecaoId, setAplicarSecaoId] = useState<string | null>(null);
+
+  const handleDuplicarTarefa = async (tarefaId: string) => {
+    if (!user?.id) return;
+    const t = tarefas.find((x) => x.id === tarefaId);
+    if (!t) return;
+    try {
+      await duplicarTarefa({
+        tarefaId,
+        projetoId,
+        secaoId: t.secao_id,
+        criadorId: user.id,
+        parentTarefaId: t.parent_tarefa_id ?? null,
+      });
+      toast.success("Tarefa duplicada");
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao duplicar");
+    }
+  };
+
+  const handleSalvarModelo = (tarefaId: string) => {
+    const t = tarefas.find((x) => x.id === tarefaId);
+    setModeloTarefaId(tarefaId);
+    setModeloTarefaTitulo(t?.titulo || "");
+  };
+
   // Tarefa aberta é persistida em `?tarefa=<id>` para sobreviver a reload do
   // PWA, refresh manual e troca de aba. Reabrir aba não fecha mais o drawer.
   const [searchParams, setSearchParams] = useSearchParams();
