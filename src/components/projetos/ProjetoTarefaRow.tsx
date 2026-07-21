@@ -890,6 +890,21 @@ function TarefaActionsMenu({
         <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
+        {onDuplicar && (
+          <DropdownMenuItem onClick={() => onDuplicar(tarefa.id)}>
+            <Copy className="h-3.5 w-3.5 mr-2" />
+            Duplicar tarefa
+          </DropdownMenuItem>
+        )}
+        {onSalvarModelo && (
+          <DropdownMenuItem onClick={() => onSalvarModelo(tarefa.id)}>
+            <FileText className="h-3.5 w-3.5 mr-2" />
+            Salvar como modelo
+          </DropdownMenuItem>
+        )}
+        {(onDuplicar || onSalvarModelo) && <DropdownMenuSeparator />}
+
+
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <CalendarPlus className="h-3.5 w-3.5 mr-2" />
