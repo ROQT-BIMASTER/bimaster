@@ -72,7 +72,15 @@ const fallbackStatus = { label: "Status não informado", color: "bg-gray-500" };
 
 const normalizeAttachments = (attachments: PaymentQueueItem["attachments"] | unknown) =>
   Array.isArray(attachments)
-    ? attachments.filter((attachment) => attachment && typeof attachment.url === "string" && attachment.url.length > 0)
+    ? attachments
+        .filter((attachment) => attachment && typeof attachment.url === "string" && attachment.url.length > 0)
+        .map((attachment) => ({
+          name: typeof attachment.name === "string" && attachment.name ? attachment.name : "Documento anexado",
+          url: attachment.url,
+          type: typeof attachment.type === "string" && attachment.type ? attachment.type : "application/octet-stream",
+          size: typeof attachment.size === "number" && Number.isFinite(attachment.size) ? attachment.size : 0,
+          uploaded_at: typeof attachment.uploaded_at === "string" ? attachment.uploaded_at : "",
+        }))
     : [];
 
 const formatDateTimeSafe = (value: string | null | undefined) => {
