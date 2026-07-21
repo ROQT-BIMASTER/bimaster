@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,11 +6,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Paperclip, Send, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useDepartmentExpenses, type DepartmentExpense } from "@/hooks/useDepartmentExpenses";
+import { useDepartmentExpenses, type DepartmentExpense, type ExpenseAttachment } from "@/hooks/useDepartmentExpenses";
 import { FinancialSubmissionForm, type FinancialFormData } from "@/components/shared/FinancialSubmissionForm";
-import { useFinancialSubmission } from "@/hooks/useFinancialSubmission";
 
 interface EnviarFinanceiroDepDialogProps {
   expense: DepartmentExpense;
@@ -22,10 +26,10 @@ export function EnviarFinanceiroDepDialog({
   open,
   onOpenChange,
 }: EnviarFinanceiroDepDialogProps) {
-  const { sendToFinancial } = useDepartmentExpenses(expense.department_id);
-  const { submit, loading } = useFinancialSubmission();
+  const { sendToFinancial, updateExpense } = useDepartmentExpenses(expense.department_id);
+  const [uploading, setUploading] = useState(false);
 
-  const hasAttachments = expense.attachments && expense.attachments.length > 0;
+  const hasAttachments = !!(expense.attachments && expense.attachments.length > 0);
   const isApproved = expense.status === "approved";
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const isCorrection = !!(expense as any).payment_queue_id;
@@ -40,10 +44,60 @@ export function EnviarFinanceiroDepDialog({
     payment_notes: (expense as any).payment_notes || "",
   } : undefined;
 
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newAttachments: ExpenseAttachment[] = [...(expense.attachments || [])];
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const uidPrefix = user?.id ? `${user.id}/` : "";
+
+      for (const file of Array.from(files)) {
+        if (file.size > 20 * 1024 * 1024) {
+          toast.error(`${file.name}: excede o limite de 20MB`);
+          continue;
+        }
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${uidPrefix}${expense.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("department-expense-docs")
+          .upload(fileName, file);
+        if (uploadError) throw uploadError;
+
+        const { data: signedData, error: signError } = await supabase.storage
+          .from("department-expense-docs")
+          .createSignedUrl(fileName, 31536000);
+        if (signError || !signedData?.signedUrl) throw signError || new Error("Falha ao gerar URL");
+
+        newAttachments.push({
+          name: file.name,
+          url: signedData.signedUrl,
+          type: file.type,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+        });
+      }
+
+      await updateExpense.mutateAsync({
+        id: expense.id,
+        attachments: newAttachments,
+      });
+      toast.success("Anexo(s) enviado(s) com sucesso.");
+    } catch (err: any) {
+      toast.error(`Erro no upload: ${err?.message || "desconhecido"}`);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }, [expense, updateExpense]);
+
   const handleSubmit = async (formData: FinancialFormData) => {
     if (!isApproved || !hasAttachments) return;
 
-    // Build notes
     const noteParts: string[] = [];
     if (formData.payment_notes) noteParts.push(formData.payment_notes);
     if ((expense as any).boleto_barcode) noteParts.push(`Linha digitável: ${(expense as any).boleto_barcode}`);
@@ -77,6 +131,39 @@ export function EnviarFinanceiroDepDialog({
             Despesa: {expense.code} - {expense.description || expense.category}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Inline upload — permite anexar sem sair do fluxo */}
+        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+          <Label className="flex items-center gap-2 text-sm">
+            <Paperclip className="h-4 w-4" />
+            Anexos {hasAttachments ? `(${expense.attachments.length})` : "(nenhum)"}
+          </Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+              onChange={handleUpload}
+              disabled={uploading}
+              className="flex-1"
+            />
+            {uploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <Upload className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          {hasAttachments && (
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {expense.attachments.map((a, i) => (
+                <li key={i} className="truncate">• {a.name}</li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            PDF, imagens, Word ou Excel. Máximo 20MB por arquivo.
+          </p>
+        </div>
 
         <FinancialSubmissionForm
           expenseId={expense.id}
