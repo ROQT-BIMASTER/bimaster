@@ -1043,7 +1043,7 @@ export default function ProjetosMinhaEquipe() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Hierarquia da Equipe
+              {isLeader ? "Hierarquia da Equipe" : "Meu perfil"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 max-h-[500px] overflow-y-auto">
@@ -1060,7 +1060,7 @@ export default function ProjetosMinhaEquipe() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              Ranking de Produtividade
+              {isLeader ? "Ranking de Produtividade" : "Minha pontuação"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
