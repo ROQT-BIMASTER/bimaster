@@ -89,20 +89,50 @@ export default function CadastroTituloAP() {
   }, [existingTitle, isEdit]);
 
   // Lookups
+  // Fornecedor: leitura direta de `fornecedores` (RLS authenticated). A clientes-api lia da
+  // tabela `clientes` e devolvia clientes.id (UUID) → Number(UUID)=NaN → o /incluir rejeitava
+  // o fornecedor (bug). O /incluir valida contra fornecedores.codigo_externo — é essa a origem.
+  // Busca server-side preservada (ilike debounced); sanitiza vírgula/parênteses do .or().
   const { data: fornecedores } = useQuery({
     queryKey: ["ap-fornecedores", fornecedorBuscaDebounced],
-    queryFn: () => callApi("clientes-api", {
-      path: "/listar",
-      pagina: 1,
-      registros_por_pagina: 50,
-      ...(fornecedorBuscaDebounced ? { clientesFiltro: { razao_social: fornecedorBuscaDebounced } } : {}),
-    }),
+    queryFn: async () => {
+      let query = supabase
+        .from("fornecedores")
+        .select("codigo_externo, razao_social, nome")
+        .eq("status", "ativo")
+        .not("codigo_externo", "is", null)
+        .order("razao_social", { ascending: true, nullsFirst: false })
+        .limit(50);
+      const termo = fornecedorBuscaDebounced?.replace(/[,()]/g, " ").trim();
+      if (termo) {
+        query = query.or(`razao_social.ilike.%${termo}%,nome.ilike.%${termo}%`);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      // Mesmo shape que o Command/Popover consome: code = codigo_cliente_huggs, label = razao_social.
+      return (data ?? []).map((f: any) => ({
+        codigo_cliente_huggs: f.codigo_externo,
+        razao_social: f.razao_social || f.nome || "",
+      }));
+    },
     staleTime: 60_000,
   });
 
+  // Categoria (plano de contas): leitura direta de `trade_chart_of_accounts` (RLS já filtra
+  // financeiro/admin/supervisor — não afrouxa). Só contas lançáveis (folhas). O value é o `code`,
+  // que o /incluir valida e usa p/ resolver plano_contas_id.
   const { data: categorias } = useQuery({
     queryKey: ["ap-categorias"],
-    queryFn: () => callApi("categorias-api", { path: "/listar" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .select("code, name")
+        .eq("is_active", true)
+        .eq("permite_lancamento", true)
+        .order("code");
+      if (error) throw error;
+      return (data ?? []).map((c: any) => ({ codigo: c.code, descricao: c.name }));
+    },
     staleTime: 120_000,
   });
 
@@ -137,15 +167,43 @@ export default function CadastroTituloAP() {
     staleTime: 120_000,
   });
 
+  // Conta corrente: leitura direta de `contas_bancarias` (RLS financeiro/admin). O value é o
+  // n_cod_cc (BIGINT) — id_conta_corrente em contas_pagar é numérico; Number(UUID) daria NaN.
+  // Filtra n_cod_cc não-nulo (só contas com código ERP referenciável).
   const { data: contasCC } = useQuery({
     queryKey: ["ap-contas-correntes"],
-    queryFn: () => callApi("contas-correntes-api", { path: "/resumo" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_bancarias")
+        .select("id, n_cod_cc, descricao, codigo_integracao")
+        .eq("inativo", false)
+        .not("n_cod_cc", "is", null)
+        .order("descricao", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []).map((c: any) => ({
+        nCodCC: c.n_cod_cc,
+        cCodCCInt: c.codigo_integracao,
+        descricao: c.descricao,
+        id: c.id,
+      }));
+    },
     staleTime: 120_000,
   });
 
+  // Condição de parcela: leitura direta de `parcelas_condicoes` (RLS SELECT authenticated).
+  // value = codigo (varchar), que o /incluir espera em codigo_parcela.
   const { data: condicoesParcelas } = useQuery({
     queryKey: ["ap-parcelas-condicoes"],
-    queryFn: () => callApi("parcelas-api", { path: "/listar" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parcelas_condicoes")
+        .select("codigo, descricao, numero_parcelas")
+        .eq("ativo", true)
+        .order("codigo", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
     staleTime: 120_000,
   });
 
@@ -272,12 +330,12 @@ export default function CadastroTituloAP() {
     );
   }
 
-  const fornecedoresList = fornecedores?.clientes_cadastro || fornecedores?.data || [];
-  const categoriasList = categorias?.data || categorias?.categorias || [];
+  const fornecedoresList = Array.isArray(fornecedores) ? fornecedores : [];
+  const categoriasList = Array.isArray(categorias) ? categorias : [];
   const departamentosList = Array.isArray(departamentos) ? departamentos : [];
   const projetosList = Array.isArray(projetos) ? projetos : [];
-  const contasCCList = contasCC?.data || contasCC?.contas || [];
-  const parcelasList = condicoesParcelas?.data || condicoesParcelas?.parcelas || [];
+  const contasCCList = Array.isArray(contasCC) ? contasCC : [];
+  const parcelasList = Array.isArray(condicoesParcelas) ? condicoesParcelas : [];
 
   // Parcelamento preview
   const parcPreview = (() => {
