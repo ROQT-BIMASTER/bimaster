@@ -624,8 +624,8 @@ function AppContent() {
 
             <Route path="/dashboard/briefings" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingsHome /></ModuleScreenRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingWorkspace /></ModuleScreenRoute>} />
-            <Route path="/dashboard/controladoria" element={<ProtectedRoute><ControladoriaProdutos /></ProtectedRoute>} />
-            <Route path="/dashboard/rr-tasks" element={<ProtectedRoute><RrTasksBoard /></ProtectedRoute>} />
+            <Route path="/dashboard/controladoria" element={<ScreenRoute screenCode="controladoria"><ControladoriaProdutos /></ScreenRoute>} />
+            <Route path="/dashboard/rr-tasks" element={<ScreenRoute screenCode="admin"><RrTasksBoard /></ScreenRoute>} />
             
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
