@@ -999,41 +999,43 @@ export default function ProjetosMinhaEquipe() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap" data-tour="equipe-filters">
-        {hasFullView && gerentesDisponiveis.length > 0 && (
-          <Select value={equipeFilter} onValueChange={setEquipeFilter}>
-            <SelectTrigger className="h-8 text-xs w-[260px]">
-              <Users className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
-              <SelectValue placeholder="Equipe completa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Equipe completa (todas)</SelectItem>
-              {gerentesDisponiveis.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  Equipe de {g.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <ProjetoFilterSelect
-          projetos={projetos}
-          value={projetoFilter}
-          onChange={setProjetoFilter}
-        />
-        {projetoFilter !== "todos" && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
-            <X className="h-3.5 w-3.5" />
-            Limpar projeto
-          </Button>
-        )}
-        {hasFullView && equipeFilter !== "todas" && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setEquipeFilter("todas")}>
-            <X className="h-3.5 w-3.5" />
-            Limpar equipe
-          </Button>
-        )}
-      </div>
+      {isLeader && (
+        <div className="flex items-center gap-2 flex-wrap" data-tour="equipe-filters">
+          {hasFullView && gerentesDisponiveis.length > 0 && (
+            <Select value={equipeFilter} onValueChange={setEquipeFilter}>
+              <SelectTrigger className="h-8 text-xs w-[260px]">
+                <Users className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Equipe completa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Equipe completa (todas)</SelectItem>
+                {gerentesDisponiveis.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    Equipe de {g.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <ProjetoFilterSelect
+            projetos={projetos}
+            value={projetoFilter}
+            onChange={setProjetoFilter}
+          />
+          {projetoFilter !== "todos" && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
+              <X className="h-3.5 w-3.5" />
+              Limpar projeto
+            </Button>
+          )}
+          {hasFullView && equipeFilter !== "todas" && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setEquipeFilter("todas")}>
+              <X className="h-3.5 w-3.5" />
+              Limpar equipe
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6" data-tour="equipe-cards">
         {/* Hierarchy */}
