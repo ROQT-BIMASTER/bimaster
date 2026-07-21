@@ -25,6 +25,7 @@ import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 
 const ORDEM_KEY = "pedidos-result:ordem";
 const FILIAL_KEY = "pedidos-result:filial";
+const ETAPA_KEY = "pedidos-result:etapa";
 
 export default function PedidosResultPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(() => subDays(new Date(), 30));
@@ -43,9 +44,13 @@ export default function PedidosResultPage() {
     } catch { return "parado"; }
   });
   const [apenasParados, setApenasParados] = useState(false);
+  const [etapaId, setEtapaId] = useState<string>(() => {
+    try { return localStorage.getItem(ETAPA_KEY) ?? "all"; } catch { return "all"; }
+  });
 
   useEffect(() => { try { localStorage.setItem(FILIAL_KEY, filialId); } catch { /* ignore */ } }, [filialId]);
   useEffect(() => { try { localStorage.setItem(ORDEM_KEY, ordem); } catch { /* ignore */ } }, [ordem]);
+  useEffect(() => { try { localStorage.setItem(ETAPA_KEY, etapaId); } catch { /* ignore */ } }, [etapaId]);
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
   const { data: filiais = [] } = useDimEmpresas();
@@ -64,6 +69,11 @@ export default function PedidosResultPage() {
       const idNum = Number(filialId);
       arr = arr.filter((p) => p.empresa_id === idNum);
     }
+    if (etapaId !== "all") {
+      const coluna = KANBAN_COLUNAS_RESULT.find((c) => c.id === etapaId);
+      const etapasAceitas = new Set(coluna?.etapas ?? [etapaId]);
+      arr = arr.filter((p) => etapasAceitas.has(p.etapa));
+    }
     if (apenasParados) {
       arr = arr.filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado);
     }
@@ -77,7 +87,7 @@ export default function PedidosResultPage() {
       );
     }
     return arr;
-  }, [data, busca, filialId, apenasParados, limiarParado]);
+  }, [data, busca, filialId, etapaId, apenasParados, limiarParado]);
 
   const paradosCount = useMemo(
     () => (data ?? []).filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado).length,
@@ -149,6 +159,22 @@ export default function PedidosResultPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col gap-1 min-w-[180px]">
+              <Label className="text-xs text-muted-foreground">Etapa</Label>
+              <Select value={etapaId} onValueChange={setEtapaId}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todas as etapas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as etapas</SelectItem>
+                  {KANBAN_COLUNAS_RESULT.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
               <Label className="text-xs text-muted-foreground">Buscar</Label>
               <div className="relative">
@@ -191,12 +217,17 @@ export default function PedidosResultPage() {
 
         <LeadTimeKpisCard />
 
-        {(filialId !== "all" || apenasParados) && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {(filialId !== "all" || apenasParados || etapaId !== "all") && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <span>Filtros ativos:</span>
             {filialId !== "all" && (
               <Badge variant="secondary" className="gap-1">
                 {filiaisAtivas.find((f) => String(f.id_empresa) === filialId)?.nome_empresa ?? `Filial ${filialId}`}
+              </Badge>
+            )}
+            {etapaId !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Etapa: {KANBAN_COLUNAS_RESULT.find((c) => c.id === etapaId)?.label ?? etapaId}
               </Badge>
             )}
             {apenasParados && (
