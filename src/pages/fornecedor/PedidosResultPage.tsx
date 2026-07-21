@@ -25,6 +25,7 @@ import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 
 const ORDEM_KEY = "pedidos-result:ordem";
 const FILIAL_KEY = "pedidos-result:filial";
+const ETAPA_KEY = "pedidos-result:etapa";
 
 export default function PedidosResultPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(() => subDays(new Date(), 30));
