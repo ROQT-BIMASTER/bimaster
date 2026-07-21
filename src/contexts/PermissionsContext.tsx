@@ -31,6 +31,8 @@ export const DEFAULT_SCREENS: ReadonlySet<string> = new Set([
   "projetos_equipe",
   "projetos_aprovacoes",
   "projetos_aprovacoes_central",
+  "chat",
+  "aprovacoes",
 ]);
 
 // Cache global para evitar re-fetch em re-renders
