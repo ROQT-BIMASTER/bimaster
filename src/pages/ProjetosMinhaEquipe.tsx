@@ -798,6 +798,11 @@ export default function ProjetosMinhaEquipe() {
 
   // Filtra a árvore para a sub-hierarquia do gerente escolhido
   const filteredTeam = useMemo(() => {
+    // Non-leaders só enxergam a si próprios
+    if (!isLeader) {
+      const self = allMembersRaw.find((m) => m.id === user?.id);
+      return self ? [{ ...self, subordinados: [] }] : [];
+    }
     if (!hasFullView || equipeFilter === "todas") return projetoFilteredTeam;
     const findNode = (members: ProjetoTeamMember[]): ProjetoTeamMember | null => {
       for (const m of members) {
@@ -811,7 +816,7 @@ export default function ProjetosMinhaEquipe() {
     };
     const node = findNode(projetoFilteredTeam);
     return node ? [node] : [];
-  }, [projetoFilteredTeam, equipeFilter, hasFullView]);
+  }, [projetoFilteredTeam, equipeFilter, hasFullView, isLeader, allMembersRaw, user?.id]);
 
   // Membros visíveis no escopo atual (para KPIs e ranking)
   const visibleMembers = useMemo(() => flattenMembers(filteredTeam), [filteredTeam]);
