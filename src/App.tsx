@@ -1065,6 +1065,8 @@ function AppContent() {
             <Route path="/index" element={<Navigate to="/" replace />} />
             <Route path="/index.html" element={<Navigate to="/" replace />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
+            {/* Fail-closed: qualquer /dashboard/* não mapeado cai em "acesso negado / não encontrado" para usuários autenticados */}
+            <Route path="/dashboard/*" element={<ProtectedRoute><AccessDenied message="Tela não encontrada ou sem permissão." /></ProtectedRoute>} />
             {/* Catch-all route - must be last */}
             <Route path="*" element={<ErrorPage />} />
           </Routes>
