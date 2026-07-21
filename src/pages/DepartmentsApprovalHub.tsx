@@ -320,7 +320,14 @@ export default function DepartmentsApprovalHub() {
                           <div className="text-lg font-bold text-primary">
                             R$ {budget.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </div>
-                          <Button size="sm" className="mt-2">
+                          <Button
+                            size="sm"
+                            className="mt-2"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedBudget(budget);
+                            }}
+                          >
                             Revisar
                           </Button>
                         </div>
@@ -495,7 +502,14 @@ export default function DepartmentsApprovalHub() {
                             <div className="text-lg font-bold text-primary">
                               R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </div>
-                            <Button size="sm" className="mt-2">
+                            <Button
+                              size="sm"
+                              className="mt-2"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedExpense(expense);
+                              }}
+                            >
                               Revisar
                             </Button>
                           </div>
