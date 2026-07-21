@@ -17,6 +17,11 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { duplicarTarefa } from "@/lib/tarefas/duplicarTarefa";
+import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaComoModeloDialog";
+import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
