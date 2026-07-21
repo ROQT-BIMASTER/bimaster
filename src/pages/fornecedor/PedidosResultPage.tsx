@@ -159,6 +159,22 @@ export default function PedidosResultPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col gap-1 min-w-[180px]">
+              <Label className="text-xs text-muted-foreground">Etapa</Label>
+              <Select value={etapaId} onValueChange={setEtapaId}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todas as etapas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as etapas</SelectItem>
+                  {KANBAN_COLUNAS_RESULT.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
               <Label className="text-xs text-muted-foreground">Buscar</Label>
               <div className="relative">
