@@ -80,6 +80,9 @@ interface ProjetoSecaoProps {
   onAddTarefa: (titulo: string, secaoId: string) => void;
   onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
   onDeleteTarefa?: (tarefaId: string) => void;
+  onDuplicarTarefa?: (tarefaId: string) => void;
+  onSalvarTarefaComoModelo?: (tarefaId: string) => void;
+  onAplicarModelo?: (secaoId: string) => void;
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   onDeleteSecao?: (secaoId: string) => void;
@@ -97,6 +100,7 @@ export function ProjetoSecao({
   projetoDataInicio = null, projetoDataFimAlvo = null, projetoRegime = "dias_uteis",
   onUpdateSecao,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
+  onDuplicarTarefa, onSalvarTarefaComoModelo, onAplicarModelo,
   onDeleteSecao,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
