@@ -957,7 +957,7 @@ function AppContent() {
             <Route path="/dashboard/admin/checagem-semanal-tarefas" element={<ScreenRoute screenCode="admin"><ChecagemSemanalTarefas /></ScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/projetos/convites" element={<ProtectedRoute><ProjetosConvites /></ProtectedRoute>} />
+            <Route path="/dashboard/projetos/convites" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_convites"><ProjetosConvites /></ModuleScreenRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
