@@ -69,6 +69,11 @@ export default function PedidosResultPage() {
       const idNum = Number(filialId);
       arr = arr.filter((p) => p.empresa_id === idNum);
     }
+    if (etapaId !== "all") {
+      const coluna = KANBAN_COLUNAS_RESULT.find((c) => c.id === etapaId);
+      const etapasAceitas = new Set(coluna?.etapas ?? [etapaId]);
+      arr = arr.filter((p) => etapasAceitas.has(p.etapa));
+    }
     if (apenasParados) {
       arr = arr.filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado);
     }
@@ -82,7 +87,7 @@ export default function PedidosResultPage() {
       );
     }
     return arr;
-  }, [data, busca, filialId, apenasParados, limiarParado]);
+  }, [data, busca, filialId, etapaId, apenasParados, limiarParado]);
 
   const paradosCount = useMemo(
     () => (data ?? []).filter((p) => p.em_andamento && (p.dias_na_etapa ?? 0) > limiarParado).length,
