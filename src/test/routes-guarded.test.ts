@@ -22,6 +22,10 @@ const NEUTRAL_ROUTES = new Set([
   "/dashboard/instalar-app",
   "/dashboard/security/mfa",
   "/dashboard/ajuda/projetos-visibilidade",
+  // Fallback fail-closed já renderiza AccessDenied — validado em teste separado.
+  "/dashboard/*",
+  // Redirect interno (usa componente wrapper que faz Navigate).
+  "/dashboard/financeiro/plano-reducao/:planoId",
 ]);
 
 const GUARD_TOKENS = [
