@@ -16,6 +16,21 @@ interface PermissionsContextType {
 
 const PermissionsContext = createContext<PermissionsContextType | null>(null);
 
+/**
+ * Módulos e telas liberados por padrão para TODO usuário autenticado, além
+ * do que já tenha sido concedido individualmente. Cobre a área de trabalho
+ * pessoal (Central de Trabalho, Minhas Tarefas, Meus Projetos, Minha Equipe,
+ * Modelos de Projeto e Central de Aprovações), que são consideradas telas
+ * de produtividade base.
+ */
+export const DEFAULT_MODULES: ReadonlySet<string> = new Set(["projetos"]);
+export const DEFAULT_SCREENS: ReadonlySet<string> = new Set([
+  "projetos_home",
+  "projetos_minhas_tarefas",
+  "projetos_aprovacoes",
+  "projetos_aprovacoes_central",
+]);
+
 // Cache global para evitar re-fetch em re-renders
 let globalPermissionsCache: {
   userId: string | null;
@@ -438,6 +453,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const hasModulePermission = useCallback((moduleCode: string): boolean => {
     if (isAdmin) return true;
+    if (DEFAULT_MODULES.has(moduleCode)) return true;
     // Alias: 'fornecedor_vendas' e 'fornecedor_vendas_result' são agrupamentos de menu que herdam a permissão de 'fornecedor'.
     if (moduleCode === "fornecedor_vendas" || moduleCode === "fornecedor_vendas_result") return modulesSet.has("fornecedor");
     return modulesSet.has(moduleCode);
@@ -445,6 +461,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
     if (isAdmin) return true;
+    if (DEFAULT_SCREENS.has(screenCode)) return true;
     return screensSet.has(screenCode);
   }, [screensSet, isAdmin]);
 
