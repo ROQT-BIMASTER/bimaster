@@ -50927,6 +50927,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_modelos: {
+        Row: {
+          created_at: string
+          created_by: string
+          departamento_id: string | null
+          descricao_curta: string | null
+          escopo: string
+          id: string
+          nome: string
+          payload: Json
+          ultimo_uso_em: string | null
+          updated_at: string
+          uso_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          departamento_id?: string | null
+          descricao_curta?: string | null
+          escopo: string
+          id?: string
+          nome: string
+          payload: Json
+          ultimo_uso_em?: string | null
+          updated_at?: string
+          uso_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          departamento_id?: string | null
+          descricao_curta?: string | null
+          escopo?: string
+          id?: string
+          nome?: string
+          payload?: Json
+          ultimo_uso_em?: string | null
+          updated_at?: string
+          uso_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefa_modelos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefa_modelos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       team_form_submissions: {
         Row: {
           cpf: string

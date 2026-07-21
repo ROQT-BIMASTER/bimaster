@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck, Copy, FileText } from "lucide-react";
 import { AsanaBadge } from "@/components/projetos/shared/AsanaBadge";
 import { CanalCriacaoBadge } from "@/components/projetos/shared/CanalCriacaoBadge";
 import { DescricaoIndicator } from "@/components/projetos/shared/DescricaoIndicator";
@@ -42,6 +42,8 @@ interface ProjetoTarefaRowProps {
   onSelect?: (tarefa: ProjetoTarefa) => void;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
   onDelete?: (tarefaId: string) => void;
+  onDuplicar?: (tarefaId: string) => void;
+  onSalvarModelo?: (tarefaId: string) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -52,7 +54,7 @@ interface ProjetoTarefaRowProps {
 
 function ProjetoTarefaRowImpl({
   tarefa, indented = false, selected = false,
-  onToggle, onSelect, onUpdate, onDelete,
+  onToggle, onSelect, onUpdate, onDelete, onDuplicar, onSalvarModelo,
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
