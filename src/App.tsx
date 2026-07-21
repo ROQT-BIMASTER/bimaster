@@ -19,6 +19,7 @@ import { CrmAdminRoute } from "@/components/auth/CrmAdminRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { ModuleScreenRoute } from "@/components/auth/ModuleScreenRoute";
+import { AccessDenied } from "@/components/common/AccessDenied";
 import { DashboardRedirect } from "@/components/auth/DashboardRedirect";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
