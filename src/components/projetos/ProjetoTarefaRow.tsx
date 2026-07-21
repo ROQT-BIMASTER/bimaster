@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck, Copy, FileText } from "lucide-react";
 import { AsanaBadge } from "@/components/projetos/shared/AsanaBadge";
 import { CanalCriacaoBadge } from "@/components/projetos/shared/CanalCriacaoBadge";
 import { DescricaoIndicator } from "@/components/projetos/shared/DescricaoIndicator";
@@ -42,6 +42,8 @@ interface ProjetoTarefaRowProps {
   onSelect?: (tarefa: ProjetoTarefa) => void;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
   onDelete?: (tarefaId: string) => void;
+  onDuplicar?: (tarefaId: string) => void;
+  onSalvarModelo?: (tarefaId: string) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -52,7 +54,7 @@ interface ProjetoTarefaRowProps {
 
 function ProjetoTarefaRowImpl({
   tarefa, indented = false, selected = false,
-  onToggle, onSelect, onUpdate, onDelete,
+  onToggle, onSelect, onUpdate, onDelete, onDuplicar, onSalvarModelo,
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -339,6 +341,8 @@ function ProjetoTarefaRowImpl({
             darkBg={darkBg}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            onDuplicar={onDuplicar}
+            onSalvarModelo={onSalvarModelo}
           />
         </div>
         )}
@@ -351,6 +355,8 @@ function ProjetoTarefaRowImpl({
               darkBg={darkBg}
               onUpdate={onUpdate}
               onDelete={onDelete}
+              onDuplicar={onDuplicar}
+              onSalvarModelo={onSalvarModelo}
             />
           </div>
         )}
@@ -361,6 +367,7 @@ function ProjetoTarefaRowImpl({
         <ProjetoTarefaRow
           key={(st as any).__clientKey || st.id} tarefa={st} indented
           onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} onDelete={onDelete}
+          onDuplicar={onDuplicar} onSalvarModelo={onSalvarModelo}
           teamMembers={teamMembers}
           onAddColaborador={onAddColaborador}
           onRemoveColaborador={onRemoveColaborador}
@@ -846,11 +853,15 @@ function TarefaActionsMenu({
   darkBg,
   onUpdate,
   onDelete,
+  onDuplicar,
+  onSalvarModelo,
 }: {
   tarefa: ProjetoTarefa;
   darkBg: boolean;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
   onDelete?: (id: string) => void;
+  onDuplicar?: (id: string) => void;
+  onSalvarModelo?: (id: string) => void;
 }) {
   const [calOpen, setCalOpen] = useState(false);
   const isCancelada = tarefa.status === "cancelada";
@@ -878,6 +889,21 @@ function TarefaActionsMenu({
       <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
         <DropdownMenuSeparator />
+
+        {onDuplicar && (
+          <DropdownMenuItem onClick={() => onDuplicar(tarefa.id)}>
+            <Copy className="h-3.5 w-3.5 mr-2" />
+            Duplicar tarefa
+          </DropdownMenuItem>
+        )}
+        {onSalvarModelo && (
+          <DropdownMenuItem onClick={() => onSalvarModelo(tarefa.id)}>
+            <FileText className="h-3.5 w-3.5 mr-2" />
+            Salvar como modelo
+          </DropdownMenuItem>
+        )}
+        {(onDuplicar || onSalvarModelo) && <DropdownMenuSeparator />}
+
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

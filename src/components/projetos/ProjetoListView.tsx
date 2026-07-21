@@ -17,6 +17,11 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { duplicarTarefa } from "@/lib/tarefas/duplicarTarefa";
+import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaComoModeloDialog";
+import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -45,6 +50,36 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const { isAdmin } = useUserRole();
   const currentUserId = user?.id ?? null;
   const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
+  const queryClient = useQueryClient();
+  const [modeloTarefaId, setModeloTarefaId] = useState<string | null>(null);
+  const [modeloTarefaTitulo, setModeloTarefaTitulo] = useState<string>("");
+  const [aplicarSecaoId, setAplicarSecaoId] = useState<string | null>(null);
+
+  const handleDuplicarTarefa = async (tarefaId: string) => {
+    if (!user?.id) return;
+    const t = tarefas.find((x) => x.id === tarefaId);
+    if (!t) return;
+    try {
+      await duplicarTarefa({
+        tarefaId,
+        projetoId,
+        secaoId: t.secao_id,
+        criadorId: user.id,
+        parentTarefaId: t.parent_tarefa_id ?? null,
+      });
+      toast.success("Tarefa duplicada");
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao duplicar");
+    }
+  };
+
+  const handleSalvarModelo = (tarefaId: string) => {
+    const t = tarefas.find((x) => x.id === tarefaId);
+    setModeloTarefaId(tarefaId);
+    setModeloTarefaTitulo(t?.titulo || "");
+  };
+
   // Tarefa aberta é persistida em `?tarefa=<id>` para sobreviver a reload do
   // PWA, refresh manual e troca de aba. Reabrir aba não fecha mais o drawer.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -302,6 +337,9 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onAddTarefa={handleAddTarefa}
             onUpdateTarefa={handleUpdateTarefa}
             onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
+            onDuplicarTarefa={handleDuplicarTarefa}
+            onSalvarTarefaComoModelo={handleSalvarModelo}
+            onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
             onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
             onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
             onCreateBriefingTasks={handleCreateBriefingTasks}
@@ -354,6 +392,22 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         createFromFile={createFromFile}
         loading={iaLoading === "create_tasks" || iaLoading === "create_from_file"}
       />
+
+      <SalvarTarefaComoModeloDialog
+        open={!!modeloTarefaId}
+        onOpenChange={(v) => { if (!v) setModeloTarefaId(null); }}
+        tarefaId={modeloTarefaId}
+        tarefaTitulo={modeloTarefaTitulo}
+      />
+
+      {aplicarSecaoId && (
+        <AplicarTarefaModeloDialog
+          open={!!aplicarSecaoId}
+          onOpenChange={(v) => { if (!v) setAplicarSecaoId(null); }}
+          projetoId={projetoId}
+          secaoId={aplicarSecaoId}
+        />
+      )}
     </>
   );
 }
