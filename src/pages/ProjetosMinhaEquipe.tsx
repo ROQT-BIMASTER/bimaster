@@ -763,7 +763,8 @@ export default function ProjetosMinhaEquipe() {
   const isLeader = useMemo(() => {
     if (canManage) return true;
     if (!user?.id) return false;
-    return allMembersRaw.some((m) => m.subordinados && m.subordinados.some((s) => s.id === user.id) === false && m.id === user.id && (m.subordinados?.length ?? 0) > 0);
+    const selfNode = allMembersRaw.find((m) => m.id === user.id);
+    return !!selfNode && (selfNode.subordinados?.length ?? 0) > 0;
   }, [allMembersRaw, canManage, user?.id]);
 
   // Filter members by project participation
