@@ -63,6 +63,8 @@ export function useEstoqueErpSync() {
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [erpConnectionStatus, setErpConnectionStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
   const [syncProgress, setSyncProgress] = useState(initialProgress);
+  const confirm = useConfirm();
+
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
