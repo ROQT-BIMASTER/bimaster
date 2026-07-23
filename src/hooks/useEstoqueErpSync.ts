@@ -1,8 +1,19 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 import { toast } from "sonner";
+
+const ERP_URGENCY_CONFIRM = {
+  title: "Consultar ERP do Result agora?",
+  description:
+    "Esta ação consulta o ERP do Result imediatamente. Por acordo com a equipe do Result, as consultas devem ocorrer só fora do horário comercial (janelas automáticas 05:30 e 21:30). Use apenas em urgência real. Continuar?",
+  confirmLabel: "Executar mesmo assim",
+  cancelLabel: "Cancelar",
+  destructive: true,
+} as const;
+
 export interface SyncResult {
   success: boolean;
   totalRows?: number;
@@ -52,6 +63,8 @@ export function useEstoqueErpSync() {
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [erpConnectionStatus, setErpConnectionStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
   const [syncProgress, setSyncProgress] = useState(initialProgress);
+  const confirm = useConfirm();
+
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -172,8 +185,11 @@ export function useEstoqueErpSync() {
   }, [toast, callErpEngine]);
 
   const syncFull = useCallback(async () => {
+    const ok = await confirm(ERP_URGENCY_CONFIRM);
+    if (!ok) return null;
     setIsSyncing(true);
     setSyncProgress({ isActive: true, elapsedSeconds: 0, message: 'Sincronizando estoque (todas distribuidoras)...', startTime: Date.now() });
+
     try {
       const data = await callErpEngine('sync-estoque-full');
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `${data?.empresas || 0} distribuidoras processadas` });
@@ -189,7 +205,8 @@ export function useEstoqueErpSync() {
       setIsSyncing(false);
       setSyncProgress(prev => ({ ...prev, isActive: false, message: 'Concluído' }));
     }
-  }, [callErpEngine, toast, fetchStats, fetchSyncHistory]);
+  }, [callErpEngine, toast, fetchStats, fetchSyncHistory, confirm]);
+
 
   const syncIncremental = useCallback(async () => {
     // Para estoque, incremental == full rápido (não há timestamp na fonte)
@@ -197,8 +214,11 @@ export function useEstoqueErpSync() {
   }, [syncFull]);
 
   const syncByEmpresa = useCallback(async (empresaId: number) => {
+    const ok = await confirm(ERP_URGENCY_CONFIRM);
+    if (!ok) return null;
     setIsSyncing(true);
     setSyncProgress({ isActive: true, elapsedSeconds: 0, message: `Sincronizando distribuidora ${empresaId}...`, startTime: Date.now() });
+
     try {
       const data = await callErpEngine('sync-estoque-por-empresa', { empresa_id: empresaId });
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `Distribuidora ${empresaId} sincronizada` });
@@ -214,7 +234,7 @@ export function useEstoqueErpSync() {
       setIsSyncing(false);
       setSyncProgress(prev => ({ ...prev, isActive: false, message: 'Concluído' }));
     }
-  }, [callErpEngine, toast, fetchStats, fetchSyncHistory]);
+  }, [callErpEngine, toast, fetchStats, fetchSyncHistory, confirm]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([fetchStats(), fetchSyncHistory()]);

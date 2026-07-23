@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toast } from "sonner";
+
 
 interface HealthRow {
   fonte: string;
@@ -41,6 +43,8 @@ function ageMinutes(iso: string | null): number | null {
 export function SyncHealthBadge() {
   const qc = useQueryClient();
   const { isAdmin } = useUserRole();
+  const confirm = useConfirm();
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["estoque-sync-health"],
@@ -68,7 +72,17 @@ export function SyncHealthBadge() {
   }, [rows]);
 
   const handleForceSync = async (path: "sync-estoque-full" | "sync-estoque-live") => {
+    const ok = await confirm({
+      title: "Consultar ERP do Result agora?",
+      description:
+        "Esta ação consulta o ERP do Result imediatamente. Por acordo com a equipe do Result, as consultas devem ocorrer só fora do horário comercial (janelas automáticas 05:30 e 21:30). Use apenas em urgência real. Continuar?",
+      confirmLabel: "Executar mesmo assim",
+      cancelLabel: "Cancelar",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
+
       const { error } = await supabase.functions.invoke("erp-sync-engine", { body: { path } });
       if (error) throw error;
       toast.success(
