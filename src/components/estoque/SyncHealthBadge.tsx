@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toast } from "sonner";
+
 
 interface HealthRow {
   fonte: string;
