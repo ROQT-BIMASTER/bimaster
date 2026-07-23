@@ -9,8 +9,8 @@ const ERP_URGENCY_CONFIRM = {
   title: "Consultar ERP do Result agora?",
   description:
     "Esta ação consulta o ERP do Result imediatamente. Por acordo com a equipe do Result, as consultas devem ocorrer só fora do horário comercial (janelas automáticas 05:30 e 21:30). Use apenas em urgência real. Continuar?",
-  confirmText: "Executar mesmo assim",
-  cancelText: "Cancelar",
+  confirmLabel: "Executar mesmo assim",
+  cancelLabel: "Cancelar",
   destructive: true,
 } as const;
 
