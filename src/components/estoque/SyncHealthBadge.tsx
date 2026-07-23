@@ -43,6 +43,8 @@ function ageMinutes(iso: string | null): number | null {
 export function SyncHealthBadge() {
   const qc = useQueryClient();
   const { isAdmin } = useUserRole();
+  const confirm = useConfirm();
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["estoque-sync-health"],
