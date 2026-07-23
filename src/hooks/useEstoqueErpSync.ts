@@ -234,7 +234,7 @@ export function useEstoqueErpSync() {
       setIsSyncing(false);
       setSyncProgress(prev => ({ ...prev, isActive: false, message: 'Concluído' }));
     }
-  }, [callErpEngine, toast, fetchStats, fetchSyncHistory]);
+  }, [callErpEngine, toast, fetchStats, fetchSyncHistory, confirm]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([fetchStats(), fetchSyncHistory()]);
