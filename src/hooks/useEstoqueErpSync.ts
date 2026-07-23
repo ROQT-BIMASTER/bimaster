@@ -1,8 +1,19 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 import { toast } from "sonner";
+
+const ERP_URGENCY_CONFIRM = {
+  title: "Consultar ERP do Result agora?",
+  description:
+    "Esta ação consulta o ERP do Result imediatamente. Por acordo com a equipe do Result, as consultas devem ocorrer só fora do horário comercial (janelas automáticas 05:30 e 21:30). Use apenas em urgência real. Continuar?",
+  confirmText: "Executar mesmo assim",
+  cancelText: "Cancelar",
+  destructive: true,
+} as const;
+
 export interface SyncResult {
   success: boolean;
   totalRows?: number;
