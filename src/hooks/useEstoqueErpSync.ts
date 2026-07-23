@@ -205,7 +205,8 @@ export function useEstoqueErpSync() {
       setIsSyncing(false);
       setSyncProgress(prev => ({ ...prev, isActive: false, message: 'Concluído' }));
     }
-  }, [callErpEngine, toast, fetchStats, fetchSyncHistory]);
+  }, [callErpEngine, toast, fetchStats, fetchSyncHistory, confirm]);
+
 
   const syncIncremental = useCallback(async () => {
     // Para estoque, incremental == full rápido (não há timestamp na fonte)
