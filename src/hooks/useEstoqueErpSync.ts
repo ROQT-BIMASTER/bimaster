@@ -185,8 +185,11 @@ export function useEstoqueErpSync() {
   }, [toast, callErpEngine]);
 
   const syncFull = useCallback(async () => {
+    const ok = await confirm(ERP_URGENCY_CONFIRM);
+    if (!ok) return null;
     setIsSyncing(true);
     setSyncProgress({ isActive: true, elapsedSeconds: 0, message: 'Sincronizando estoque (todas distribuidoras)...', startTime: Date.now() });
+
     try {
       const data = await callErpEngine('sync-estoque-full');
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `${data?.empresas || 0} distribuidoras processadas` });
