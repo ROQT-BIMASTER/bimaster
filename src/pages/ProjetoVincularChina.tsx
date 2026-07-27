@@ -170,7 +170,7 @@ export default function ProjetoVincularChina() {
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (selectedSubmissaoId) next.set("sel", selectedSubmissaoId); else next.delete("sel");
-    if (folder && folder !== "nao_vinculadas") next.set("folder", folder); else next.delete("folder");
+    if (folder && folder !== "enviado_brasil") next.set("folder", folder); else next.delete("folder");
     if (searchTerm) next.set("q", searchTerm); else next.delete("q");
     if (kpiStatusFilter && kpiStatusFilter !== "todos") next.set("kpi", kpiStatusFilter); else next.delete("kpi");
     const cur = searchParams.toString();
