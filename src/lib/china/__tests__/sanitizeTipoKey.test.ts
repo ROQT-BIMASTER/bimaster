@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeStorageSegment } from "../sanitizeTipoKey";
+import { sanitizeStorageSegment, sanitizeStorageFileName } from "../sanitizeTipoKey";
 
 describe("sanitizeStorageSegment", () => {
   it("remove acentos preservando letras", () => {
