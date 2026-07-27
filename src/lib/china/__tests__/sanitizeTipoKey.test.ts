@@ -31,3 +31,21 @@ describe("sanitizeStorageSegment", () => {
     expect(sanitizeStorageSegment("file.name-v2_final")).toBe("file.name-v2_final");
   });
 });
+
+describe("sanitizeStorageFileName", () => {
+  it("preserva extensão em nomes 100% chineses", () => {
+    expect(sanitizeStorageFileName("报告 最终.pdf")).toBe("arquivo.pdf");
+  });
+
+  it("mantém base ASCII e normaliza acentos", () => {
+    expect(sanitizeStorageFileName("Relatório Final.PDF")).toBe("Relatorio_Final.PDF");
+  });
+
+  it("funciona sem extensão", () => {
+    expect(sanitizeStorageFileName("检验")).toBe("arquivo");
+  });
+
+  it("não quebra com nome vazio", () => {
+    expect(sanitizeStorageFileName("")).toBe("arquivo");
+  });
+});
