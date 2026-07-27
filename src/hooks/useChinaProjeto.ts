@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { TEMPLATES } from "@/components/projetos/NovoProjetoDialog";
 import { TAREFAS_POR_SECAO } from "@/lib/projetos/checklistTarefas";
 
 // Re-export para compatibilidade com consumers existentes (ChinaFichaProduto, etc.).
