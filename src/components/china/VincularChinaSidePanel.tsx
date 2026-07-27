@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck
+  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus
 } from "lucide-react";
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
 
@@ -63,6 +63,7 @@ interface Props {
   onEncaminharResponsavel?: () => void;
   onEncaminharProjeto?: () => void;
   onContinuarNoProjeto?: () => void;
+  onConfigurarProjeto?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
@@ -82,6 +83,7 @@ export function VincularChinaSidePanel({
   onEncaminharResponsavel,
   onEncaminharProjeto,
   onContinuarNoProjeto,
+  onConfigurarProjeto,
   secoes, tarefas, vinculos, docVinculos, checkedTarefas,
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
@@ -245,7 +247,7 @@ export function VincularChinaSidePanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Encaminhar para
           </p>
-          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-5" : "grid-cols-4")}>
+          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-6" : "grid-cols-5")}>
             <button
               type="button"
               onClick={() => onContinuarNoProjeto?.()}
@@ -255,6 +257,16 @@ export function VincularChinaSidePanel({
               <Package className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-foreground">Continuar no projeto</span>
             </button>
+            <button
+              type="button"
+              onClick={() => onConfigurarProjeto?.()}
+              className="group flex flex-col items-center gap-1 rounded-md border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors px-2 py-2"
+              title="Configurar projeto: prazos, regime de calendário e substituição do espelho existente"
+            >
+              <FolderPlus className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Configurar projeto</span>
+            </button>
+
             <button
               type="button"
               onClick={() => onEncaminharProjeto?.()}

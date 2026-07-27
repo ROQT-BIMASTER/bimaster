@@ -44,6 +44,7 @@ import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
 import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMailboxSidebar";
 import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
 import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
+import { ConfigurarProjetoEspelhoDialog } from "@/components/china/vincular/ConfigurarProjetoEspelhoDialog";
 import { EncaminharProjetoDialog } from "@/components/china/vincular/EncaminharProjetoDialog";
 import { ContinuarNoProjetoDialog } from "@/components/china/inbox/ContinuarNoProjetoDialog";
 import { UnificacaoBanner } from "@/components/china/vincular/UnificacaoBanner";
@@ -155,6 +156,7 @@ export default function ProjetoVincularChina() {
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
+  const [configurarProjetoOpen, setConfigurarProjetoOpen] = useState(false);
   const [viewMode, setViewMode] = useViewModePreference<"kanban" | "list">(
     "vincular-china",
     "kanban",
@@ -802,6 +804,7 @@ export default function ProjetoVincularChina() {
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
                       onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
+                      onConfigurarProjeto={() => setConfigurarProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
@@ -908,6 +911,7 @@ export default function ProjetoVincularChina() {
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
                       onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
+                      onConfigurarProjeto={() => setConfigurarProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
@@ -1084,6 +1088,15 @@ export default function ProjetoVincularChina() {
       <EncaminharProjetoDialog
         open={encaminharProjetoOpen}
         onOpenChange={setEncaminharProjetoOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
+
+      {/* Configurar projeto — prazos, regime e substituição do espelho */}
+      <ConfigurarProjetoEspelhoDialog
+        open={configurarProjetoOpen}
+        onOpenChange={setConfigurarProjetoOpen}
         submissaoId={selectedSubmissaoId}
         produtoCodigo={selectedSubmissao?.produto_codigo}
         produtoNome={selectedSubmissao?.produto_nome}
