@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { guardFileUpload, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
+import { sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 
 export interface ParecerAnexo {
   id: string;
@@ -124,11 +126,30 @@ export function useSubmissaoPareceres(submissaoId: string | null | undefined) {
 
       for (const file of args.anexos) {
         if (file.size > UPLOAD_MAX_BYTES) continue;
-        const path = `${uid}/${submissaoId}/${parecerId}/${crypto.randomUUID()}-${file.name}`;
+        const ok = await guardFileUpload({
+          file,
+          module: "china-doc",
+          userId: uid,
+          contextId: submissaoId ?? null,
+        });
+        if (!ok) continue;
+        // Nome sanitizado: Storage rejeita caracteres não-ASCII ("Invalid key").
+        const safeName = sanitizeStorageFileName(file.name);
+        const path = `${uid}/${submissaoId}/${parecerId}/${crypto.randomUUID()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("china-pareceres")
           .upload(path, file, { contentType: file.type, upsert: false });
-        if (upErr) continue;
+        if (upErr) {
+          reportUploadFailureShared({
+            module: "china-doc",
+            file,
+            userId: uid,
+            contextId: submissaoId ?? null,
+            error: upErr,
+            toast: true,
+          });
+          continue;
+        }
         await supabase.from("china_submissao_parecer_anexos" as any).insert({
           parecer_id: parecerId,
           storage_path: path,

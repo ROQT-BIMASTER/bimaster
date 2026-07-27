@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
+import { guardFileUpload, reportUploadSuccessShared } from "@/lib/utils/sharedUploadGuard";
+import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 import { DOCUMENT_CATEGORIES, CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 
 export interface ChinaPastaDigitalItem {
@@ -117,15 +119,36 @@ export function useAddChinaPastaDigitalItem() {
       file?: File;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sua sessão expirou. Faça login novamente.");
       let arquivo_url: string | null = null;
       let arquivo_path: string | null = null;
 
       if (params.file) {
-        const path = `${params.submissao_id}/${params.fase}/${Date.now()}_${params.file.name}`;
+        // Validação compartilhada (extensão, MIME, magic bytes, 20MB).
+        const ok = await guardFileUpload({
+          file: params.file,
+          module: "china-doc",
+          userId: user.id,
+          contextId: params.submissao_id,
+        });
+        if (!ok) throw new Error("Arquivo não passou na validação de segurança.");
+
+        // Path exigido pelas regras de acesso: <uid>/<submissao>/<fase>/<arquivo>
+        // Nome sanitizado — Storage rejeita caracteres não-ASCII ("Invalid key").
+        const safeFase = sanitizeStorageSegment(params.fase || "geral");
+        const safeName = sanitizeStorageFileName(params.file.name);
+        const path = `${user.id}/${params.submissao_id}/${safeFase}/${Date.now()}_${safeName}`;
         const result = await uploadAndGetSignedUrl("china-pasta-digital", path, params.file);
         if (result.error) throw result.error;
         arquivo_url = result.signedUrl;
         arquivo_path = path;
+        reportUploadSuccessShared({
+          module: "china-doc",
+          file: params.file,
+          userId: user.id,
+          contextId: params.submissao_id,
+          storagePath: path,
+        });
       }
 
       const { data: existing } = await (supabase
