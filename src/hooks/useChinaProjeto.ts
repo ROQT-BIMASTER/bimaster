@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { TEMPLATES } from "@/components/projetos/NovoProjetoDialog";
 import { TAREFAS_POR_SECAO } from "@/lib/projetos/checklistTarefas";
 
 // Re-export para compatibilidade com consumers existentes (ChinaFichaProduto, etc.).
@@ -240,7 +239,14 @@ export function useChinaTimeline(submissaoId: string | undefined) {
   });
 }
 
-/** Create a development project from a China submission */
+/**
+ * Cria o projeto de desenvolvimento de uma submissão China.
+ *
+ * Entrypoint único: delega a `ProjectService`, o mesmo serviço usado pela
+ * tela "Vincular China". Isso garante que o projeto nasça com uma seção por
+ * categoria do checklist, uma tarefa por item e os documentos da submissão
+ * já anexados — o caminho legado criava apenas seções de template vazias.
+ */
 export function useCriarProjetoChina() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -249,12 +255,9 @@ export function useCriarProjetoChina() {
     mutationFn: async (submissao: { id: string; produto_codigo: string; produto_nome: string }) => {
       if (!user) throw new Error("Não autenticado");
 
-      // Idempotência (Fase 1 da unificação Submissão↔Projeto):
-      // se a submissão já tem qualquer projeto vinculado, retorna o
-      // existente em vez de criar um duplicado. Isso protege contra
-      // double-click, retry de rede e usuários que abrem o botão em
-      // duas abas. Quando não há vínculo, o fluxo legado segue intacto.
       const { ProjectService } = await import("@/lib/projetos/projectService");
+
+      // Idempotência: se já existe vínculo, devolve o projeto existente.
       const existente = await ProjectService.findBySubmission(submissao.id);
       if (existente) {
         const { data: proj } = await supabase
@@ -265,82 +268,21 @@ export function useCriarProjetoChina() {
         if (proj) return proj;
       }
 
-      const nome = `${submissao.produto_codigo} - ${submissao.produto_nome}`;
-      const cor = "#6366f1";
-
-      const sections = TEMPLATES.desenvolvimento_produto.secoes;
-
-      // 1. Create project through the hardened backend path
-      const { data: projeto, error: projError } = await supabase.rpc("rpc_criar_projeto" as any, {
-        _payload: {
-          nome,
-          descricao: `Projeto de desenvolvimento do produto China: ${submissao.produto_codigo}`,
-          cor,
-          icone: "package",
-          tipo: "desenvolvimento_produto",
-          origem_projeto: "china",
-          secoes: sections.map((nomeSecao, i) => ({ nome: nomeSecao, ordem: i })),
-        },
+      const res = await ProjectService.createFromSubmission(submissao.id, {
+        projetoNome: `${submissao.produto_codigo} - ${submissao.produto_nome}`,
       });
-      if (projError) throw projError;
 
-      const { data: secoesCriadas, error: secError } = await supabase
-        .from("projeto_secoes")
-        .select("id, nome, ordem")
-        .eq("projeto_id", projeto.id)
-        .in("nome", sections);
-      if (secError) throw secError;
-
-      // 2. Create auto tasks per section
-      const secoesMap = new Map((secoesCriadas as any[]).map((s) => [s.nome, s.id]));
-
-      const tarefasToInsert: any[] = [];
-      for (const [secaoNome, tarefas] of Object.entries(TAREFAS_POR_SECAO)) {
-        const secaoId = secoesMap.get(secaoNome);
-        if (!secaoId) continue;
-        tarefas.forEach((t, i) => {
-          tarefasToInsert.push({
-            projeto_id: projeto.id,
-            secao_id: secaoId,
-            titulo: t.pt,
-            status: "pendente",
-            prioridade: "media",
-            ordem: i,
-            criador_id: user.id,
-          });
-        });
-      }
-
-      if (tarefasToInsert.length > 0) {
-        const { data: tarefasCriadas } = await supabase
-          .from("projeto_tarefas" as any)
-          .insert(tarefasToInsert)
-          .select("id");
-
-        // 4b. Link all tasks to the China product (produto_id = submissao.id for traceability)
-        if (tarefasCriadas && tarefasCriadas.length > 0) {
-          const links = (tarefasCriadas as any[]).map((t) => ({
-            tarefa_id: t.id,
-            produto_id: submissao.id,
-            created_by: user.id,
-          }));
-          await supabase.from("projeto_tarefa_produtos" as any).insert(links);
-        }
-      }
-
-      // 5. Create link (defensivo: ON CONFLICT lógico — recheca antes de inserir
-      // para tolerar corrida de duas chamadas simultâneas)
-      const racingCheck = await ProjectService.findBySubmission(submissao.id);
-      if (!racingCheck) {
-        await supabase
-          .from("china_submissao_projetos" as any)
-          .insert({ submissao_id: submissao.id, projeto_id: projeto.id, created_by: user.id } as any);
-      }
-
+      const { data: projeto, error } = await supabase
+        .from("projetos")
+        .select("id, nome, cor, status, created_at")
+        .eq("id", res.projeto_id)
+        .maybeSingle();
+      if (error) throw error;
       return projeto;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["china-projetos-vinculados"] });
+      queryClient.invalidateQueries({ queryKey: ["china-projeto-espelho"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
       toast.success("Projeto de desenvolvimento criado!");
     },
@@ -349,3 +291,4 @@ export function useCriarProjetoChina() {
     },
   });
 }
+
