@@ -23,7 +23,7 @@ export function useSubmissoesChina(search: string) {
         .select("id, produto_codigo, produto_nome, status, formula_codigo, ean_unidade, ean_display, ean_caixa_master, peso_liquido_g, peso_bruto_g, qty_total, observacoes_brasil, observacoes_china, numero_ordem, numero_item")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(500);
 
       if (search.trim()) {
         query = query.or(`produto_codigo.ilike.%${search}%,produto_nome.ilike.%${search}%`);

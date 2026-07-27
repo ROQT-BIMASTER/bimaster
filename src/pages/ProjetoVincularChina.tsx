@@ -125,7 +125,9 @@ export default function ProjetoVincularChina() {
   // States — selectedId, folder e busca persistem na URL para sobreviver a refresh
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSel = searchParams.get("sel");
-  const initialFolder = (searchParams.get("folder") as VincularFolder | null) || "nao_vinculadas";
+  // Padrão: "Recebidos da China" (enviado_brasil) — foco operacional do Brasil.
+  // As demais pastas dão acesso ao pipeline completo.
+  const initialFolder = (searchParams.get("folder") as VincularFolder | null) || "enviado_brasil";
   const initialSearch = searchParams.get("q") || "";
 
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(initialSel);
@@ -168,7 +170,7 @@ export default function ProjetoVincularChina() {
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (selectedSubmissaoId) next.set("sel", selectedSubmissaoId); else next.delete("sel");
-    if (folder && folder !== "nao_vinculadas") next.set("folder", folder); else next.delete("folder");
+    if (folder && folder !== "enviado_brasil") next.set("folder", folder); else next.delete("folder");
     if (searchTerm) next.set("q", searchTerm); else next.delete("q");
     if (kpiStatusFilter && kpiStatusFilter !== "todos") next.set("kpi", kpiStatusFilter); else next.delete("kpi");
     const cur = searchParams.toString();
@@ -254,8 +256,8 @@ export default function ProjetoVincularChina() {
   const tableData: SubmissaoRow[] = useMemo(() => {
     return submissoes
       .filter((s: any) => s.produto_codigo && s.produto_nome && s.produto_codigo !== "null")
-      // Esta tela é a Mesa do Intermediador (Brasil): só mostra o que a China efetivamente enviou ao Brasil
-      .filter((s: any) => s.status === "enviado_brasil")
+      // A filtragem por estágio é feita pelas pastas laterais / KPIs — não aqui,
+      // caso contrário as pastas de status ficam estruturalmente vazias.
       .map((s: any) => {
         const isLinked = submissaoVinculadas.has(s.id);
         const linkedVinculo = allVinculos.find(v => v.submissao_id === s.id);
