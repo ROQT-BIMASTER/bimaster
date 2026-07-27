@@ -125,7 +125,9 @@ export default function ProjetoVincularChina() {
   // States — selectedId, folder e busca persistem na URL para sobreviver a refresh
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSel = searchParams.get("sel");
-  const initialFolder = (searchParams.get("folder") as VincularFolder | null) || "nao_vinculadas";
+  // Padrão: "Recebidos da China" (enviado_brasil) — foco operacional do Brasil.
+  // As demais pastas dão acesso ao pipeline completo.
+  const initialFolder = (searchParams.get("folder") as VincularFolder | null) || "enviado_brasil";
   const initialSearch = searchParams.get("q") || "";
 
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(initialSel);
