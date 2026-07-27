@@ -83,6 +83,7 @@ export function VincularChinaSidePanel({
   onEncaminharResponsavel,
   onEncaminharProjeto,
   onContinuarNoProjeto,
+  onConfigurarProjeto,
   secoes, tarefas, vinculos, docVinculos, checkedTarefas,
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
