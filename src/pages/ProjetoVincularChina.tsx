@@ -256,8 +256,8 @@ export default function ProjetoVincularChina() {
   const tableData: SubmissaoRow[] = useMemo(() => {
     return submissoes
       .filter((s: any) => s.produto_codigo && s.produto_nome && s.produto_codigo !== "null")
-      // Esta tela é a Mesa do Intermediador (Brasil): só mostra o que a China efetivamente enviou ao Brasil
-      .filter((s: any) => s.status === "enviado_brasil")
+      // A filtragem por estágio é feita pelas pastas laterais / KPIs — não aqui,
+      // caso contrário as pastas de status ficam estruturalmente vazias.
       .map((s: any) => {
         const isLinked = submissaoVinculadas.has(s.id);
         const linkedVinculo = allVinculos.find(v => v.submissao_id === s.id);
