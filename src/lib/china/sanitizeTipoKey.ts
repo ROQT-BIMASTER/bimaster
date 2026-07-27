@@ -18,3 +18,24 @@ export function sanitizeStorageSegment(input: string): string {
   const trimmed = ascii.slice(0, 64);
   return trimmed.length > 0 ? trimmed : "_";
 }
+
+/**
+ * Sanitiza um nome de arquivo para path do Storage preservando a extensão.
+ * Nomes em chinês/japonês/árabe viram "_" e antes causavam "Invalid key".
+ *
+ *   "报告 最终.pdf" → "arquivo.pdf"
+ *   "Relatório Final.PDF" → "Relatorio_Final.PDF"
+ */
+export function sanitizeStorageFileName(input: string): string {
+  const raw = (input || "").trim();
+  const lastDot = raw.lastIndexOf(".");
+  const hasExt = lastDot > 0 && lastDot < raw.length - 1;
+  const base = hasExt ? raw.slice(0, lastDot) : raw;
+  const extRaw = hasExt ? raw.slice(lastDot + 1) : "";
+
+  let safeBase = sanitizeStorageSegment(base);
+  if (!safeBase || safeBase === "_") safeBase = "arquivo";
+
+  const safeExt = extRaw.replace(/[^A-Za-z0-9]+/g, "").slice(0, 12);
+  return safeExt ? `${safeBase}.${safeExt}` : safeBase;
+}

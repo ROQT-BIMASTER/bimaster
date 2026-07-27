@@ -20,7 +20,7 @@ import { validateFileForUpload } from "@/lib/utils/file-security";
 import { UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { reportGenericUploadSuccess, reportGenericUploadRejection, reportGenericUploadError } from "@/lib/telemetry/uploadTelemetry";
-import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
+import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
@@ -224,7 +224,7 @@ export function useUploadChinaDocumento() {
         const uid = sessionData.session.user.id;
 
         // 4. Path determinístico e ASCII-safe.
-        const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 120) || "arquivo";
+        const safeName = sanitizeStorageFileName(file.name).slice(0, 120) || "arquivo";
         const safeTipo = sanitizeStorageSegment(tipo);
         const path = `${uid}/${submissaoId}/${safeTipo}/${Date.now()}_${safeName}`;
 

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 
 export interface Anotacao {
   tipo: string;
@@ -234,7 +235,7 @@ async function uploadAnexos(
   for (const f of files) {
     const passed = await guardFileUpload({ file: f, module: "china-revisao", userId: uid, contextId: submissaoId });
     if (!passed) continue;
-    const safe = f.name.replace(/[^\w.\-]+/g, "_");
+    const safe = sanitizeStorageFileName(f.name);
     const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     let uploadedPath = path;
     try {
@@ -565,8 +566,10 @@ export function useContestarComParecer() {
       // 4) Upload do novo arquivo principal
       const guardOk = await guardFileUpload({ file: params.novo_arquivo, module: "china-revisao", userId: user.id, contextId: params.submissao_id });
       if (!guardOk) throw new Error("Arquivo não passou na validação.");
-      const safe = params.novo_arquivo.name.replace(/[^\w.\-]+/g, "_");
-      const novoPath = `versoes/${params.submissao_id}/${params.tipo_documento}/v${rodada}/${Date.now()}-${safe}`;
+      const safe = sanitizeStorageFileName(params.novo_arquivo.name);
+      const safeTipo = sanitizeStorageSegment(params.tipo_documento || "documento");
+      // Path exigido pelas regras de acesso: <uid>/<submissao>/...
+      const novoPath = `${user.id}/${params.submissao_id}/versoes/${safeTipo}/v${rodada}/${Date.now()}-${safe}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(
         novoPath,
         params.novo_arquivo,
@@ -577,14 +580,17 @@ export function useContestarComParecer() {
         throw upErr;
       }
       reportUploadSuccessShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, storagePath: novoPath });
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(novoPath);
+      // Bucket privado: URL assinada (getPublicUrl não funciona aqui).
+      const { data: signedNovo } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(novoPath, 31_536_000);
 
       // 5) Atualiza documento corrente
       await supabase
         .from("china_produto_documentos" as any)
         .update({
           arquivo_path: novoPath,
-          arquivo_url: pub.publicUrl,
+          arquivo_url: signedNovo?.signedUrl ?? null,
           nome_arquivo: params.novo_arquivo.name,
           status: "pendente",
         } as any)

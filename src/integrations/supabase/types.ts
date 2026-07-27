@@ -58739,6 +58739,8 @@ export type Database = {
         Args: { _tela_code: string; _user_id: string }
         Returns: boolean
       }
+      china_path_submissao_id: { Args: { _name: string }; Returns: string }
+      china_path_submissao_id_safe: { Args: { _name: string }; Returns: string }
       cleanup_audit_logs_batch: {
         Args: { batch_size?: number; retention_days?: number }
         Returns: number
@@ -62699,6 +62701,10 @@ export type Database = {
       }
       user_can_manage_project_members: {
         Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_read_china_submissao: {
+        Args: { _submissao_id: string; _user_id: string }
         Returns: boolean
       }
       user_can_write_china_submissao: {
