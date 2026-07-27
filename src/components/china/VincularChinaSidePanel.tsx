@@ -63,6 +63,7 @@ interface Props {
   onEncaminharResponsavel?: () => void;
   onEncaminharProjeto?: () => void;
   onContinuarNoProjeto?: () => void;
+  onConfigurarProjeto?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
