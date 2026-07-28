@@ -456,10 +456,13 @@ export function FlowItemFocusDrawer({
         </div>
       </SheetContent>
 
-      <DocFocusDialog
+      <ChinaDocPreviewDialog
         open={focusOpen}
         onOpenChange={setFocusOpen}
-        doc={doc}
+        arquivoPath={doc?.arquivo_path ?? null}
+        arquivoUrl={doc?.arquivo_url ?? null}
+        nomeArquivo={doc?.nome_arquivo ?? null}
+        tipoDocumento={labelPt}
       />
     </Sheet>
   );
