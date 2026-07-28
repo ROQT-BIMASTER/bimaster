@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useDocChecklistTemplates, useSaveDocChecklistTemplate, useDeleteDocChecklistTemplate,
+  useSetTemplatePadrao,
   aplicarTemplateNaSubmissao, useCategoriaOverrides, useUpsertCategoriaOverride,
   type TemplateEstrutura,
 } from "@/hooks/useChinaDocChecklistTemplates";
