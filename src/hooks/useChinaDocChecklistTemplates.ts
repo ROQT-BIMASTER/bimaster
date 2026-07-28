@@ -12,6 +12,8 @@ export interface DocChecklistTemplate {
   descricao: string | null;
   escopo: "pessoal" | "global";
   estrutura: TemplateEstrutura;
+  /** modelo padrão do sistema — aplicado automaticamente a novas submissões */
+  is_padrao: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -62,10 +64,36 @@ export function useDocChecklistTemplates() {
       const { data, error } = await (supabase as any)
         .from("china_doc_checklist_templates")
         .select("*")
+        .order("is_padrao", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as DocChecklistTemplate[];
     },
+  });
+}
+
+/** Modelo marcado como padrão do sistema (aplicado a toda nova submissão). */
+export function useTemplatePadrao() {
+  const { data: templates = [], ...rest } = useDocChecklistTemplates();
+  return { ...rest, data: templates.find((t) => t.is_padrao) ?? null };
+}
+
+/** Define o modelo padrão do sistema (admin, supervisor ou acesso ao módulo China). */
+export function useSetTemplatePadrao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      const { error } = await (supabase as any).rpc("set_template_checklist_padrao", {
+        p_template_id: templateId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["china-doc-checklist-templates"] });
+      toast.success("Modelo definido como padrão do sistema");
+    },
+    onError: (e: any) =>
+      toast.error(toFriendlyPermissionMessage(e, "Erro ao definir modelo padrão")),
   });
 }
 

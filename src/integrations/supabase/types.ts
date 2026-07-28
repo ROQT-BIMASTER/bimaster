@@ -5887,6 +5887,7 @@ export type Database = {
           escopo: string
           estrutura: Json
           id: string
+          is_padrao: boolean
           nome: string
           updated_at: string
         }
@@ -5897,6 +5898,7 @@ export type Database = {
           escopo?: string
           estrutura?: Json
           id?: string
+          is_padrao?: boolean
           nome: string
           updated_at?: string
         }
@@ -5907,6 +5909,7 @@ export type Database = {
           escopo?: string
           estrutura?: Json
           id?: string
+          is_padrao?: boolean
           nome?: string
           updated_at?: string
         }
@@ -58378,6 +58381,14 @@ export type Database = {
         }
         Returns: string
       }
+      aplicar_template_checklist: {
+        Args: {
+          p_actor?: string
+          p_submissao_id: string
+          p_template_id: string
+        }
+        Returns: undefined
+      }
       app_now_br: { Args: never; Returns: string }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
@@ -62529,6 +62540,10 @@ export type Database = {
           n_pedidos: number
           quantidade: number
         }[]
+      }
+      set_template_checklist_padrao: {
+        Args: { p_template_id: string }
+        Returns: undefined
       }
       similarity_score: {
         Args: { str1: string; str2: string }
