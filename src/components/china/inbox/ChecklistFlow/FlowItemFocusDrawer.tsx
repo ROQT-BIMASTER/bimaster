@@ -266,6 +266,7 @@ export function FlowItemFocusDrawer({
                   )}
                 </div>
                 <DocBigPreview doc={doc} onExpand={() => setFocusOpen(true)} />
+                <DocFileActions doc={doc} onExpand={() => setFocusOpen(true)} />
                 {canUpload && !isApproved && (
                   <Button
                     variant="outline"
