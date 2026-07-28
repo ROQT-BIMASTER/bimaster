@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, FileText, ImageIcon, Link2, Loader2, Maximize2, Send, Upload, X } from "lucide-react";
+import {
+  Archive, Download, ExternalLink, FileSpreadsheet, FileText, FileType2, ImageIcon,
+  Link2, Loader2, Maximize2, Palette, Send, Upload, X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -13,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUploadChinaDocumento } from "@/hooks/useUploadChinaDocumento";
 import { detectThumbKind } from "@/hooks/useChinaDocThumbnail";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
+import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
 import {
   BUCKET_LABEL,
   FLOW_TONE,
@@ -24,6 +29,7 @@ import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
+
 
 
 interface Props {
@@ -260,6 +266,7 @@ export function FlowItemFocusDrawer({
                   )}
                 </div>
                 <DocBigPreview doc={doc} onExpand={() => setFocusOpen(true)} />
+                <DocFileActions doc={doc} onExpand={() => setFocusOpen(true)} />
                 {canUpload && !isApproved && (
                   <Button
                     variant="outline"
@@ -450,10 +457,13 @@ export function FlowItemFocusDrawer({
         </div>
       </SheetContent>
 
-      <DocFocusDialog
+      <ChinaDocPreviewDialog
         open={focusOpen}
         onOpenChange={setFocusOpen}
-        doc={doc}
+        arquivoPath={doc?.arquivo_path ?? null}
+        arquivoUrl={doc?.arquivo_url ?? null}
+        nomeArquivo={doc?.nome_arquivo ?? null}
+        tipoDocumento={labelPt}
       />
     </Sheet>
   );
@@ -481,8 +491,92 @@ function useDocSignedUrl(doc: MailboxItem | null) {
 }
 
 /**
- * DocBigPreview — preview generosa (object-contain) com botão para abrir
- * modo foco em Dialog.
+ * Famílias de arquivo sem preview nativa no navegador — usado para dar
+ * contexto visual e ações de acesso (baixar/abrir) em vez de um beco sem saída.
+ */
+function fileFamily(name: string) {
+  const n = (name || "").toLowerCase();
+  if (/\.(xlsx|xls|xlsm|csv|numbers)$/.test(n))
+    return { Icon: FileSpreadsheet, label: "Planilha", tone: "text-emerald-600" };
+  if (/\.(docx?|rtf|odt|txt|md)$/.test(n))
+    return { Icon: FileType2, label: "Documento", tone: "text-sky-600" };
+  if (/\.(zip|rar|7z|tar|gz)$/.test(n))
+    return { Icon: Archive, label: "Arquivo compactado", tone: "text-amber-600" };
+  if (/\.(ai|psd|cdr|eps|indd|sketch|fig)$/.test(n))
+    return { Icon: Palette, label: "Arte / design", tone: "text-violet-600" };
+  return { Icon: FileText, label: "Arquivo", tone: "text-muted-foreground" };
+}
+
+/**
+ * DocFileActions — Baixar (blob, sem window.open) e Abrir (modo foco).
+ * Sempre disponível, independente do tipo do arquivo ter preview ou não.
+ */
+function DocFileActions({
+  doc,
+  onExpand,
+  className,
+}: {
+  doc: MailboxItem;
+  onExpand: () => void;
+  className?: string;
+}) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    const source = doc.arquivo_path || doc.arquivo_url || "";
+    if (!source) {
+      toast.error("Arquivo indisponível para download.");
+      return;
+    }
+    setDownloading(true);
+    try {
+      const result = await downloadStorageBlob(
+        source,
+        doc.nome_arquivo ?? undefined,
+        "china-documentos",
+      );
+      if (result.blobUrl) {
+        triggerBlobDownload(result.blobUrl, result.filename || doc.nome_arquivo || "arquivo");
+      } else {
+        toast.error(result.error || "Não foi possível baixar o arquivo.");
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className={cn("flex items-center gap-1.5", className)}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 flex-1 gap-1.5 text-xs"
+        onClick={handleDownload}
+        disabled={downloading}
+      >
+        {downloading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Download className="h-3.5 w-3.5" />
+        )}
+        Baixar
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 flex-1 gap-1.5 text-xs"
+        onClick={onExpand}
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+        Abrir
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * DocBigPreview — preview generosa (object-contain) para imagem/PDF e cartão
+ * informativo com ações para os demais formatos (planilha, Word, ZIP, arte).
  */
 function DocBigPreview({
   doc,
@@ -493,6 +587,7 @@ function DocBigPreview({
 }) {
   const kind = detectThumbKind(doc.nome_arquivo || doc.arquivo_path || "");
   const url = useDocSignedUrl(doc);
+  const family = fileFamily(doc.nome_arquivo || doc.arquivo_path || "");
 
   return (
     <div className="relative w-full overflow-hidden rounded-md border border-border bg-muted/20">
@@ -537,74 +632,22 @@ function DocBigPreview({
           )}
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={onExpand}
-          className="flex h-40 w-full flex-col items-center justify-center gap-1.5 transition hover:bg-muted/40"
-        >
-          <FileText className="h-10 w-10 text-muted-foreground/60" />
+        <div className="flex w-full flex-col items-center justify-center gap-2 px-3 py-6 text-center">
+          <family.Icon className={cn("h-10 w-10", family.tone)} />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {family.label}
+          </span>
           {doc.nome_arquivo && (
-            <span className="px-3 text-[11px] text-muted-foreground line-clamp-1">
+            <span className="w-full break-all px-2 text-[11px] text-foreground/80">
               {doc.nome_arquivo}
             </span>
           )}
-        </button>
+          <span className="text-[10px] text-muted-foreground/80">
+            Sem pré-visualização no navegador — baixe para abrir no aplicativo correspondente.
+          </span>
+          <DocFileActions doc={doc} onExpand={onExpand} className="w-full pt-1" />
+        </div>
       )}
     </div>
   );
 }
-
-/**
- * DocFocusDialog — Dialog em tela cheia com a imagem (object-contain)
- * ou PDF embutido via iframe.
- */
-function DocFocusDialog({
-  open,
-  onOpenChange,
-  doc,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  doc: MailboxItem | null;
-}) {
-  const kind = detectThumbKind(doc?.nome_arquivo || doc?.arquivo_path || "");
-  const url = useDocSignedUrl(open ? doc : null);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl p-0 h-[90vh] flex flex-col gap-0">
-        <DialogHeader className="border-b border-border px-4 py-2.5">
-          <DialogTitle className="truncate text-sm font-semibold">
-            {doc?.nome_arquivo ?? "Documento"}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-auto bg-muted/30">
-          {!url ? (
-            <div className="flex h-full w-full items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : kind === "image" ? (
-            <div className="flex h-full w-full items-center justify-center p-4">
-              <img
-                src={url}
-                alt={doc?.nome_arquivo ?? ""}
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-          ) : kind === "pdf" ? (
-            <iframe
-              src={url}
-              title={doc?.nome_arquivo ?? "PDF"}
-              className="h-full w-full"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-              Pré-visualização não disponível para este tipo de arquivo.
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
