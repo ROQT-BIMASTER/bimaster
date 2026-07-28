@@ -12,6 +12,15 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.6.8
+
+- feat(china/checklist): modelo de checklist "padrão do sistema". Nova coluna `is_padrao` em `china_doc_checklist_templates` (índice único parcial garante um só padrão), função `public.aplicar_template_checklist(submissao, template, actor)` e trigger `AFTER INSERT` em `china_produto_submissoes` aplicando o padrão a toda nova submissão, independentemente da origem.
+- feat(china/checklist): RPC `set_template_checklist_padrao` (admin, supervisor ou acesso ao módulo Fábrica China) com registro em `audit_logs`; trigger bloqueia exclusão do modelo padrão.
+- chore(china/checklist): modelo 模板 definido como padrão e aplicado retroativamente a todas as submissões, preservando itens com arquivo anexado (nenhum documento removido).
+- feat(ui): menu "Modelos" do modo foco exibe badge "Padrão do sistema", ação "Definir como padrão" e bloqueio de exclusão do padrão.
+
+---
+
 ## v3.5.57
 
 - fix(copilot): publica edge functions ausentes (central-copilot, projeto-copilot, estoque-copilot, china-submission-copilot + wrappers v2 + auxiliares + ai-insights/marketing-insights). Todos retornavam 404 NOT_FOUND_FUNCTION_BLOB, quebrando 100% dos chats de IA.
