@@ -15,7 +15,17 @@ interface AuthContextType {
   refreshAuth: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Contexto singleton: durante HMR o módulo pode ser reavaliado enquanto
+// componentes consumidores ainda referenciam a instância antiga, o que fazia
+// `useAuth` lançar "deve ser usado dentro de AuthProvider" e derrubar a tela.
+// Guardar a instância em escopo global mantém provider e consumidores no mesmo contexto.
+const AUTH_CTX_KEY = "__bimaster_auth_context__";
+const globalScope = globalThis as unknown as Record<string, unknown>;
+const AuthContext =
+  (globalScope[AUTH_CTX_KEY] as React.Context<AuthContextType | null>) ??
+  ((globalScope[AUTH_CTX_KEY] = createContext<AuthContextType | null>(
+    null,
+  )) as React.Context<AuthContextType | null>);
 
 // Cache global para evitar re-fetch
 let globalAuthCache: {
