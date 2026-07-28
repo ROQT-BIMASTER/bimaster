@@ -1150,6 +1150,12 @@ export function ChinaChecklistFocusMode({
                             <Badge variant={tpl.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
                               {tpl.escopo === "global" ? t("focusMode.escopoGlobal") : t("focusMode.escopoPessoal")}
                             </Badge>
+                            {tpl.is_padrao && (
+                              <Badge className="text-[10px] h-4 gap-1">
+                                <Star className="h-2.5 w-2.5" />
+                                Padrão do sistema
+                              </Badge>
+                            )}
                             {tpl.descricao && (
                               <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
                                 {tpl.descricao}
@@ -1157,13 +1163,30 @@ export function ChinaChecklistFocusMode({
                             )}
                           </div>
                         </button>
+                        {!tpl.is_padrao && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (await confirm({
+                                title: `Definir "${tpl.nome}" como padrão do sistema?`,
+                                description: "Toda nova submissão da China passará a nascer com esta estrutura de checklist.",
+                              })) setTemplatePadrao.mutate(tpl.id);
+                            }}
+                            className="text-muted-foreground hover:text-primary shrink-0"
+                            title="Definir como padrão do sistema"
+                          >
+                            <Star className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
+                          disabled={tpl.is_padrao}
                           onClick={async (e) => {
                             e.stopPropagation();
+                            if (tpl.is_padrao) return;
                             if ((await confirm({ title: t("focusMode.confirmExcluirModelo", { nome: tpl.nome }) }))) deleteTemplate.mutate(tpl.id);
                           }}
-                          className="text-destructive hover:text-destructive/70 shrink-0"
-                          title={t("focusMode.tooltipExcluirModelo")}
+                          className="text-destructive hover:text-destructive/70 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={tpl.is_padrao ? "Modelo padrão do sistema não pode ser excluído" : t("focusMode.tooltipExcluirModelo")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
