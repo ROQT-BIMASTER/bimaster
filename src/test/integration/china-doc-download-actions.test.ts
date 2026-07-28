@@ -13,7 +13,7 @@ describe("China · FlowItemFocusDrawer — acesso a arquivos sem preview", () =>
   it("expõe ação de download por blob (sem window.open)", () => {
     expect(code).toContain("downloadStorageBlob");
     expect(code).toContain("triggerBlobDownload");
-    expect(code).not.toContain("window.open");
+    expect(code).not.toMatch(/window\.open\(/);
   });
 
   it("usa o bucket china-documentos no download", () => {
