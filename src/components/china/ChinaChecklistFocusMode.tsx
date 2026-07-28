@@ -21,7 +21,7 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
-  FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
+  FileText, Eye, Trash2, Star, Image as ImageIcon, CalendarIcon, AlertCircle,
   Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus, FileWarning, LayoutGrid,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
