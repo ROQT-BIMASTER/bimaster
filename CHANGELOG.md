@@ -6,6 +6,14 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 > Para o changelog operacional de SDK/OpenAPI consumido por integradores,
 > consulte `src/pages/admin/ApiDocumentation.tsx`.
 
+## [3.6.9]
+
+- China / Fluxo do Checklist: documentos sem pré-visualização nativa (planilhas,
+  Word, ZIP, artes) passam a exibir ícone por família de arquivo e ações de
+  **Baixar** e **Abrir**; download via blob autenticado.
+- China / Fluxo do Checklist: modal de foco unificado com `ChinaDocPreviewDialog`
+  (download, abrir em nova aba, novo tentar em caso de erro de URL assinada).
+
 ## [Unreleased]
 
 - (sem entradas)
