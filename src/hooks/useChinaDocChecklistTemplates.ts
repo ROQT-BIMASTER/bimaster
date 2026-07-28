@@ -12,6 +12,8 @@ export interface DocChecklistTemplate {
   descricao: string | null;
   escopo: "pessoal" | "global";
   estrutura: TemplateEstrutura;
+  /** modelo padrão do sistema — aplicado automaticamente a novas submissões */
+  is_padrao: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
