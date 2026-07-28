@@ -256,6 +256,7 @@ export function ChinaChecklistFocusMode({
   const { data: templates = [] } = useDocChecklistTemplates();
   const saveTemplate = useSaveDocChecklistTemplate();
   const deleteTemplate = useDeleteDocChecklistTemplate();
+  const setTemplatePadrao = useSetTemplatePadrao();
   const { data: catOverrides = [] } = useCategoriaOverrides(submissaoId);
   const upsertCatOverride = useUpsertCategoriaOverride();
 
