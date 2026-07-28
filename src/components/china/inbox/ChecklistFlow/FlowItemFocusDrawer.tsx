@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, FileText, ImageIcon, Link2, Loader2, Maximize2, Send, Upload, X } from "lucide-react";
+import {
+  Archive, Download, ExternalLink, FileSpreadsheet, FileText, FileType2, ImageIcon,
+  Link2, Loader2, Maximize2, Palette, Send, Upload, X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -13,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUploadChinaDocumento } from "@/hooks/useUploadChinaDocumento";
 import { detectThumbKind } from "@/hooks/useChinaDocThumbnail";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
+import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
 import {
   BUCKET_LABEL,
   FLOW_TONE,
@@ -24,6 +29,7 @@ import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
+
 
 
 interface Props {
