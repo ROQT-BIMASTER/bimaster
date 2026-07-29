@@ -9,8 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus
+  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus,
+  RefreshCw
 } from "lucide-react";
+import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
+
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
 
 import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
