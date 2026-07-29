@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine, RefreshCw } from "lucide-react";
+import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
 import { Badge } from "@/components/ui/badge";
 import { ChecklistSubmissaoSheet } from "@/components/china/submissao-board/ChecklistSubmissaoSheet";
 import { useSubmissaoDoProjetoEspelho } from "@/hooks/useProjetoEspelhoSubmissao";
@@ -106,6 +107,7 @@ export function ProjetoHeader({
     ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
   ).length;
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const sincronizarDocs = useSincronizarDocsProjeto();
   const [checklistSide, setChecklistSide] = useState<"c2b" | "b2c" | "both">("both");
 
   const { data: submissaoRow } = useQuery({
@@ -265,7 +267,19 @@ export function ProjetoHeader({
                 <Badge variant="secondary" className="h-4 px-1 text-[9px]">{b2cPendentes}</Badge>
               )}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => sincronizarDocs.mutate(submissaoId)}
+              disabled={sincronizarDocs.isPending}
+              title="Trazer para as tarefas do projeto os documentos enviados após a criação"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", sincronizarDocs.isPending && "animate-spin")} />
+              Sincronizar documentos
+            </Button>
           </div>
+
         )}
 
         {/* Health panel inside hero */}

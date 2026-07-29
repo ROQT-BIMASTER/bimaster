@@ -9,8 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus
+  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus,
+  RefreshCw
 } from "lucide-react";
+import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
+
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
 
 import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
@@ -102,6 +105,8 @@ export function VincularChinaSidePanel({
   const [aprovarObs, setAprovarObs] = useState("");
   const [aprovando, setAprovando] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const sincronizarDocs = useSincronizarDocsProjeto();
+
 
   // Show brief loading state when switching submissions
   useEffect(() => {
@@ -247,7 +252,7 @@ export function VincularChinaSidePanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Encaminhar para
           </p>
-          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-6" : "grid-cols-5")}>
+          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-7" : "grid-cols-6")}>
             <button
               type="button"
               onClick={() => onContinuarNoProjeto?.()}
@@ -266,6 +271,19 @@ export function VincularChinaSidePanel({
               <FolderPlus className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-foreground">Configurar projeto</span>
             </button>
+            <button
+              type="button"
+              onClick={() => sincronizarDocs.mutate(submissao.id)}
+              disabled={sincronizarDocs.isPending}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2 disabled:opacity-60"
+              title="Sincronizar documentos da submissão com as tarefas do projeto vinculado"
+            >
+              {sincronizarDocs.isPending
+                ? <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                : <RefreshCw className="h-4 w-4 text-primary" />}
+              <span className="text-[10px] font-medium text-foreground">Sincronizar docs</span>
+            </button>
+
 
             <button
               type="button"
