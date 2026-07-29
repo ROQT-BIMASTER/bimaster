@@ -265,7 +265,19 @@ export function ProjetoHeader({
                 <Badge variant="secondary" className="h-4 px-1 text-[9px]">{b2cPendentes}</Badge>
               )}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => sincronizarDocs.mutate(submissaoId)}
+              disabled={sincronizarDocs.isPending}
+              title="Trazer para as tarefas do projeto os documentos enviados após a criação"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", sincronizarDocs.isPending && "animate-spin")} />
+              Sincronizar documentos
+            </Button>
           </div>
+
         )}
 
         {/* Health panel inside hero */}
