@@ -105,6 +105,8 @@ export function VincularChinaSidePanel({
   const [aprovarObs, setAprovarObs] = useState("");
   const [aprovando, setAprovando] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const sincronizarDocs = useSincronizarDocsProjeto();
+
 
   // Show brief loading state when switching submissions
   useEffect(() => {
