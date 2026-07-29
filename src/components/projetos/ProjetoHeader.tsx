@@ -107,6 +107,7 @@ export function ProjetoHeader({
     ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
   ).length;
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const sincronizarDocs = useSincronizarDocsProjeto();
   const [checklistSide, setChecklistSide] = useState<"c2b" | "b2c" | "both">("both");
 
   const { data: submissaoRow } = useQuery({
