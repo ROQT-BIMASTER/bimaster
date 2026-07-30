@@ -627,6 +627,38 @@ export function FichaCustoProdutoEditor({
         />
       )}
 
+      {/* Divergência entre custo vivo e último custo aprovado + reabertura de revisão */}
+      {config?.id && (isLocked || (custoAprovado != null && Math.abs(custoAprovado - (totais?.custoTotal || 0)) > 0.0001)) && (
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div>
+              {isLocked ? (
+                <p className="font-medium">
+                  Ficha bloqueada para edição ({statusAprovacao === "aprovada" ? "aprovada" : "em revisão"}).
+                </p>
+              ) : (
+                <p className="font-medium">Custo atual diverge da última revisão aprovada.</p>
+              )}
+              {custoAprovado != null && (
+                <p className="text-muted-foreground">
+                  Aprovado: R$ {custoAprovado.toFixed(4)} · Atual: R$ {(totais?.custoTotal || 0).toFixed(4)}
+                  {" "}— a listagem de produtos exibe o valor aprovado até uma nova aprovação.
+                </p>
+              )}
+            </div>
+          </div>
+          {isLocked && statusAprovacao === "aprovada" && onAbrirNovaRevisao && (
+            <Button size="sm" variant="outline" onClick={onAbrirNovaRevisao} disabled={abrindoRevisao}>
+              {abrindoRevisao ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Nova revisão
+            </Button>
+          )}
+        </div>
+      )}
+
+
+
       {/* Apontamentos da diretoria */}
       {statusAprovacao === "revisao_solicitada" && apontamentos.length > 0 && (
         <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
