@@ -7,7 +7,7 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { useFichaCustoProduto } from "@/hooks/useFichaCustoProduto";
 import { useFichaRevisao } from "@/hooks/useFichaRevisao";
 import { FichaCustoProdutoEditor } from "@/components/fabrica/FichaCustoProdutoEditor";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 export default function FichaCustoProduto() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +32,7 @@ export default function FichaCustoProduto() {
     carregarCustosFilhos,
     isDisplayComKit,
     todosInsumosKit,
+    setBloqueado,
   } = useFichaCustoProduto(id);
 
   const {
@@ -41,7 +42,15 @@ export default function FichaCustoProduto() {
     requisitos,
     submitting,
     submeterParaAprovacao,
+    custoAprovado,
+    abrirNovaRevisao,
+    abrindoRevisao,
   } = useFichaRevisao(id, config?.id || undefined);
+
+  // Trava de escrita no hook de custos conforme o status de aprovação
+  useEffect(() => {
+    setBloqueado(statusAprovacao === "aprovada" || statusAprovacao === "em_revisao");
+  }, [statusAprovacao, setBloqueado]);
 
   const handleSubmeter = useCallback(async () => {
     if (!config || !config.id) return;
@@ -121,6 +130,9 @@ export default function FichaCustoProduto() {
           onRecarregarCustosFilhos={carregarCustosFilhos}
           isDisplayComKit={isDisplayComKit}
           todosInsumosKit={todosInsumosKit}
+          custoAprovado={custoAprovado}
+          onAbrirNovaRevisao={abrirNovaRevisao}
+          abrindoRevisao={abrindoRevisao}
         />
       </div>
     </DashboardLayout>
