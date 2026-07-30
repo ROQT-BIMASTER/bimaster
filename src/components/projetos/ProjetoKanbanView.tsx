@@ -176,7 +176,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
   const metasProgress = useMetasProgress(allTaskIds);
   const { data: anexosMap } = useTarefasAnexos(projetoId, allTaskIds);
-  const { data: docStatusMap } = useTarefasDocStatus(projetoId, allTaskIds);
+  
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
