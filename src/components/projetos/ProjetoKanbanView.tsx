@@ -282,15 +282,33 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     return <KanbanSkeleton darkBg={darkBg} />;
   }
 
+  const totalDocs = Object.values(docCounts).reduce((a, b) => a + (b || 0), 0);
   const docBar = (
-    <DocStatusFilterBar
-      counts={docCounts}
-      selected={docFilter}
-      onChange={setDocFilter}
-      label="Situação dos documentos"
-      className="mb-3"
-    />
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <DocStatusFilterBar
+        counts={docCounts}
+        selected={docFilter}
+        onChange={setDocFilter}
+        label="Situação dos documentos"
+      />
+      {totalDocs > 0 && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-[11px]"
+          onClick={() => setLoteOpen(true)}
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Aprovar em lote
+        </Button>
+      )}
+    </div>
   );
+
+  const loteDialog = (
+    <AprovacaoLoteDialog open={loteOpen} onOpenChange={setLoteOpen} projetoId={projetoId} />
+  );
+
 
   if (filtersActive && tarefas.length === 0) {
     return (
