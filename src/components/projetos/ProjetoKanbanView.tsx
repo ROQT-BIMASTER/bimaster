@@ -566,7 +566,7 @@ function DraggableKanbanCard({
         <div className="mt-2">
           <TarefaAnexosBadge
             resumo={anexosResumo}
-            esperaDocumentos={!!(tarefa as any).china_tipo_key || !!(tarefa as any).china_submissao_id}
+            esperaDocumentos={(tarefa as any).tipo_tarefa === "china_checklist_item"}
             darkBg={darkBg}
           />
         </div>
