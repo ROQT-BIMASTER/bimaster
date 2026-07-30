@@ -9,11 +9,16 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { consolidarDecisoes, type DocDecisao } from "@/lib/china/docStatus";
+import { proximaAcao, ultimaAtualizacao } from "@/lib/china/docSort";
 
 export interface TarefaDocStatus {
   decisao: DocDecisao;
   total: number;
   aprovados: number;
+  /** Última atualização conhecida entre os documentos (ISO) */
+  ultimaAtualizacao: string | null;
+  /** Próxima ação mais próxima entre os documentos (ISO/date) */
+  proximaAcao: string | null;
 }
 
 export type TarefasDocStatusMap = Record<string, TarefaDocStatus>;
@@ -38,26 +43,36 @@ export function useTarefasDocStatus(projetoId: string | undefined, tarefaIds: st
       const docIds = [...new Set(list.map((v) => v.documento_id))];
       const { data: docs } = await supabase
         .from("china_produto_documentos")
-        .select("id, status")
+        .select("id, status, created_at, oficializado_em, assinado_em, previsao_envio")
         .in("id", docIds);
 
-      const statusPorDoc = Object.fromEntries(
-        ((docs || []) as any[]).map((d) => [d.id, d.status as string | null]),
-      );
+      const docPorId = Object.fromEntries(((docs || []) as any[]).map((d) => [d.id, d]));
 
-      const agrupado: Record<string, Array<string | null>> = {};
+      const agrupado: Record<string, any[]> = {};
       for (const v of list) {
-        (agrupado[v.tarefa_id] ||= []).push(statusPorDoc[v.documento_id] ?? null);
+        (agrupado[v.tarefa_id] ||= []).push(docPorId[v.documento_id] ?? null);
       }
 
       const map: TarefasDocStatusMap = {};
-      for (const [tarefaId, statuses] of Object.entries(agrupado)) {
+      for (const [tarefaId, itens] of Object.entries(agrupado)) {
+        const statuses = itens.map((d) => (d?.status as string | null) ?? null);
         const decisao = consolidarDecisoes(statuses);
         if (!decisao) continue;
+        const atualizacoes = itens
+          .filter(Boolean)
+          .map((d) => ultimaAtualizacao(d))
+          .filter((v): v is number => v !== null);
+        const acoes = itens
+          .filter(Boolean)
+          .map((d) => proximaAcao(d))
+          .filter((v): v is number => v !== null);
         map[tarefaId] = {
           decisao,
           total: statuses.length,
           aprovados: statuses.filter((s) => (s || "").toLowerCase() === "aprovado").length,
+          ultimaAtualizacao:
+            atualizacoes.length > 0 ? new Date(Math.max(...atualizacoes)).toISOString() : null,
+          proximaAcao: acoes.length > 0 ? new Date(Math.min(...acoes)).toISOString() : null,
         };
       }
       return map;
