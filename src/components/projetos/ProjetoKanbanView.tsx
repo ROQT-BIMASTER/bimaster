@@ -27,6 +27,8 @@ import {
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
+import { useTarefasDocStatus, type TarefaDocStatus } from "@/hooks/useTarefasDocStatus";
+import { TarefaDocStatusBadge } from "./TarefaDocStatusBadge";
 import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
@@ -151,6 +153,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
   const metasProgress = useMetasProgress(allTaskIds);
   const { data: anexosMap } = useTarefasAnexos(projetoId, allTaskIds);
+  const { data: docStatusMap } = useTarefasDocStatus(projetoId, allTaskIds);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -338,6 +341,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                             isDragActive={activeId === tarefa.id}
                             metasProgress={metasProgress[tarefa.id]}
                             anexosResumo={anexosMap?.[tarefa.id]}
+                            docStatus={docStatusMap?.[tarefa.id]}
                           />
                         ))}
                         {secaoTarefas.length === 0 && (
@@ -431,6 +435,7 @@ function DraggableKanbanCard({
   isDragActive = false,
   metasProgress,
   anexosResumo,
+  docStatus,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
@@ -439,6 +444,7 @@ function DraggableKanbanCard({
   isDragActive?: boolean;
   metasProgress?: MetasProgress;
   anexosResumo?: TarefaArquivosResumo;
+  docStatus?: TarefaDocStatus;
 }) {
   const {
     attributes,
@@ -569,6 +575,11 @@ function DraggableKanbanCard({
             esperaDocumentos={(tarefa as any).tipo_tarefa === "china_checklist_item"}
             darkBg={darkBg}
           />
+          {docStatus && (
+            <div className="mt-1">
+              <TarefaDocStatusBadge status={docStatus} darkBg={darkBg} />
+            </div>
+          )}
         </div>
 
 
