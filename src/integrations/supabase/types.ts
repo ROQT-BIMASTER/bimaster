@@ -5879,6 +5879,63 @@ export type Database = {
           },
         ]
       }
+      china_doc_aprovacoes_audit: {
+        Row: {
+          created_at: string
+          decidido_por: string
+          decidido_por_email: string | null
+          decidido_por_nome: string | null
+          decisao: string
+          documento_id: string
+          id: string
+          ip_address: string | null
+          metodo_confirmacao: string
+          origem: string | null
+          parecer: string | null
+          projeto_id: string | null
+          status_anterior: string | null
+          submissao_id: string | null
+          tarefa_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          decidido_por: string
+          decidido_por_email?: string | null
+          decidido_por_nome?: string | null
+          decisao: string
+          documento_id: string
+          id?: string
+          ip_address?: string | null
+          metodo_confirmacao?: string
+          origem?: string | null
+          parecer?: string | null
+          projeto_id?: string | null
+          status_anterior?: string | null
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          decidido_por?: string
+          decidido_por_email?: string | null
+          decidido_por_nome?: string | null
+          decisao?: string
+          documento_id?: string
+          id?: string
+          ip_address?: string | null
+          metodo_confirmacao?: string
+          origem?: string | null
+          parecer?: string | null
+          projeto_id?: string | null
+          status_anterior?: string | null
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       china_doc_checklist_templates: {
         Row: {
           created_at: string
@@ -61248,6 +61305,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rpc_china_aprovar_documento: {
+        Args: {
+          p_decisao: string
+          p_documento_id: string
+          p_metodo?: string
+          p_origem?: string
+          p_parecer?: string
+          p_projeto_id?: string
+          p_step_up_token: string
+          p_tarefa_id?: string
+        }
+        Returns: Json
+      }
       rpc_china_calcular_progresso: {
         Args: { p_submissao_id: string }
         Returns: Json
@@ -61359,6 +61429,16 @@ export type Database = {
           p_template_b2c_id?: string
           p_uf_feriados?: string
           p_usa_feriados?: boolean
+        }
+        Returns: Json
+      }
+      rpc_china_definir_status_documento: {
+        Args: {
+          p_documento_id: string
+          p_origem?: string
+          p_projeto_id?: string
+          p_status: string
+          p_tarefa_id?: string
         }
         Returns: Json
       }
