@@ -55,8 +55,8 @@ interface ProjetoHeaderProps {
 }
 
 const WORK_TABS = [
-  { value: "lista", icon: List, label: "Lista" },
   { value: "quadro", icon: LayoutGrid, label: "Quadro" },
+  { value: "lista", icon: List, label: "Lista" },
   { value: "cronograma", icon: Calendar, label: "Cronograma" },
   { value: "calendario", icon: CalendarDays, label: "Calendário" },
   { value: "prazos", icon: CalendarClock, label: "Prazos" },
