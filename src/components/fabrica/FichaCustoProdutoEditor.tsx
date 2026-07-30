@@ -1134,7 +1134,7 @@ export function FichaCustoProdutoEditor({
                   }
                 }}
               />
-              <Button size="sm" onClick={() => setDialogAberto(true)}>
+              <Button size="sm" onClick={() => setDialogAberto(true)} disabled={isLocked}>
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar
               </Button>
@@ -1209,6 +1209,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Select
                               value={insumo.tipo_insumo}
+                              disabled={isLocked}
                               onValueChange={(value) =>
                                 onAtualizarInsumo(insumo.id, "tipo_insumo", value)
                               }
@@ -1228,6 +1229,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Input
                               value={insumo.fornecedor || ""}
+                              disabled={isLocked}
                               onChange={(e) =>
                                 onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
                               }
@@ -1238,6 +1240,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_nf}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_nf", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1245,6 +1248,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_servico}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_servico", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1252,6 +1256,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_condicao}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_condicao", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1259,6 +1264,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Input
                               value={insumo.nf_referencia || ""}
+                              disabled={isLocked}
                               onChange={(e) =>
                                 onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
                               }
@@ -1290,6 +1296,7 @@ export function FichaCustoProdutoEditor({
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
+                                disabled={isLocked}
                                 onClick={() => onRemoverInsumo(insumo.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
