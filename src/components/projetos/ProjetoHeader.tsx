@@ -4,6 +4,7 @@ import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine, RefreshCw } from "lucide-react";
 import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
+import { useRepararDocsProjeto } from "@/hooks/useRepararDocsProjeto";
 import { Badge } from "@/components/ui/badge";
 import { ChecklistSubmissaoSheet } from "@/components/china/submissao-board/ChecklistSubmissaoSheet";
 import { useSubmissaoDoProjetoEspelho } from "@/hooks/useProjetoEspelhoSubmissao";
@@ -108,6 +109,7 @@ export function ProjetoHeader({
   ).length;
   const [checklistOpen, setChecklistOpen] = useState(false);
   const sincronizarDocs = useSincronizarDocsProjeto();
+  const repararDocs = useRepararDocsProjeto();
   const [checklistSide, setChecklistSide] = useState<"c2b" | "b2c" | "both">("both");
 
   const { data: submissaoRow } = useQuery({
@@ -277,6 +279,17 @@ export function ProjetoHeader({
             >
               <RefreshCw className={cn("h-3.5 w-3.5", sincronizarDocs.isPending && "animate-spin")} />
               Sincronizar documentos
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => repararDocs.mutate(submissaoId)}
+              disabled={repararDocs.isPending}
+              title="Reorganizar anexos nas tarefas corretas do checklist e remover tarefas duplicadas vazias"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", repararDocs.isPending && "animate-spin")} />
+              Reorganizar documentos
             </Button>
           </div>
 
