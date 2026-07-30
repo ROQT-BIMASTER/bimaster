@@ -58750,8 +58750,18 @@ export type Database = {
         Args: { _tela_code: string; _user_id: string }
         Returns: boolean
       }
+      china_doc_label: {
+        Args: {
+          p_cofre_item_id?: string
+          p_submissao_id: string
+          p_tipo: string
+        }
+        Returns: string
+      }
+      china_norm_label: { Args: { p: string }; Returns: string }
       china_path_submissao_id: { Args: { _name: string }; Returns: string }
       china_path_submissao_id_safe: { Args: { _name: string }; Returns: string }
+      china_tipo_slug: { Args: { p: string }; Returns: string }
       cleanup_audit_logs_batch: {
         Args: { batch_size?: number; retention_days?: number }
         Returns: number
@@ -59243,6 +59253,15 @@ export type Database = {
         }[]
       }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
+      fn_china_resolver_tarefa_documento: {
+        Args: {
+          p_cofre_item_id?: string
+          p_projeto_id: string
+          p_submissao_id: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       fn_cp_calendario: {
         Args: {
           p_data_ate?: string
@@ -61459,6 +61478,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_china_reparar_documentos_projeto: {
+        Args: { p_submissao_id: string }
+        Returns: Json
       }
       rpc_china_resincronizar_espelho: {
         Args: { p_submissao_id: string }
