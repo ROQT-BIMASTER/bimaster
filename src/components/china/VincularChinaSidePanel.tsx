@@ -10,9 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
   ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus,
-  RefreshCw
+  RefreshCw, Wrench
+
 } from "lucide-react";
 import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
+import { useRepararDocsProjeto } from "@/hooks/useRepararDocsProjeto";
 
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
 
@@ -106,6 +108,7 @@ export function VincularChinaSidePanel({
   const [aprovando, setAprovando] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
   const sincronizarDocs = useSincronizarDocsProjeto();
+  const repararDocs = useRepararDocsProjeto();
 
 
   // Show brief loading state when switching submissions
@@ -282,6 +285,18 @@ export function VincularChinaSidePanel({
                 ? <Loader2 className="h-4 w-4 text-primary animate-spin" />
                 : <RefreshCw className="h-4 w-4 text-primary" />}
               <span className="text-[10px] font-medium text-foreground">Sincronizar docs</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => repararDocs.mutate(submissao.id)}
+              disabled={repararDocs.isPending}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2 disabled:opacity-60"
+              title="Reorganizar anexos nas tarefas corretas do checklist e remover tarefas duplicadas vazias"
+            >
+              {repararDocs.isPending
+                ? <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                : <Wrench className="h-4 w-4 text-primary" />}
+              <span className="text-[10px] font-medium text-foreground">Reorganizar docs</span>
             </button>
 
 

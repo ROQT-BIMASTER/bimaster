@@ -25,6 +25,8 @@ import {
   CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid, Plus,
 } from "lucide-react";
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
+import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
+import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
 import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
@@ -148,6 +150,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   // Batch-fetch checklist progress for all tasks
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
   const metasProgress = useMetasProgress(allTaskIds);
+  const { data: anexosMap } = useTarefasAnexos(projetoId, allTaskIds);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -334,6 +337,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                             darkBg={darkBg}
                             isDragActive={activeId === tarefa.id}
                             metasProgress={metasProgress[tarefa.id]}
+                            anexosResumo={anexosMap?.[tarefa.id]}
                           />
                         ))}
                         {secaoTarefas.length === 0 && (
@@ -426,6 +430,7 @@ function DraggableKanbanCard({
   darkBg = false,
   isDragActive = false,
   metasProgress,
+  anexosResumo,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
@@ -433,6 +438,7 @@ function DraggableKanbanCard({
   darkBg?: boolean;
   isDragActive?: boolean;
   metasProgress?: MetasProgress;
+  anexosResumo?: TarefaArquivosResumo;
 }) {
   const {
     attributes,
@@ -555,6 +561,17 @@ function DraggableKanbanCard({
             return <SlaStatusBadge status={slaMark} contexto={contexto} />;
           })()}
         </div>
+
+        {/* Arquivos da tarefa (anexos + documentos China) */}
+        <div className="mt-2">
+          <TarefaAnexosBadge
+            resumo={anexosResumo}
+            esperaDocumentos={(tarefa as any).tipo_tarefa === "china_checklist_item"}
+            darkBg={darkBg}
+          />
+        </div>
+
+
 
         {/* Footer */}
         <div className="flex items-center justify-between mt-2.5">
