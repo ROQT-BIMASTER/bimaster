@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.rpc_china_reparar_documentos_projeto(uuid);

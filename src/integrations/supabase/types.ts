@@ -61503,9 +61503,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      rpc_china_reparar_documentos_projeto:
-        | { Args: { p_submissao_id: string }; Returns: Json }
-        | { Args: { p_actor?: string; p_submissao_id: string }; Returns: Json }
+      rpc_china_reparar_documentos_projeto: {
+        Args: { p_actor?: string; p_submissao_id: string }
+        Returns: Json
+      }
       rpc_china_resincronizar_espelho: {
         Args: { p_submissao_id: string }
         Returns: Json
