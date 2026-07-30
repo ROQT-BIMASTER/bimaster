@@ -81,6 +81,10 @@ interface Props {
   onRecarregarCustosFilhos?: () => Promise<void>;
   isDisplayComKit?: boolean;
   todosInsumosKit?: boolean;
+  custoAprovado?: number | null;
+  onAbrirNovaRevisao?: () => void;
+  abrindoRevisao?: boolean;
+
 }
 
 function DecimalInput({
