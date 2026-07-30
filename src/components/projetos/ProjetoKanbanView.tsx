@@ -591,7 +591,11 @@ function DraggableKanbanCard({
     <div
       ref={setNodeRef}
       style={style}
+      onMouseEnter={prefetchAnexos}
+      onMouseLeave={cancelarPrefetch}
+      onFocus={prefetchAnexos}
       className={cn(
+
         "rounded-lg border transition-all group flex overflow-hidden",
         "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] hover:-translate-y-[1px]",
         darkBg
