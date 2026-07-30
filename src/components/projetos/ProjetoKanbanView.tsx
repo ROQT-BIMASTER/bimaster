@@ -98,6 +98,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     setSort: setDocSort,
   } = useDocStatusFilterState(`kanban:${projetoId}`);
   const [loteOpen, setLoteOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
   const { data: docStatusMap } = useTarefasDocStatus(projetoId, rawTaskIds);
