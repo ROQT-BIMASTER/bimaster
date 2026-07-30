@@ -63,7 +63,7 @@ function ImagemPreview({
 
   const mostrandoPlaceholder = !url || !carregada;
 
-  return (
+  const botao = (
     <button
       ref={ref}
       type="button"
@@ -74,7 +74,7 @@ function ImagemPreview({
         onClick();
       }}
       className={cn(
-        "relative rounded-md border border-border/50 bg-muted overflow-hidden flex items-center justify-center",
+        "group/thumb relative rounded-md border border-border/50 bg-muted overflow-hidden flex items-center justify-center",
         "hover:ring-2 hover:ring-primary/40 transition",
         className,
       )}
@@ -102,12 +102,40 @@ function ImagemPreview({
           )}
         />
       )}
+      {url && carregada && !overlay && (
+        <span className="pointer-events-none absolute right-1 top-1 rounded bg-background/80 p-1 opacity-0 transition-opacity group-hover/thumb:opacity-100">
+          <ZoomIn className="h-3 w-3 text-foreground" />
+        </span>
+      )}
       {overlay && (
         <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-medium text-foreground">
           {overlay}
         </span>
       )}
     </button>
+  );
+
+  if (!url || overlay) return botao;
+
+  // Zoom rápido: pré-visualização ampliada ao passar o mouse, sem abrir o visualizador.
+  return (
+    <HoverCard openDelay={250} closeDelay={80}>
+      <HoverCardTrigger asChild>{botao}</HoverCardTrigger>
+      <HoverCardContent
+        side="right"
+        align="start"
+        className="w-auto max-w-[min(70vw,520px)] p-2"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={url}
+          alt={arquivo.nome}
+          className="max-h-[60vh] max-w-[min(66vw,500px)] rounded-md object-contain"
+        />
+        <p className="mt-1 truncate text-[11px] text-muted-foreground">{arquivo.nome}</p>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
