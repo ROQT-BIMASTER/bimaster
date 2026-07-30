@@ -29,6 +29,8 @@ import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasA
 import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
 import { useTarefasDocStatus, type TarefaDocStatus } from "@/hooks/useTarefasDocStatus";
 import { TarefaDocStatusBadge } from "./TarefaDocStatusBadge";
+import { DocStatusFilterBar } from "./DocStatusFilterBar";
+import type { DocDecisao } from "@/lib/china/docStatus";
 import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
@@ -82,13 +84,35 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     updateSecao,
   } = useProjetoTarefas(projetoId);
 
+  // Filtro por situação dos documentos da submissão (chips com contagem)
+  const [docFilter, setDocFilter] = useState<DocDecisao[]>([]);
+
+  const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
+  const { data: docStatusMap } = useTarefasDocStatus(projetoId, rawTaskIds);
+
+  const docCounts = useMemo(() => {
+    const c: Partial<Record<DocDecisao, number>> = {};
+    for (const t of rawTarefas) {
+      const st = docStatusMap?.[t.id];
+      if (!st) continue;
+      c[st.decisao] = (c[st.decisao] || 0) + 1;
+    }
+    return c;
+  }, [rawTarefas, docStatusMap]);
+
   // Apply external filters/sort
-  const filtersActive = hasActiveFilters(filters);
+  const filtersActive = hasActiveFilters(filters) || docFilter.length > 0;
   const filteredIds = useMemo(() => {
     if (!filtersActive) return null;
-    const filtered = applyProjetoFilters(rawTarefas, filters);
+    let filtered = applyProjetoFilters(rawTarefas, filters);
+    if (docFilter.length > 0) {
+      filtered = filtered.filter((t) => {
+        const st = docStatusMap?.[t.id];
+        return !!st && docFilter.includes(st.decisao);
+      });
+    }
     return new Set(filtered.map(t => t.id));
-  }, [rawTarefas, filters, filtersActive]);
+  }, [rawTarefas, filters, filtersActive, docFilter, docStatusMap]);
 
   const tarefas = useMemo(() => {
     let t = rawTarefas;
@@ -103,6 +127,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       return base.filter(t => filteredIds.has(t.id));
     };
   }, [rawTarefasPorSecao, filtersActive, filteredIds]);
+
 
   // Tarefa aberta é persistida em `?tarefa=<id>` — sobrevive a reload do PWA,
   // refresh manual e troca de aba (não fecha mais ao voltar de outra aba).
@@ -153,7 +178,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
   const metasProgress = useMetasProgress(allTaskIds);
   const { data: anexosMap } = useTarefasAnexos(projetoId, allTaskIds);
-  const { data: docStatusMap } = useTarefasDocStatus(projetoId, allTaskIds);
+  
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -257,18 +282,33 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     return <KanbanSkeleton darkBg={darkBg} />;
   }
 
+  const docBar = (
+    <DocStatusFilterBar
+      counts={docCounts}
+      selected={docFilter}
+      onChange={setDocFilter}
+      label="Situação dos documentos"
+      className="mb-3"
+    />
+  );
+
   if (filtersActive && tarefas.length === 0) {
     return (
-      <EmptyState
-        icon={LayoutGrid}
-        title="Nenhuma tarefa encontrada"
-        description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
-      />
+      <>
+        {docBar}
+        <EmptyState
+          icon={LayoutGrid}
+          title="Nenhuma tarefa encontrada"
+          description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+        />
+      </>
     );
   }
 
   return (
     <>
+      {docBar}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
