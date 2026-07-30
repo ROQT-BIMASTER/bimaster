@@ -33,6 +33,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
 import { ConfirmarAprovacaoDialog } from "@/components/security/ConfirmarAprovacaoDialog";
 import { ReabrirDocumentoDialog } from "@/components/security/ReabrirDocumentoDialog";
+import { HomologacaoTimeline } from "@/components/projetos/tarefa-detalhe/HomologacaoTimeline";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -68,6 +69,7 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
   const [reabrirOpen, setReabrirOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [trilhaSort, setTrilhaSort] = useState<TrilhaSortKey>("data_desc");
+  const [modoTrilha, setModoTrilha] = useState<"timeline" | "lista">("timeline");
 
   const definirStatus = useDefinirStatusDocumento();
   const { data: trilha = [], isLoading: trilhaLoading } = useDocAprovacoesAudit(
@@ -265,6 +267,25 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                 <p className="text-[11px] text-muted-foreground">
                   {trilhaVisivel.length} de {trilha.length} registro(s) de homologação
                 </p>
+                <div className="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5">
+                  {(["timeline", "lista"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setModoTrilha(m)}
+                      aria-pressed={modoTrilha === m}
+                      className={`rounded px-2 py-0.5 text-[10.5px] transition-colors ${
+                        modoTrilha === m
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      {m === "timeline" ? "Linha do tempo" : "Lista"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -300,26 +321,30 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                 </p>
               )}
 
-              {trilhaVisivel.map((t) => (
-                <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
-                  <div className="flex items-center gap-2">
-                    <Badge className={`text-[10px] h-4 ${docStatusTone(t.decisao)}`}>
-                      {DECISAO_LABEL[t.decisao] || t.decisao}
-                    </Badge>
-                    <span className="text-[11px] font-medium">
-                      {t.decidido_por_nome || t.decidido_por_email || "Usuário"}
-                    </span>
+              {modoTrilha === "timeline" ? (
+                <HomologacaoTimeline trilha={trilhaVisivel} />
+              ) : (
+                trilhaVisivel.map((t) => (
+                  <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-[10px] h-4 ${docStatusTone(t.decisao)}`}>
+                        {DECISAO_LABEL[t.decisao] || t.decisao}
+                      </Badge>
+                      <span className="text-[11px] font-medium">
+                        {t.decidido_por_nome || t.decidido_por_email || "Usuário"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[10.5px] text-muted-foreground">
+                      {format(new Date(t.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })} ·
+                      confirmação por {t.metodo_confirmacao === "senha" ? "senha" : "sessão"}
+                      {t.origem ? ` · origem ${t.origem}` : ""}
+                    </p>
+                    {t.parecer && (
+                      <p className="mt-1 whitespace-pre-wrap text-[11px]">{t.parecer}</p>
+                    )}
                   </div>
-                  <p className="mt-1 text-[10.5px] text-muted-foreground">
-                    {format(new Date(t.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })} ·
-                    confirmação por {t.metodo_confirmacao === "senha" ? "senha" : "sessão"}
-                    {t.origem ? ` · origem ${t.origem}` : ""}
-                  </p>
-                  {t.parecer && (
-                    <p className="mt-1 whitespace-pre-wrap text-[11px]">{t.parecer}</p>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
           </Tabs>
         </SheetContent>
