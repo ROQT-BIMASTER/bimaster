@@ -49,6 +49,7 @@ export function useChinaSubmissoesChat() {
         .select(
           "id, produto_codigo, produto_nome, chat_status, numero_ordem, status, created_at, updated_at",
         )
+        .is("deleted_at", null)
         .order("updated_at", { ascending: false })
         .limit(200);
       if (error) throw error;
