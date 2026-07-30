@@ -29,6 +29,8 @@ import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasA
 import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
 import { useTarefasDocStatus, type TarefaDocStatus } from "@/hooks/useTarefasDocStatus";
 import { TarefaDocStatusBadge } from "./TarefaDocStatusBadge";
+import { DocStatusFilterBar } from "./DocStatusFilterBar";
+import type { DocDecisao } from "@/lib/china/docStatus";
 import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
