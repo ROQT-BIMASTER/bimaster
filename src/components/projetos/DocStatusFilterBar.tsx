@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NotificacoesDocPrefsButton } from "@/components/projetos/NotificacoesDocPrefsDialog";
 
 
 const ORDEM: DocDecisao[] = ["em_analise", "pendente", "aprovado", "rejeitado"];
