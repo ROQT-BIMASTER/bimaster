@@ -8,13 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DocAprovacaoAudit } from "@/hooks/useDecisaoDocumentoChina";
 
-const DECISAO_LABEL: Record<string, string> = {
-  aprovado: "Aprovado",
-  rejeitado: "Não aprovado",
-  em_analise: "Em análise",
-  pendente: "Pendente de aprovação",
-  ciencia: "Ciência registrada",
-};
+import { DECISAO_LABEL } from "@/lib/china/homologacaoFilter";
 
 function dataHora(iso: string) {
   return format(new Date(iso), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
@@ -25,6 +19,10 @@ export interface HomologacaoPdfMeta {
   tipoDocumento?: string | null;
   produto?: string | null;
   statusAtual?: string | null;
+  /** Termo de busca aplicado ao relatório, quando houver. */
+  busca?: string | null;
+  /** Descrição da ordenação aplicada. */
+  ordenacao?: string | null;
 }
 
 export function exportHomologacaoPdf(
@@ -44,6 +42,8 @@ export function exportHomologacaoPdf(
     meta.statusAtual ? `Situação atual: ${DECISAO_LABEL[meta.statusAtual] || meta.statusAtual}` : null,
     `Emitido em: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`,
     `Registros: ${trilha.length}`,
+    meta.busca ? `Busca aplicada: "${meta.busca}"` : null,
+    meta.ordenacao ? `Ordenação: ${meta.ordenacao}` : null,
   ].filter(Boolean) as string[];
   linhas.forEach((l, i) => doc.text(l, 40, 60 + i * 13));
 

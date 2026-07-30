@@ -13,10 +13,10 @@
  * `china_doc_aprovacoes_audit`; o status atualizado reflete no módulo China,
  * no Vincular China e em qualquer tela que leia o fluxo do checklist.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Download, Eye, FileText, Loader2, ShieldCheck, XCircle, Clock } from "lucide-react";
+import { Check, Download, Eye, FileText, Loader2, RotateCcw, Search, ShieldCheck, XCircle, Clock } from "lucide-react";
 import { exportHomologacaoPdf } from "@/lib/china/exportHomologacaoPdf";
 import {
   Sheet,
@@ -32,6 +32,21 @@ import { Separator } from "@/components/ui/separator";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
 import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
 import { ConfirmarAprovacaoDialog } from "@/components/security/ConfirmarAprovacaoDialog";
+import { ReabrirDocumentoDialog } from "@/components/security/ReabrirDocumentoDialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DECISAO_LABEL,
+  TRILHA_SORT_OPTIONS,
+  filtrarOrdenarTrilha,
+  type TrilhaSortKey,
+} from "@/lib/china/homologacaoFilter";
 import { bucketForDoc } from "@/lib/china/flowTones";
 import { docStatusLabel, docStatusTone } from "@/lib/china/docStatus";
 import {
@@ -46,18 +61,13 @@ interface Props {
   doc: ChinaDocDaTarefa;
 }
 
-const DECISAO_LABEL: Record<string, string> = {
-  aprovado: "Aprovado",
-  rejeitado: "Não aprovado",
-  em_analise: "Em análise",
-  pendente: "Pendente de aprovação",
-  ciencia: "Ciência registrada",
-};
-
 export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [decisao, setDecisao] = useState<"aprovado" | "rejeitado">("aprovado");
+  const [reabrirOpen, setReabrirOpen] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [trilhaSort, setTrilhaSort] = useState<TrilhaSortKey>("data_desc");
 
   const definirStatus = useDefinirStatusDocumento();
   const { data: trilha = [], isLoading: trilhaLoading } = useDocAprovacoesAudit(
@@ -66,6 +76,11 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
 
   const status = doc.status || "rascunho";
   const aprovado = status === "aprovado";
+  const homologado = status === "aprovado" || status === "rejeitado";
+  const trilhaVisivel = useMemo(
+    () => filtrarOrdenarTrilha(trilha, busca, trilhaSort),
+    [trilha, busca, trilhaSort],
+  );
   const label = doc.nome_arquivo || doc.tipo_documento;
 
   const abrirDecisao = (d: "aprovado" | "rejeitado") => {
@@ -185,11 +200,23 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                     <XCircle className="h-3.5 w-3.5" />
                     Não aprovar
                   </Button>
+                  {homologado && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-xs"
+                      onClick={() => setReabrirOpen(true)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reabrir para nova análise
+                    </Button>
+                  )}
                 </div>
                 <p className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
                   <ShieldCheck className="h-3 w-3" />
-                  Aprovar ou reprovar exige confirmação de senha e gera registro
-                  homologado com usuário, data e hora.
+                  Aprovar, reprovar ou reabrir exige confirmação de senha e gera
+                  registro homologado com usuário, data e hora. A reabertura mantém
+                  a decisão anterior na trilha.
                 </p>
               </div>
             </TabsContent>
@@ -208,21 +235,50 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
             </TabsContent>
 
             <TabsContent value="homologacao" className="mt-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <div className="relative min-w-[150px] flex-1">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar por documento, autor ou data"
+                    className="h-7 pl-7 text-xs"
+                  />
+                </div>
+                <Select
+                  value={trilhaSort}
+                  onValueChange={(v) => setTrilhaSort(v as TrilhaSortKey)}
+                >
+                  <SelectTrigger className="h-7 w-[168px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRILHA_SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="text-xs">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">
-                  {trilha.length} registro(s) de homologação
+                  {trilhaVisivel.length} de {trilha.length} registro(s) de homologação
                 </p>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 gap-1.5 text-xs"
-                  disabled={trilha.length === 0}
+                  disabled={trilhaVisivel.length === 0}
                   onClick={() =>
-                    exportHomologacaoPdf(trilha, {
+                    exportHomologacaoPdf(trilhaVisivel, {
                       documentoLabel: label,
                       tipoDocumento: doc.tipo_documento,
                       produto: [doc.produto_codigo, doc.produto_nome].filter(Boolean).join(" · "),
                       statusAtual: status,
+                      busca: busca.trim() || null,
+                      ordenacao:
+                        TRILHA_SORT_OPTIONS.find((o) => o.value === trilhaSort)?.label || null,
                     })
                   }
                 >
@@ -238,8 +294,13 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                   Nenhuma decisão homologada registrada para este documento.
                 </p>
               )}
+              {!trilhaLoading && trilha.length > 0 && trilhaVisivel.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum registro encontrado para esta busca.
+                </p>
+              )}
 
-              {trilha.map((t) => (
+              {trilhaVisivel.map((t) => (
                 <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
                   <div className="flex items-center gap-2">
                     <Badge className={`text-[10px] h-4 ${docStatusTone(t.decisao)}`}>
@@ -279,6 +340,17 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
         documentoId={doc.documento_id}
         decisao={decisao}
         documentoLabel={label}
+        tarefaId={doc.tarefa_id}
+        projetoId={doc.projeto_id}
+        origem="tarefa"
+      />
+
+      <ReabrirDocumentoDialog
+        open={reabrirOpen}
+        onOpenChange={setReabrirOpen}
+        documentoId={doc.documento_id}
+        documentoLabel={label}
+        statusAtual={status}
         tarefaId={doc.tarefa_id}
         projetoId={doc.projeto_id}
         origem="tarefa"
