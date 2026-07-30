@@ -1,7 +1,10 @@
+import { useMemo, useState } from "react";
 import { useChinaDocsDaTarefa } from "@/hooks/useChinaDocsDaTarefa";
 import { Badge } from "@/components/ui/badge";
 import { Ship } from "lucide-react";
 import { ChinaDocumentoBlock } from "./ChinaDocumentoBlock";
+import { DocStatusFilterBar } from "@/components/projetos/DocStatusFilterBar";
+import { normalizarDecisao, type DocDecisao } from "@/lib/china/docStatus";
 
 interface Props {
   tarefaId: string;
@@ -9,6 +12,21 @@ interface Props {
 
 export function TarefaChinaDocsSection({ tarefaId }: Props) {
   const { data: docs = [], isLoading } = useChinaDocsDaTarefa(tarefaId);
+  const [selected, setSelected] = useState<DocDecisao[]>([]);
+
+  const counts = useMemo(() => {
+    const c: Partial<Record<DocDecisao, number>> = {};
+    for (const d of docs) {
+      const dec = normalizarDecisao(d.status);
+      c[dec] = (c[dec] || 0) + 1;
+    }
+    return c;
+  }, [docs]);
+
+  const visiveis = useMemo(
+    () => (selected.length === 0 ? docs : docs.filter((d) => selected.includes(normalizarDecisao(d.status)))),
+    [docs, selected],
+  );
 
   if (isLoading) {
     return (
@@ -44,10 +62,21 @@ export function TarefaChinaDocsSection({ tarefaId }: Props) {
         <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{docs.length}</Badge>
       </h3>
 
+      <DocStatusFilterBar
+        counts={counts}
+        selected={selected}
+        onChange={setSelected}
+        label="Situação"
+      />
+
       <div className="space-y-2">
-        {docs.map((d) => (
-          <ChinaDocumentoBlock key={d.vinculo_id} doc={d} />
-        ))}
+        {visiveis.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhum documento nesta situação.
+          </p>
+        ) : (
+          visiveis.map((d) => <ChinaDocumentoBlock key={d.vinculo_id} doc={d} />)
+        )}
       </div>
     </div>
   );
