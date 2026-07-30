@@ -282,18 +282,33 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     return <KanbanSkeleton darkBg={darkBg} />;
   }
 
+  const docBar = (
+    <DocStatusFilterBar
+      counts={docCounts}
+      selected={docFilter}
+      onChange={setDocFilter}
+      label="Situação dos documentos"
+      className="mb-3"
+    />
+  );
+
   if (filtersActive && tarefas.length === 0) {
     return (
-      <EmptyState
-        icon={LayoutGrid}
-        title="Nenhuma tarefa encontrada"
-        description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
-      />
+      <>
+        {docBar}
+        <EmptyState
+          icon={LayoutGrid}
+          title="Nenhuma tarefa encontrada"
+          description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+        />
+      </>
     );
   }
 
   return (
     <>
+      {docBar}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
