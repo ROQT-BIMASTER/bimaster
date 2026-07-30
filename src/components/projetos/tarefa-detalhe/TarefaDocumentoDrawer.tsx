@@ -267,6 +267,25 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                 <p className="text-[11px] text-muted-foreground">
                   {trilhaVisivel.length} de {trilha.length} registro(s) de homologação
                 </p>
+                <div className="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5">
+                  {(["timeline", "lista"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setModoTrilha(m)}
+                      aria-pressed={modoTrilha === m}
+                      className={`rounded px-2 py-0.5 text-[10.5px] transition-colors ${
+                        modoTrilha === m
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      {m === "timeline" ? "Linha do tempo" : "Lista"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   size="sm"
                   variant="outline"
