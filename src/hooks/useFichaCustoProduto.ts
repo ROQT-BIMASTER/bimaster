@@ -610,6 +610,8 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
   return {
     produto,
+    bloqueado,
+    setBloqueado,
     insumos,
     config,
     totais,
