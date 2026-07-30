@@ -149,6 +149,9 @@ export function FichaCustoProdutoEditor({
   onRecarregarCustosFilhos,
   isDisplayComKit = false,
   todosInsumosKit = false,
+  custoAprovado = null,
+  onAbrirNovaRevisao,
+  abrindoRevisao = false,
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [importDialogAberto, setImportDialogAberto] = useState(false);
