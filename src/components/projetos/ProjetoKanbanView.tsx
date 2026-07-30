@@ -574,11 +574,14 @@ function DraggableKanbanCard({
     isDragging,
   } = useSortable({ id: tarefa.id });
 
+  const { prefetch: prefetchAnexos, cancelar: cancelarPrefetch } = usePrefetchAnexos(anexosResumo);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.3 : 1,
   };
+
 
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
