@@ -16,6 +16,10 @@ export interface ChinaDocDaTarefa {
   arquivo_url: string | null;
   status: string;
   submissao_id: string;
+  doc_created_at: string | null;
+  oficializado_em: string | null;
+  assinado_em: string | null;
+  previsao_envio: string | null;
   produto_codigo: string | null;
   produto_nome: string | null;
   // perfil de quem vinculou
@@ -43,7 +47,7 @@ export function useChinaDocsDaTarefa(tarefaId: string | undefined) {
       const [docsRes, profilesRes] = await Promise.all([
         supabase
           .from("china_produto_documentos")
-          .select("id, nome_arquivo, tipo_documento, arquivo_path, arquivo_url, status, submissao_id")
+          .select("id, nome_arquivo, tipo_documento, arquivo_path, arquivo_url, status, submissao_id, created_at, oficializado_em, assinado_em, previsao_envio")
           .in("id", docIds),
         userIds.length > 0
           ? supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds)
@@ -81,6 +85,10 @@ export function useChinaDocsDaTarefa(tarefaId: string | undefined) {
           arquivo_url: doc.arquivo_url,
           status: doc.status,
           submissao_id: doc.submissao_id,
+          doc_created_at: doc.created_at ?? null,
+          oficializado_em: doc.oficializado_em ?? null,
+          assinado_em: doc.assinado_em ?? null,
+          previsao_envio: doc.previsao_envio ?? null,
           produto_codigo: sub.produto_codigo || null,
           produto_nome: sub.produto_nome || null,
           vinculado_por_nome: prof?.nome || null,

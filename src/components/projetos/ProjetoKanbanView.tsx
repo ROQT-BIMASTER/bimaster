@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
+import { useDocStatusFilterState } from "@/hooks/useDocStatusFilterState";
+import { ordenarDocs } from "@/lib/china/docSort";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -87,8 +89,13 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     updateSecao,
   } = useProjetoTarefas(projetoId);
 
-  // Filtro por situação dos documentos da submissão (chips com contagem)
-  const [docFilter, setDocFilter] = useState<DocDecisao[]>([]);
+  // Filtro/ordenação por situação dos documentos da submissão — persistido por projeto
+  const {
+    selected: docFilter,
+    sort: docSort,
+    setSelected: setDocFilter,
+    setSort: setDocSort,
+  } = useDocStatusFilterState(`kanban:${projetoId}`);
   const [loteOpen, setLoteOpen] = useState(false);
 
   const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
@@ -127,10 +134,22 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const tarefasPorSecao = useMemo(() => {
     return (secaoId: string) => {
       const base = rawTarefasPorSecao(secaoId);
-      if (!filtersActive || !filteredIds) return base;
-      return base.filter(t => filteredIds.has(t.id));
+      const visiveis =
+        !filtersActive || !filteredIds ? base : base.filter(t => filteredIds.has(t.id));
+      if (docSort === "none") return visiveis;
+      return ordenarDocs(
+        visiveis.map((t) => {
+          const st = docStatusMap?.[t.id];
+          return {
+            ...t,
+            created_at: st?.ultimaAtualizacao ?? null,
+            previsao_envio: st?.proximaAcao ?? null,
+          };
+        }),
+        docSort,
+      ) as typeof visiveis;
     };
-  }, [rawTarefasPorSecao, filtersActive, filteredIds]);
+  }, [rawTarefasPorSecao, filtersActive, filteredIds, docSort, docStatusMap]);
 
 
   // Tarefa aberta é persistida em `?tarefa=<id>` — sobrevive a reload do PWA,
@@ -293,6 +312,8 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         counts={docCounts}
         selected={docFilter}
         onChange={setDocFilter}
+        sort={docSort}
+        onSortChange={setDocSort}
         label="Situação dos documentos"
       />
       {totalDocs > 0 && (
@@ -303,14 +324,21 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
           onClick={() => setLoteOpen(true)}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          Aprovar em lote
+          Ações em lote
         </Button>
       )}
     </div>
   );
 
   const loteDialog = (
-    <AprovacaoLoteDialog open={loteOpen} onOpenChange={setLoteOpen} projetoId={projetoId} />
+    <AprovacaoLoteDialog
+      open={loteOpen}
+      onOpenChange={setLoteOpen}
+      projetoId={projetoId}
+      tarefaIds={tarefas.map((t) => t.id)}
+      statusFiltro={docFilter}
+      sort={docSort}
+    />
   );
 
 

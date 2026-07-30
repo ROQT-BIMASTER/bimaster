@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useChinaDocsDaTarefa } from "@/hooks/useChinaDocsDaTarefa";
 import { Badge } from "@/components/ui/badge";
 import { Ship } from "lucide-react";
 import { ChinaDocumentoBlock } from "./ChinaDocumentoBlock";
 import { DocStatusFilterBar } from "@/components/projetos/DocStatusFilterBar";
 import { normalizarDecisao, type DocDecisao } from "@/lib/china/docStatus";
+import { ordenarDocs } from "@/lib/china/docSort";
+import { useDocStatusFilterState } from "@/hooks/useDocStatusFilterState";
 
 interface Props {
   tarefaId: string;
@@ -12,7 +14,7 @@ interface Props {
 
 export function TarefaChinaDocsSection({ tarefaId }: Props) {
   const { data: docs = [], isLoading } = useChinaDocsDaTarefa(tarefaId);
-  const [selected, setSelected] = useState<DocDecisao[]>([]);
+  const { selected, sort, setSelected, setSort } = useDocStatusFilterState(`tarefa:${tarefaId}`);
 
   const counts = useMemo(() => {
     const c: Partial<Record<DocDecisao, number>> = {};
@@ -23,10 +25,17 @@ export function TarefaChinaDocsSection({ tarefaId }: Props) {
     return c;
   }, [docs]);
 
-  const visiveis = useMemo(
-    () => (selected.length === 0 ? docs : docs.filter((d) => selected.includes(normalizarDecisao(d.status)))),
-    [docs, selected],
-  );
+  const visiveis = useMemo(() => {
+    const filtrados =
+      selected.length === 0
+        ? docs
+        : docs.filter((d) => selected.includes(normalizarDecisao(d.status)));
+    return ordenarDocs(
+      filtrados.map((d) => ({ ...d, created_at: d.doc_created_at ?? d.created_at })),
+      sort,
+    );
+  }, [docs, selected, sort]);
+
 
   if (isLoading) {
     return (
@@ -66,8 +75,11 @@ export function TarefaChinaDocsSection({ tarefaId }: Props) {
         counts={counts}
         selected={selected}
         onChange={setSelected}
+        sort={sort}
+        onSortChange={setSort}
         label="Situação"
       />
+
 
       <div className="space-y-2">
         {visiveis.length === 0 ? (

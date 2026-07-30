@@ -191,6 +191,52 @@ export function useDecisaoLoteHomologada() {
   });
 }
 
+/* ─────────── Mudança de situação em lote (sem step-up) ─────────── */
+
+export interface StatusLoteParams {
+  documentoIds: string[];
+  status: "em_analise" | "pendente";
+  projetoId?: string | null;
+  origem?: string;
+}
+
+/**
+ * Atualiza a situação (Em análise / Pendente de aprovação) de vários documentos.
+ * Cada documento é processado individualmente pela rotina auditada; falhas
+ * isoladas não abortam o lote.
+ */
+export function useStatusLoteDocumentos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: StatusLoteParams) => {
+      if (params.documentoIds.length === 0) throw new Error("Selecione ao menos um documento.");
+      let ok = 0;
+      const erros: Array<{ documento_id: string; erro: string }> = [];
+      for (const documentoId of params.documentoIds) {
+        const { error } = await supabase.rpc("rpc_china_definir_status_documento" as any, {
+          p_documento_id: documentoId,
+          p_status: params.status,
+          p_tarefa_id: null,
+          p_projeto_id: params.projetoId || null,
+          p_origem: params.origem || "kanban_lote",
+        } as any);
+        if (error) erros.push({ documento_id: documentoId, erro: error.message });
+        else ok += 1;
+      }
+      return { processados: ok, falhas: erros.length, erros };
+    },
+    onSuccess: (res, vars) => {
+      invalidateDocQueries(qc);
+      qc.invalidateQueries({ queryKey: ["projeto-china-docs"] });
+      const alvo =
+        vars.status === "em_analise" ? "em análise" : "pendente(s) de aprovação";
+      toast.success(`${res.processados} documento(s) atualizado(s) para ${alvo}.`);
+      if (res.falhas > 0) toast.error(`${res.falhas} documento(s) não puderam ser atualizados.`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao atualizar a situação em lote."),
+  });
+}
+
 export interface ProjetoChinaDoc {
   documento_id: string;
   tarefa_id: string;
@@ -198,6 +244,10 @@ export interface ProjetoChinaDoc {
   nome_arquivo: string | null;
   tipo_documento: string;
   status: string;
+  created_at: string | null;
+  oficializado_em: string | null;
+  assinado_em: string | null;
+  previsao_envio: string | null;
 }
 
 /** Documentos da submissão China vinculados às tarefas de um projeto. */
@@ -221,7 +271,9 @@ export function useProjetoChinaDocs(projetoId: string | undefined, enabled = tru
       const [docsRes, tarefasRes] = await Promise.all([
         supabase
           .from("china_produto_documentos")
-          .select("id, nome_arquivo, tipo_documento, status")
+          .select(
+            "id, nome_arquivo, tipo_documento, status, created_at, oficializado_em, assinado_em, previsao_envio",
+          )
           .in("id", docIds),
         supabase.from("projeto_tarefas").select("id, titulo").in("id", tarefaIds),
       ]);
@@ -243,9 +295,14 @@ export function useProjetoChinaDocs(projetoId: string | undefined, enabled = tru
           nome_arquivo: d.nome_arquivo,
           tipo_documento: d.tipo_documento,
           status: d.status,
+          created_at: d.created_at ?? null,
+          oficializado_em: d.oficializado_em ?? null,
+          assinado_em: d.assinado_em ?? null,
+          previsao_envio: d.previsao_envio ?? null,
         });
       }
       return out;
     },
   });
 }
+

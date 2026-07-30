@@ -3,9 +3,18 @@
  * dos documentos da submissão China (Em análise, Pendente de aprovação,
  * Aprovado, Não aprovado).
  */
-import { Check, Clock, FileWarning, XCircle } from "lucide-react";
+import { ArrowDownWideNarrow, Check, Clock, FileWarning, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DECISAO_LABEL, type DocDecisao } from "@/lib/china/docStatus";
+import { DOC_SORT_LABEL, type DocSortKey } from "@/lib/china/docSort";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const ORDEM: DocDecisao[] = ["em_analise", "pendente", "aprovado", "rejeitado"];
 
@@ -38,9 +47,19 @@ interface Props {
   onChange: (next: DocDecisao[]) => void;
   label?: string;
   className?: string;
+  sort?: DocSortKey;
+  onSortChange?: (next: DocSortKey) => void;
 }
 
-export function DocStatusFilterBar({ counts, selected, onChange, label = "Documentos", className }: Props) {
+export function DocStatusFilterBar({
+  counts,
+  selected,
+  onChange,
+  label = "Documentos",
+  className,
+  sort,
+  onSortChange,
+}: Props) {
   const total = ORDEM.reduce((acc, d) => acc + (counts[d] || 0), 0);
   if (total === 0) return null;
 
@@ -51,6 +70,7 @@ export function DocStatusFilterBar({ counts, selected, onChange, label = "Docume
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
       <span className="text-[11px] font-medium text-muted-foreground mr-0.5">{label}:</span>
+
       {ORDEM.map((d) => {
         const count = counts[d] || 0;
         if (count === 0) return null;
@@ -83,6 +103,24 @@ export function DocStatusFilterBar({ counts, selected, onChange, label = "Docume
           Limpar
         </button>
       )}
+      {onSortChange && (
+        <div className="ml-1 flex items-center gap-1">
+          <ArrowDownWideNarrow className="h-3.5 w-3.5 text-muted-foreground" />
+          <Select value={sort || "none"} onValueChange={(v) => onSortChange(v as DocSortKey)}>
+            <SelectTrigger className="h-6 w-[168px] text-[11px]" aria-label="Ordenar documentos">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(DOC_SORT_LABEL) as DocSortKey[]).map((k) => (
+                <SelectItem key={k} value={k} className="text-[11px]">
+                  {DOC_SORT_LABEL[k]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
     </div>
   );
 }
