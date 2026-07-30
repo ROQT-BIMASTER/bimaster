@@ -38,7 +38,7 @@ describe("docSort", () => {
   });
 
   it("ordem padrão preserva a lista original", () => {
-    const lista = [{ id: "a" }, { id: "b" }];
+    const lista = [{ id: "a", created_at: null }, { id: "b", created_at: null }];
     expect(ordenarDocs(lista, "none")).toBe(lista);
     expect(compararDocs("none", {}, {})).toBe(0);
   });
