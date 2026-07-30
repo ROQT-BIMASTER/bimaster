@@ -370,6 +370,22 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         nomeArquivo={doc.nome_arquivo}
         tipoDocumento={doc.tipo_documento}
       />
+
+      {adminOpen && (
+        <TarefaDocumentoDrawer open={adminOpen} onOpenChange={setAdminOpen} doc={doc} />
+      )}
+
+      <ConfirmarAprovacaoDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        documentoId={doc.documento_id}
+        decisao="aprovado"
+        documentoLabel={doc.nome_arquivo || doc.tipo_documento}
+        tarefaId={doc.tarefa_id}
+        projetoId={doc.projeto_id}
+        origem="tarefa"
+      />
     </div>
+
   );
 }
