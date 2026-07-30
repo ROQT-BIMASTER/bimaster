@@ -16,7 +16,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Eye, FileText, Loader2, ShieldCheck, XCircle, Clock } from "lucide-react";
+import { Check, Download, Eye, FileText, Loader2, ShieldCheck, XCircle, Clock } from "lucide-react";
+import { exportHomologacaoPdf } from "@/lib/china/exportHomologacaoPdf";
 import {
   Sheet,
   SheetContent,
@@ -207,6 +208,28 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
             </TabsContent>
 
             <TabsContent value="homologacao" className="mt-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">
+                  {trilha.length} registro(s) de homologação
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
+                  disabled={trilha.length === 0}
+                  onClick={() =>
+                    exportHomologacaoPdf(trilha, {
+                      documentoLabel: label,
+                      tipoDocumento: doc.tipo_documento,
+                      produto: [doc.produto_codigo, doc.produto_nome].filter(Boolean).join(" · "),
+                      statusAtual: status,
+                    })
+                  }
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar PDF
+                </Button>
+              </div>
               {trilhaLoading && (
                 <p className="text-xs text-muted-foreground">Carregando trilha…</p>
               )}
@@ -215,6 +238,7 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                   Nenhuma decisão homologada registrada para este documento.
                 </p>
               )}
+
               {trilha.map((t) => (
                 <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
                   <div className="flex items-center gap-2">

@@ -9,6 +9,9 @@ import { NovaSecaoInline } from "./NovaSecaoInline";
 import { KanbanSkeleton } from "./ProjetoSkeletons";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck } from "lucide-react";
+import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -86,6 +89,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
   // Filtro por situação dos documentos da submissão (chips com contagem)
   const [docFilter, setDocFilter] = useState<DocDecisao[]>([]);
+  const [loteOpen, setLoteOpen] = useState(false);
 
   const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
   const { data: docStatusMap } = useTarefasDocStatus(projetoId, rawTaskIds);
@@ -282,20 +286,39 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     return <KanbanSkeleton darkBg={darkBg} />;
   }
 
+  const totalDocs = Object.values(docCounts).reduce((a, b) => a + (b || 0), 0);
   const docBar = (
-    <DocStatusFilterBar
-      counts={docCounts}
-      selected={docFilter}
-      onChange={setDocFilter}
-      label="Situação dos documentos"
-      className="mb-3"
-    />
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <DocStatusFilterBar
+        counts={docCounts}
+        selected={docFilter}
+        onChange={setDocFilter}
+        label="Situação dos documentos"
+      />
+      {totalDocs > 0 && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-[11px]"
+          onClick={() => setLoteOpen(true)}
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Aprovar em lote
+        </Button>
+      )}
+    </div>
   );
+
+  const loteDialog = (
+    <AprovacaoLoteDialog open={loteOpen} onOpenChange={setLoteOpen} projetoId={projetoId} />
+  );
+
 
   if (filtersActive && tarefas.length === 0) {
     return (
       <>
         {docBar}
+        {loteDialog}
         <EmptyState
           icon={LayoutGrid}
           title="Nenhuma tarefa encontrada"
@@ -308,6 +331,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   return (
     <>
       {docBar}
+      {loteDialog}
 
       <DndContext
         sensors={sensors}
