@@ -210,7 +210,7 @@ export function DownloadAnexosLoteDialog({
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-xs font-medium">{h.pacote_nome || "Pacote"}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {formatDateTimeBR(h.created_at)}
+                      {formatDateTime(h.created_at)}
                     </span>
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
