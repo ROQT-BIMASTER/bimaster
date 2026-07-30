@@ -329,18 +329,38 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
           Ações em lote
         </Button>
       )}
+      {totalAnexos > 0 && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-[11px]"
+          onClick={() => setDownloadOpen(true)}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Baixar anexos ({totalAnexos})
+        </Button>
+      )}
     </div>
   );
 
   const loteDialog = (
-    <AprovacaoLoteDialog
-      open={loteOpen}
-      onOpenChange={setLoteOpen}
-      projetoId={projetoId}
-      tarefaIds={tarefas.map((t) => t.id)}
-      statusFiltro={docFilter}
-      sort={docSort}
-    />
+    <>
+      <AprovacaoLoteDialog
+        open={loteOpen}
+        onOpenChange={setLoteOpen}
+        projetoId={projetoId}
+        tarefaIds={tarefas.map((t) => t.id)}
+        statusFiltro={docFilter}
+        sort={docSort}
+      />
+      <DownloadAnexosLoteDialog
+        open={downloadOpen}
+        onOpenChange={setDownloadOpen}
+        projetoId={projetoId}
+        tarefas={tarefas.map((t) => ({ id: t.id, titulo: t.titulo }))}
+        anexosMap={anexosMap}
+      />
+    </>
   );
 
 
