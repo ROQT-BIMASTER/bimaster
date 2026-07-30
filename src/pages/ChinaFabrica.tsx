@@ -58,11 +58,18 @@ export default function ChinaFabrica() {
     queryKey: ["china-pending-actions"],
     enabled: isChinaUser,
     queryFn: async () => {
+      const { data: ativas } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("id")
+        .is("deleted_at", null);
+      const ativasIds = new Set((ativas || []).map((s: any) => s.id));
       const { data: rejDocs } = await supabase
         .from("china_produto_documentos" as any)
         .select("submissao_id")
         .eq("status", "rejeitado");
-      const rejSubmIds = new Set((rejDocs || []).map((d: any) => d.submissao_id));
+      const rejSubmIds = new Set(
+        (rejDocs || []).map((d: any) => d.submissao_id).filter((id: string) => ativasIds.has(id)),
+      );
       const rejectedSubs = (stats?.rejeitado || 0);
       return rejSubmIds.size + rejectedSubs;
     },
