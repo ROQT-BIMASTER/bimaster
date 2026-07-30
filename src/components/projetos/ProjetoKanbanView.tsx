@@ -33,6 +33,8 @@ import {
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
+import { usePrefetchAnexos } from "@/hooks/usePrefetchAnexos";
+
 import { useTarefasDocStatus, type TarefaDocStatus } from "@/hooks/useTarefasDocStatus";
 import { TarefaDocStatusBadge } from "./TarefaDocStatusBadge";
 import { DocStatusFilterBar } from "./DocStatusFilterBar";
