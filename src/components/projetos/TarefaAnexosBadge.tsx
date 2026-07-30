@@ -32,17 +32,24 @@ function IconePorFamilia({ familia, className }: { familia: TarefaArquivo["famil
 }
 
 function useThumbUrl(arquivo: TarefaArquivo, enabled: boolean) {
+  const cacheHit =
+    arquivo.storage_path ? getThumbUrlCache(arquivo.bucket, arquivo.storage_path) : null;
+
   return useQuery({
     queryKey: ["tarefa-anexo-thumb", arquivo.bucket, arquivo.storage_path],
-    enabled: enabled && !!arquivo.storage_path && arquivo.familia === "imagem",
+    // Com URL em cache local não precisamos aguardar a viewport nem refazer a assinatura.
+    enabled: enabled && !!arquivo.storage_path && arquivo.familia === "imagem" && !cacheHit,
     staleTime: 50 * 60 * 1000,
     gcTime: 55 * 60 * 1000,
+    initialData: cacheHit ?? undefined,
     queryFn: async () => {
       const { signedUrl } = await getSignedUrl(arquivo.bucket, arquivo.storage_path as string);
+      setThumbUrlCache(arquivo.bucket, arquivo.storage_path as string, signedUrl);
       return signedUrl;
     },
   });
 }
+
 
 function ImagemPreview({
   arquivo,
