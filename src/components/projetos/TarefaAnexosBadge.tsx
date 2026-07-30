@@ -7,7 +7,8 @@
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Paperclip, FileText, FileSpreadsheet, Image as ImageIcon, PenTool, FileQuestion } from "lucide-react";
+import { Paperclip, FileText, FileSpreadsheet, Image as ImageIcon, PenTool, FileQuestion, ZoomIn } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { ArquivoPreviewDialog, type ArquivoPreviewItem } from "@/components/comum/ArquivoPreviewDialog";
