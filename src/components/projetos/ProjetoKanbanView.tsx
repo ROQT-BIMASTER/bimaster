@@ -33,6 +33,8 @@ import {
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
+import { usePrefetchAnexos } from "@/hooks/usePrefetchAnexos";
+
 import { useTarefasDocStatus, type TarefaDocStatus } from "@/hooks/useTarefasDocStatus";
 import { TarefaDocStatusBadge } from "./TarefaDocStatusBadge";
 import { DocStatusFilterBar } from "./DocStatusFilterBar";
@@ -574,11 +576,14 @@ function DraggableKanbanCard({
     isDragging,
   } = useSortable({ id: tarefa.id });
 
+  const { prefetch: prefetchAnexos, cancelar: cancelarPrefetch } = usePrefetchAnexos(anexosResumo);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.3 : 1,
   };
+
 
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
@@ -591,7 +596,11 @@ function DraggableKanbanCard({
     <div
       ref={setNodeRef}
       style={style}
+      onMouseEnter={prefetchAnexos}
+      onMouseLeave={cancelarPrefetch}
+      onFocus={prefetchAnexos}
       className={cn(
+
         "rounded-lg border transition-all group flex overflow-hidden",
         "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] hover:-translate-y-[1px]",
         darkBg
