@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NotificacoesDocPrefsButton } from "@/components/projetos/NotificacoesDocPrefsDialog";
 
 
 const ORDEM: DocDecisao[] = ["em_analise", "pendente", "aprovado", "rejeitado"];
@@ -121,6 +122,7 @@ export function DocStatusFilterBar({
         </div>
       )}
 
+      <NotificacoesDocPrefsButton className="ml-auto h-6 px-2 text-muted-foreground" />
     </div>
   );
 }
