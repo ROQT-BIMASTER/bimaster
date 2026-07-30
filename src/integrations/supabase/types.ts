@@ -1132,6 +1132,45 @@ export type Database = {
           },
         ]
       }
+      anexos_download_log: {
+        Row: {
+          arquivos: Json
+          created_at: string
+          id: string
+          origem: string
+          pacote_nome: string | null
+          projeto_id: string | null
+          tamanho_bytes: number
+          total_arquivos: number
+          total_falhas: number
+          user_id: string
+        }
+        Insert: {
+          arquivos?: Json
+          created_at?: string
+          id?: string
+          origem?: string
+          pacote_nome?: string | null
+          projeto_id?: string | null
+          tamanho_bytes?: number
+          total_arquivos?: number
+          total_falhas?: number
+          user_id?: string
+        }
+        Update: {
+          arquivos?: Json
+          created_at?: string
+          id?: string
+          origem?: string
+          pacote_nome?: string | null
+          projeto_id?: string | null
+          tamanho_bytes?: number
+          total_arquivos?: number
+          total_falhas?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       anomaly_events: {
         Row: {
           anomaly_type: string
