@@ -61577,6 +61577,19 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_china_reabrir_documento: {
+        Args: {
+          p_documento_id: string
+          p_metodo?: string
+          p_motivo: string
+          p_novo_status?: string
+          p_origem?: string
+          p_projeto_id?: string
+          p_step_up_token: string
+          p_tarefa_id?: string
+        }
+        Returns: Json
+      }
       rpc_china_recusar_oc: {
         Args: { p_motivo: string; p_oc_id: string }
         Returns: {
