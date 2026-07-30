@@ -38,9 +38,19 @@ interface Props {
   onChange: (next: DocDecisao[]) => void;
   label?: string;
   className?: string;
+  sort?: DocSortKey;
+  onSortChange?: (next: DocSortKey) => void;
 }
 
-export function DocStatusFilterBar({ counts, selected, onChange, label = "Documentos", className }: Props) {
+export function DocStatusFilterBar({
+  counts,
+  selected,
+  onChange,
+  label = "Documentos",
+  className,
+  sort,
+  onSortChange,
+}: Props) {
   const total = ORDEM.reduce((acc, d) => acc + (counts[d] || 0), 0);
   if (total === 0) return null;
 
@@ -51,6 +61,7 @@ export function DocStatusFilterBar({ counts, selected, onChange, label = "Docume
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
       <span className="text-[11px] font-medium text-muted-foreground mr-0.5">{label}:</span>
+
       {ORDEM.map((d) => {
         const count = counts[d] || 0;
         if (count === 0) return null;
