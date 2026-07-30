@@ -309,6 +309,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Atualizar insumo
   const atualizarInsumo = useCallback(
     async (id: string, campo: keyof CustoInsumo, valor: any) => {
+      if (bloquearEscrita()) return;
       // Atualizar localmente primeiro para UX rápida
       setInsumos((prev) =>
         prev.map((i) => (i.id === id ? { ...i, [campo]: valor } : i))
