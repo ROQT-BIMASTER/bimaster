@@ -23,7 +23,8 @@ export default function ChinaFabrica() {
     queryFn: async () => {
       const { data } = await supabase
         .from("china_produto_submissoes" as any)
-        .select("status");
+        .select("status")
+        .is("deleted_at", null);
       const items = (data || []) as any[];
       return {
         total: items.length,
