@@ -355,19 +355,20 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
     setInsumos((prev) => prev.filter((i) => i.id !== id));
     toast.success("Insumo removido");
-  }, []);
+  }, [bloquearEscrita]);
 
   // Atualizar config
   const atualizarConfig = useCallback(
     (campo: keyof CustoConfig, valor: any) => {
+      if (bloquearEscrita()) return;
       setConfig((prev) => (prev ? { ...prev, [campo]: valor } : null));
     },
-    []
+    [bloquearEscrita]
   );
 
   // Salvar tudo
   const salvarFicha = useCallback(async () => {
-    if (!produtoId || !config) return;
+    if (!produtoId || !config || bloquearEscrita()) return;
 
     setSaving(true);
 
