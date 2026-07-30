@@ -10,7 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
   ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck, FolderPlus,
-  RefreshCw
+  RefreshCw, Wrench
+
 } from "lucide-react";
 import { useSincronizarDocsProjeto } from "@/hooks/useSincronizarDocsProjeto";
 import { useRepararDocsProjeto } from "@/hooks/useRepararDocsProjeto";
