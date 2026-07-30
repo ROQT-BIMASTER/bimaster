@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { formatDateTimeBR } from "@/lib/formatters";
+import { formatDateTime } from "@/lib/formatters";
 import type { TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 import {
   useAnexosDownloadHistorico,
