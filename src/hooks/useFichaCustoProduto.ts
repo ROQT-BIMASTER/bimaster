@@ -270,7 +270,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Adicionar insumo
   const adicionarInsumo = useCallback(
     async (insumo: Partial<CustoInsumo>) => {
-      if (!produtoId) return;
+      if (!produtoId || bloquearEscrita()) return;
 
       const novoInsumo = {
         produto_id: produtoId,
