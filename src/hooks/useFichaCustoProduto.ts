@@ -425,6 +425,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Reordenar insumos
   const reordenarInsumos = useCallback(
     async (novaOrdem: CustoInsumo[]) => {
+      if (bloquearEscrita()) return;
       setInsumos(novaOrdem);
 
       // Atualizar ordem no banco
