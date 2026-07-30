@@ -137,3 +137,115 @@ export function useDocAprovacoesAudit(documentoId: string | undefined) {
     },
   });
 }
+
+/* ─────────── Aprovação em lote ─────────── */
+
+export interface DecisaoLoteParams {
+  documentoIds: string[];
+  decisao: "aprovado" | "rejeitado";
+  senha: string;
+  parecer?: string;
+  projetoId?: string | null;
+  origem?: string;
+}
+
+export interface DecisaoLoteResultado {
+  ok: boolean;
+  lote_id: string;
+  processados: number;
+  falhas: number;
+  erros: Array<{ documento_id: string; erro: string }>;
+}
+
+/**
+ * Aprova/reprova vários documentos com um único step-up de senha.
+ * O servidor grava uma trilha homologada separada por documento.
+ */
+export function useDecisaoLoteHomologada() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: DecisaoLoteParams): Promise<DecisaoLoteResultado> => {
+      if (!params.senha?.trim()) throw new Error("Confirme sua senha para homologar as decisões.");
+      if (params.documentoIds.length === 0) throw new Error("Selecione ao menos um documento.");
+      const { token } = await requestStepUpWithPassword(CHINA_DOC_APPROVAL_SCOPE, params.senha);
+      const { data, error } = await supabase.rpc("rpc_china_aprovar_documentos_lote" as any, {
+        p_documento_ids: params.documentoIds,
+        p_decisao: params.decisao,
+        p_step_up_token: token,
+        p_parecer: params.parecer?.trim() || null,
+        p_projeto_id: params.projetoId || null,
+        p_origem: params.origem || "kanban_lote",
+        p_metodo: "senha",
+      } as any);
+      if (error) throw error;
+      return data as unknown as DecisaoLoteResultado;
+    },
+    onSuccess: (res, vars) => {
+      invalidateDocQueries(qc);
+      qc.invalidateQueries({ queryKey: ["projeto-china-docs"] });
+      const verbo = vars.decisao === "aprovado" ? "aprovado(s)" : "marcado(s) como não aprovado(s)";
+      toast.success(`${res.processados} documento(s) ${verbo} com trilha homologada.`);
+      if (res.falhas > 0) toast.error(`${res.falhas} documento(s) não puderam ser processados.`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao homologar o lote."),
+  });
+}
+
+export interface ProjetoChinaDoc {
+  documento_id: string;
+  tarefa_id: string;
+  tarefa_titulo: string | null;
+  nome_arquivo: string | null;
+  tipo_documento: string;
+  status: string;
+}
+
+/** Documentos da submissão China vinculados às tarefas de um projeto. */
+export function useProjetoChinaDocs(projetoId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["projeto-china-docs", projetoId],
+    enabled: !!projetoId && enabled,
+    queryFn: async (): Promise<ProjetoChinaDoc[]> => {
+      const { data: vinculos, error } = await (supabase
+        .from("china_documento_tarefa_vinculos" as any)
+        .select("documento_id, tarefa_id")
+        .eq("projeto_id", projetoId!)
+        .limit(500) as any);
+      if (error) throw error;
+      const list = (vinculos || []) as Array<{ documento_id: string; tarefa_id: string }>;
+      if (list.length === 0) return [];
+
+      const docIds = [...new Set(list.map((v) => v.documento_id))];
+      const tarefaIds = [...new Set(list.map((v) => v.tarefa_id))];
+
+      const [docsRes, tarefasRes] = await Promise.all([
+        supabase
+          .from("china_produto_documentos")
+          .select("id, nome_arquivo, tipo_documento, status")
+          .in("id", docIds),
+        supabase.from("projeto_tarefas").select("id, titulo").in("id", tarefaIds),
+      ]);
+
+      const docMap = new Map(((docsRes.data || []) as any[]).map((d) => [d.id, d]));
+      const tarefaMap = new Map(((tarefasRes.data || []) as any[]).map((t) => [t.id, t.titulo]));
+
+      const vistos = new Set<string>();
+      const out: ProjetoChinaDoc[] = [];
+      for (const v of list) {
+        if (vistos.has(v.documento_id)) continue;
+        const d = docMap.get(v.documento_id);
+        if (!d) continue;
+        vistos.add(v.documento_id);
+        out.push({
+          documento_id: d.id,
+          tarefa_id: v.tarefa_id,
+          tarefa_titulo: tarefaMap.get(v.tarefa_id) ?? null,
+          nome_arquivo: d.nome_arquivo,
+          tipo_documento: d.tipo_documento,
+          status: d.status,
+        });
+      }
+      return out;
+    },
+  });
+}
