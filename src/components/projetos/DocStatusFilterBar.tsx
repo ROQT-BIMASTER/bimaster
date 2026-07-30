@@ -121,6 +121,7 @@ export function DocStatusFilterBar({
         </div>
       )}
 
+      <NotificacoesDocPrefsButton className="ml-auto h-6 px-2 text-muted-foreground" />
     </div>
   );
 }
