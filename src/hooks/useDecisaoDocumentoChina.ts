@@ -77,6 +77,54 @@ export function useDecisaoHomologada() {
   });
 }
 
+export interface ReaberturaParams {
+  documentoId: string;
+  senha: string;
+  motivo: string;
+  novoStatus?: "em_analise" | "pendente";
+  tarefaId?: string | null;
+  projetoId?: string | null;
+  origem?: string;
+}
+
+/**
+ * Reabre um documento já homologado (aprovado ou não aprovado) para nova
+ * análise. Exige confirmação de senha e grava um registro próprio, separado,
+ * na trilha homologada — a decisão anterior permanece intacta.
+ */
+export function useReabrirDocumento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: ReaberturaParams) => {
+      if (!params.senha?.trim()) throw new Error("Confirme sua senha para reabrir o documento.");
+      if (!params.motivo?.trim()) throw new Error("Informe o motivo da reabertura.");
+      const { token } = await requestStepUpWithPassword(CHINA_DOC_APPROVAL_SCOPE, params.senha);
+      const { data, error } = await supabase.rpc("rpc_china_reabrir_documento" as any, {
+        p_documento_id: params.documentoId,
+        p_step_up_token: token,
+        p_motivo: params.motivo.trim(),
+        p_novo_status: params.novoStatus || "em_analise",
+        p_tarefa_id: params.tarefaId || null,
+        p_projeto_id: params.projetoId || null,
+        p_origem: params.origem || "tarefa",
+        p_metodo: "senha",
+      } as any);
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (_d, vars) => {
+      invalidateDocQueries(qc);
+      qc.invalidateQueries({ queryKey: ["projeto-china-docs"] });
+      toast.success(
+        vars.novoStatus === "pendente"
+          ? "Documento reaberto e devolvido para pendente de aprovação."
+          : "Documento reaberto para nova análise, com registro na trilha.",
+      );
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao reabrir o documento."),
+  });
+}
+
 export function useDefinirStatusDocumento() {
   const qc = useQueryClient();
   return useMutation({
