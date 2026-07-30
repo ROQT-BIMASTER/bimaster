@@ -337,6 +337,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                             darkBg={darkBg}
                             isDragActive={activeId === tarefa.id}
                             metasProgress={metasProgress[tarefa.id]}
+                            anexosResumo={anexosMap?.[tarefa.id]}
                           />
                         ))}
                         {secaoTarefas.length === 0 && (
