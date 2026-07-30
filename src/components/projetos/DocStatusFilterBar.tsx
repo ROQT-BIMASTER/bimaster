@@ -103,6 +103,24 @@ export function DocStatusFilterBar({
           Limpar
         </button>
       )}
+      {onSortChange && (
+        <div className="ml-1 flex items-center gap-1">
+          <ArrowDownWideNarrow className="h-3.5 w-3.5 text-muted-foreground" />
+          <Select value={sort || "none"} onValueChange={(v) => onSortChange(v as DocSortKey)}>
+            <SelectTrigger className="h-6 w-[168px] text-[11px]" aria-label="Ordenar documentos">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(DOC_SORT_LABEL) as DocSortKey[]).map((k) => (
+                <SelectItem key={k} value={k} className="text-[11px]">
+                  {DOC_SORT_LABEL[k]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
     </div>
   );
 }
