@@ -81,6 +81,10 @@ interface Props {
   onRecarregarCustosFilhos?: () => Promise<void>;
   isDisplayComKit?: boolean;
   todosInsumosKit?: boolean;
+  custoAprovado?: number | null;
+  onAbrirNovaRevisao?: () => void;
+  abrindoRevisao?: boolean;
+
 }
 
 function DecimalInput({
@@ -89,12 +93,14 @@ function DecimalInput({
   placeholder = "0.000",
   className = "",
   id,
+  disabled = false,
 }: {
   value: number | string;
   onChange: (val: number | string) => void;
   placeholder?: string;
   className?: string;
   id?: string;
+  disabled?: boolean;
 }) {
   const displayValue = typeof value === "string" ? value : (value === 0 ? "0" : String(value));
   return (
@@ -102,6 +108,7 @@ function DecimalInput({
       id={id}
       type="text"
       inputMode="decimal"
+      disabled={disabled}
       value={displayValue}
       onChange={(e) => {
         const raw = e.target.value.replace(",", ".");
@@ -145,6 +152,9 @@ export function FichaCustoProdutoEditor({
   onRecarregarCustosFilhos,
   isDisplayComKit = false,
   todosInsumosKit = false,
+  custoAprovado = null,
+  onAbrirNovaRevisao,
+  abrindoRevisao = false,
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [importDialogAberto, setImportDialogAberto] = useState(false);
@@ -620,6 +630,38 @@ export function FichaCustoProdutoEditor({
         />
       )}
 
+      {/* Divergência entre custo vivo e último custo aprovado + reabertura de revisão */}
+      {config?.id && (isLocked || (custoAprovado != null && Math.abs(custoAprovado - (totais?.custoTotal || 0)) > 0.0001)) && (
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div>
+              {isLocked ? (
+                <p className="font-medium">
+                  Ficha bloqueada para edição ({statusAprovacao === "aprovada" ? "aprovada" : "em revisão"}).
+                </p>
+              ) : (
+                <p className="font-medium">Custo atual diverge da última revisão aprovada.</p>
+              )}
+              {custoAprovado != null && (
+                <p className="text-muted-foreground">
+                  Aprovado: R$ {custoAprovado.toFixed(4)} · Atual: R$ {(totais?.custoTotal || 0).toFixed(4)}
+                  {" "}— a listagem de produtos exibe o valor aprovado até uma nova aprovação.
+                </p>
+              )}
+            </div>
+          </div>
+          {isLocked && statusAprovacao === "aprovada" && onAbrirNovaRevisao && (
+            <Button size="sm" variant="outline" onClick={onAbrirNovaRevisao} disabled={abrindoRevisao}>
+              {abrindoRevisao ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Nova revisão
+            </Button>
+          )}
+        </div>
+      )}
+
+
+
       {/* Apontamentos da diretoria */}
       {statusAprovacao === "revisao_solicitada" && apontamentos.length > 0 && (
         <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
@@ -1092,7 +1134,7 @@ export function FichaCustoProdutoEditor({
                   }
                 }}
               />
-              <Button size="sm" onClick={() => setDialogAberto(true)}>
+              <Button size="sm" onClick={() => setDialogAberto(true)} disabled={isLocked}>
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar
               </Button>
@@ -1167,6 +1209,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Select
                               value={insumo.tipo_insumo}
+                              disabled={isLocked}
                               onValueChange={(value) =>
                                 onAtualizarInsumo(insumo.id, "tipo_insumo", value)
                               }
@@ -1186,6 +1229,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Input
                               value={insumo.fornecedor || ""}
+                              disabled={isLocked}
                               onChange={(e) =>
                                 onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
                               }
@@ -1196,6 +1240,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_nf}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_nf", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1203,6 +1248,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_servico}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_servico", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1210,6 +1256,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <DecimalInput
                               value={insumo.custo_condicao}
+                              disabled={isLocked}
                               onChange={(val) => handleCustoChange(insumo.id, "custo_condicao", typeof val === "string" ? val : Number(val))}
                               className="h-9 text-right"
                             />
@@ -1217,6 +1264,7 @@ export function FichaCustoProdutoEditor({
                           <TableCell>
                             <Input
                               value={insumo.nf_referencia || ""}
+                              disabled={isLocked}
                               onChange={(e) =>
                                 onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
                               }
@@ -1248,6 +1296,7 @@ export function FichaCustoProdutoEditor({
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
+                                disabled={isLocked}
                                 onClick={() => onRemoverInsumo(insumo.id)}
                               >
                                 <Trash2 className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -93,6 +93,16 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   const [config, setConfig] = useState<CustoConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Trava de escrita: fichas em revisão ou aprovadas não aceitam alterações
+  const [bloqueado, setBloqueado] = useState(false);
+  const bloqueadoRef = useRef(false);
+  useEffect(() => { bloqueadoRef.current = bloqueado; }, [bloqueado]);
+  const bloquearEscrita = useCallback(() => {
+    if (!bloqueadoRef.current) return false;
+    toast.warning("Ficha bloqueada. Abra uma nova revisão para alterar os custos.");
+    return true;
+  }, []);
 
   // Carregar dados do produto
   const carregarProduto = useCallback(async () => {
@@ -260,7 +270,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Adicionar insumo
   const adicionarInsumo = useCallback(
     async (insumo: Partial<CustoInsumo>) => {
-      if (!produtoId) return;
+      if (!produtoId || bloquearEscrita()) return;
 
       const novoInsumo = {
         produto_id: produtoId,
@@ -299,6 +309,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Atualizar insumo
   const atualizarInsumo = useCallback(
     async (id: string, campo: keyof CustoInsumo, valor: any) => {
+      if (bloquearEscrita()) return;
       // Atualizar localmente primeiro para UX rápida
       setInsumos((prev) =>
         prev.map((i) => (i.id === id ? { ...i, [campo]: valor } : i))
@@ -325,6 +336,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
   // Remover insumo
   const removerInsumo = useCallback(async (id: string) => {
+    if (bloquearEscrita()) return;
     const { error, count } = await supabase
       .from("fabrica_produto_custos")
       .delete({ count: "exact" })
@@ -343,19 +355,20 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
     setInsumos((prev) => prev.filter((i) => i.id !== id));
     toast.success("Insumo removido");
-  }, []);
+  }, [bloquearEscrita]);
 
   // Atualizar config
   const atualizarConfig = useCallback(
     (campo: keyof CustoConfig, valor: any) => {
+      if (bloquearEscrita()) return;
       setConfig((prev) => (prev ? { ...prev, [campo]: valor } : null));
     },
-    []
+    [bloquearEscrita]
   );
 
   // Salvar tudo
   const salvarFicha = useCallback(async () => {
-    if (!produtoId || !config) return;
+    if (!produtoId || !config || bloquearEscrita()) return;
 
     setSaving(true);
 
@@ -412,6 +425,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   // Reordenar insumos
   const reordenarInsumos = useCallback(
     async (novaOrdem: CustoInsumo[]) => {
+      if (bloquearEscrita()) return;
       setInsumos(novaOrdem);
 
       // Atualizar ordem no banco
@@ -596,6 +610,8 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
   return {
     produto,
+    bloqueado,
+    setBloqueado,
     insumos,
     config,
     totais,
