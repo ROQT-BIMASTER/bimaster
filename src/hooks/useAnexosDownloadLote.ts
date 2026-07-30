@@ -121,7 +121,7 @@ export function useAnexosDownloadLote(projetoId: string | undefined, projetoNome
           total_falhas: falhas.length,
           tamanho_bytes: bytes,
           pacote_nome: pacote,
-          arquivos: registrados as unknown as Record<string, unknown>[],
+          arquivos: JSON.parse(JSON.stringify(registrados)),
         });
       }
 
