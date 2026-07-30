@@ -4188,6 +4188,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       "SDK v2.16.1: Smoke test Python ganhou test_06_404_payment_queue_not_found_propaga_request_id — mocka resposta 404 com X-Request-ID e valida que HuggsAPIError carrega status=404 e request_id, e que client.last_request_id é populado mesmo em erro. 6/6 invariantes embutidas no rodapé do SDK distribuído.",
                       "DISCIPLINA DE RELEASE: grep -c 'payment_queue_not_found' supabase/functions/erp-export-payment/index.ts ≥ 1 (presente em handleExport); grep -c 'export_queue_not_found' ≥ 1 (presente em handleRetry); grep -c 'maybeSingle' ≥ 2 (substituiu .single() para evitar erro 116 mascarado); validação ao vivo via supabase--curl_edge_functions confirmou status=404 (não 500) para UUID inexistente. APP_VERSION 2.31.1.",
                     ] },
+                    { version: "v3.9.0", date: "2026-07-30", changes: [
+                      "KANBAN — DOWNLOAD DE ANEXOS EM LOTE: novo src/components/projetos/DownloadAnexosLoteDialog.tsx permite selecionar múltiplos anexos das tarefas visíveis (respeitando filtros) e baixar tudo em um único pacote .zip organizado por tarefa, via SDK (Blob), sem window.open.",
+                      "HISTÓRICO: nova tabela public.anexos_download_log (RLS: cada usuário lê/insere os próprios registros; admin lê todos; sem update/delete) registra projeto, quantidade de arquivos, falhas, tamanho, nome do pacote e a lista dos arquivos baixados. Aba Histórico no diálogo exibe os últimos 50 downloads do projeto.",
+                      "Hook src/hooks/useAnexosDownloadLote.ts (JSZip + progresso por arquivo) e botão 'Baixar anexos (N)' na barra de filtros do quadro.",
+                      "DISCIPLINA DE RELEASE: grep -c 'anexos_download_log' src ≥ 2. APP_VERSION 3.9.0.",
+                    ] },
                     { version: "v3.8.9", date: "2026-07-30", changes: [
                       "KANBAN — PRÉ-VISUALIZAÇÃO DE ARQUIVOS: novo src/components/comum/ArquivoPreviewDialog.tsx (visualizador genérico por bucket) com imagem em tamanho grande + zoom, PDF em iframe, download autenticado via downloadStorageBlob/triggerBlobDownload e navegação anterior/próximo entre os arquivos da tarefa.",
                       "TarefaAnexosBadge passou a exibir capa de imagem larga (h-32) + miniaturas médias com selo +N e chips clicáveis para arquivos não-imagem; qualquer item abre o visualizador sem disparar drag ou abertura da tarefa. ProjetoKanbanView passa preview='grande' (compacto durante o arraste).",
