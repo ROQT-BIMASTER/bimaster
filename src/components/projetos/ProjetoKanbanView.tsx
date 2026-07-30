@@ -430,6 +430,7 @@ function DraggableKanbanCard({
   darkBg = false,
   isDragActive = false,
   metasProgress,
+  anexosResumo,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
@@ -437,6 +438,7 @@ function DraggableKanbanCard({
   darkBg?: boolean;
   isDragActive?: boolean;
   metasProgress?: MetasProgress;
+  anexosResumo?: TarefaArquivosResumo;
 }) {
   const {
     attributes,
