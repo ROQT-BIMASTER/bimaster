@@ -94,7 +94,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const [deepComentarioId] = useState<string | null>(() => searchParams.get("comentario"));
   const [deepTab] = useState<string | null>(() => searchParams.get("tab"));
   const [deepMensagemId] = useState<string | null>(() => searchParams.get("mensagem"));
-  const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
+  const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "quadro");
   // Snapshot adicional para o breadcrumb de origem (RR-Tasks › Briefing › Tarefa).
   const [originTarefaId] = useState<string | null>(() => searchParams.get("tarefa"));
   const [originFrom] = useState<string | null>(() => searchParams.get("from"));
