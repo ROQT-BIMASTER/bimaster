@@ -11,6 +11,7 @@ import { Paperclip, FileText, FileSpreadsheet, Image as ImageIcon, PenTool, File
 import { cn } from "@/lib/utils";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { ArquivoPreviewDialog, type ArquivoPreviewItem } from "@/components/comum/ArquivoPreviewDialog";
+import { useInView } from "@/hooks/useInView";
 import type { TarefaArquivo, TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 
 function IconePorFamilia({ familia, className }: { familia: TarefaArquivo["familia"]; className?: string }) {
@@ -55,10 +56,16 @@ function ImagemPreview({
   onClick: () => void;
   overlay?: string;
 }) {
-  const { data: url } = useThumbUrl(arquivo, enabled);
+  // Só resolve a URL assinada quando a miniatura entra (ou está perto de entrar) na viewport.
+  const { ref, inView } = useInView<HTMLButtonElement>("250px");
+  const { data: url, isFetching } = useThumbUrl(arquivo, enabled && inView);
+  const [carregada, setCarregada] = useState(false);
+
+  const mostrandoPlaceholder = !url || !carregada;
 
   return (
     <button
+      ref={ref}
       type="button"
       title={arquivo.nome}
       onPointerDown={(e) => e.stopPropagation()}
@@ -72,10 +79,28 @@ function ImagemPreview({
         className,
       )}
     >
-      {url ? (
-        <img src={url} alt={arquivo.nome} className="h-full w-full object-cover" loading="lazy" />
-      ) : (
-        <ImageIcon className="h-4 w-4 text-muted-foreground/60" />
+      {mostrandoPlaceholder && (
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center bg-muted",
+            (isFetching || (!!url && !carregada)) && "animate-pulse",
+          )}
+        >
+          <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+        </span>
+      )}
+      {url && (
+        <img
+          src={url}
+          alt={arquivo.nome}
+          decoding="async"
+          loading="lazy"
+          onLoad={() => setCarregada(true)}
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-300",
+            carregada ? "opacity-100" : "opacity-0",
+          )}
+        />
       )}
       {overlay && (
         <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-medium text-foreground">
