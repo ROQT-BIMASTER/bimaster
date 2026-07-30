@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { ArquivoPreviewDialog, type ArquivoPreviewItem } from "@/components/comum/ArquivoPreviewDialog";
 import { useInView } from "@/hooks/useInView";
+import { getThumbUrlCache, setThumbUrlCache } from "@/lib/utils/thumbUrlCache";
+
 import type { TarefaArquivo, TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 
 function IconePorFamilia({ familia, className }: { familia: TarefaArquivo["familia"]; className?: string }) {
