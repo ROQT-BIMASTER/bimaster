@@ -666,6 +666,7 @@ function DraggableKanbanCard({
             resumo={anexosResumo}
             esperaDocumentos={(tarefa as any).tipo_tarefa === "china_checklist_item"}
             darkBg={darkBg}
+            preview={isDragActive ? "compacto" : "grande"}
           />
           {docStatus && (
             <div className="mt-1">
