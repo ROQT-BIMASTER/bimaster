@@ -336,6 +336,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
   // Remover insumo
   const removerInsumo = useCallback(async (id: string) => {
+    if (bloquearEscrita()) return;
     const { error, count } = await supabase
       .from("fabrica_produto_custos")
       .delete({ count: "exact" })
