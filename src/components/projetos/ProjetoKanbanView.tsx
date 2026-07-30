@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
+import { DownloadAnexosLoteDialog } from "./DownloadAnexosLoteDialog";
 import { useDocStatusFilterState } from "@/hooks/useDocStatusFilterState";
 import { ordenarDocs } from "@/lib/china/docSort";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
