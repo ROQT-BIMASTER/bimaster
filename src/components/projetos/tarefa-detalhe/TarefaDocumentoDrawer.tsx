@@ -300,26 +300,30 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
                 </p>
               )}
 
-              {trilhaVisivel.map((t) => (
-                <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
-                  <div className="flex items-center gap-2">
-                    <Badge className={`text-[10px] h-4 ${docStatusTone(t.decisao)}`}>
-                      {DECISAO_LABEL[t.decisao] || t.decisao}
-                    </Badge>
-                    <span className="text-[11px] font-medium">
-                      {t.decidido_por_nome || t.decidido_por_email || "Usuário"}
-                    </span>
+              {modoTrilha === "timeline" ? (
+                <HomologacaoTimeline trilha={trilhaVisivel} />
+              ) : (
+                trilhaVisivel.map((t) => (
+                  <div key={t.id} className="rounded-md border border-border bg-card/40 p-2.5">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-[10px] h-4 ${docStatusTone(t.decisao)}`}>
+                        {DECISAO_LABEL[t.decisao] || t.decisao}
+                      </Badge>
+                      <span className="text-[11px] font-medium">
+                        {t.decidido_por_nome || t.decidido_por_email || "Usuário"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[10.5px] text-muted-foreground">
+                      {format(new Date(t.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })} ·
+                      confirmação por {t.metodo_confirmacao === "senha" ? "senha" : "sessão"}
+                      {t.origem ? ` · origem ${t.origem}` : ""}
+                    </p>
+                    {t.parecer && (
+                      <p className="mt-1 whitespace-pre-wrap text-[11px]">{t.parecer}</p>
+                    )}
                   </div>
-                  <p className="mt-1 text-[10.5px] text-muted-foreground">
-                    {format(new Date(t.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })} ·
-                    confirmação por {t.metodo_confirmacao === "senha" ? "senha" : "sessão"}
-                    {t.origem ? ` · origem ${t.origem}` : ""}
-                  </p>
-                  {t.parecer && (
-                    <p className="mt-1 whitespace-pre-wrap text-[11px]">{t.parecer}</p>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
           </Tabs>
         </SheetContent>
