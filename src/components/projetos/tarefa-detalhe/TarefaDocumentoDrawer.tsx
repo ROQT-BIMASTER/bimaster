@@ -33,6 +33,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
 import { ConfirmarAprovacaoDialog } from "@/components/security/ConfirmarAprovacaoDialog";
 import { ReabrirDocumentoDialog } from "@/components/security/ReabrirDocumentoDialog";
+import { HomologacaoTimeline } from "@/components/projetos/tarefa-detalhe/HomologacaoTimeline";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -68,6 +69,7 @@ export function TarefaDocumentoDrawer({ open, onOpenChange, doc }: Props) {
   const [reabrirOpen, setReabrirOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [trilhaSort, setTrilhaSort] = useState<TrilhaSortKey>("data_desc");
+  const [modoTrilha, setModoTrilha] = useState<"timeline" | "lista">("timeline");
 
   const definirStatus = useDefinirStatusDocumento();
   const { data: trilha = [], isLoading: trilhaLoading } = useDocAprovacoesAudit(
