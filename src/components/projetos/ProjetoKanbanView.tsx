@@ -308,6 +308,11 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   }
 
   const totalDocs = Object.values(docCounts).reduce((a, b) => a + (b || 0), 0);
+  // Anexos com arquivo em storage nas tarefas visíveis (base do download em lote).
+  const totalAnexos = tarefas.reduce(
+    (acc, t) => acc + (anexosMap?.[t.id]?.arquivos.filter((a) => !!a.storage_path).length ?? 0),
+    0,
+  );
   const docBar = (
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <DocStatusFilterBar
