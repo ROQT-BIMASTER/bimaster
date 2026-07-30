@@ -10,7 +10,7 @@ import { KanbanSkeleton } from "./ProjetoSkeletons";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Download } from "lucide-react";
 import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
 import { DownloadAnexosLoteDialog } from "./DownloadAnexosLoteDialog";
 import { useDocStatusFilterState } from "@/hooks/useDocStatusFilterState";
