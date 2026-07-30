@@ -8,6 +8,9 @@ import {
   FileText, Download, Upload, RotateCcw, Loader2, Ship, AlertTriangle, Eye,
 } from "lucide-react";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
+import { TarefaDocumentoDrawer } from "./TarefaDocumentoDrawer";
+import { ConfirmarAprovacaoDialog } from "@/components/security/ConfirmarAprovacaoDialog";
+import { docStatusLabel, docStatusTone } from "@/lib/china/docStatus";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,8 @@ export function ChinaDocumentoBlock({ doc }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
   const [devolverOpen, setDevolverOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [motivoError, setMotivoError] = useState<string | null>(null);
@@ -203,8 +208,8 @@ export function ChinaDocumentoBlock({ doc }: Props) {
             {doc.nome_arquivo || doc.tipo_documento}
           </p>
           <Badge variant="outline" className="text-[10px] h-4">{doc.tipo_documento}</Badge>
-          <Badge className={`text-[10px] h-4 ${STATUS_TONE[status] || "bg-muted text-muted-foreground"}`}>
-            {STATUS_LABEL[status] || status}
+          <Badge className={`text-[10px] h-4 ${docStatusTone(status)}`}>
+            {docStatusLabel(status)}
           </Badge>
         </div>
 
@@ -230,7 +235,27 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Button
             size="sm"
-            variant="default"
+            variant="secondary"
+            className="h-7 text-xs gap-1.5"
+            onClick={() => setAdminOpen(true)}
+          >
+            <FileText className="h-3 w-3" />
+            Analisar
+          </Button>
+          {!isFinal && (
+            <Button
+              size="sm"
+              variant="default"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setAprovarOpen(true)}
+            >
+              <Eye className="h-3 w-3" />
+              Aprovar
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
             className="h-7 text-xs gap-1.5"
             onClick={() => setPreviewOpen(true)}
             disabled={!doc.arquivo_path && !doc.arquivo_url}
@@ -345,6 +370,22 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         nomeArquivo={doc.nome_arquivo}
         tipoDocumento={doc.tipo_documento}
       />
+
+      {adminOpen && (
+        <TarefaDocumentoDrawer open={adminOpen} onOpenChange={setAdminOpen} doc={doc} />
+      )}
+
+      <ConfirmarAprovacaoDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        documentoId={doc.documento_id}
+        decisao="aprovado"
+        documentoLabel={doc.nome_arquivo || doc.tipo_documento}
+        tarefaId={doc.tarefa_id}
+        projetoId={doc.projeto_id}
+        origem="tarefa"
+      />
     </div>
+
   );
 }

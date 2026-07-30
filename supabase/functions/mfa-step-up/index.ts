@@ -5,8 +5,9 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { verifyTotp, sha256Hex } from "../_shared/totp.ts";
 
 interface Body {
-  action: "request" | "request_from_session" | "validate";
+  action: "request" | "request_from_session" | "request_from_password" | "validate";
   code?: string;
+  password?: string;
   scope: string; // ex: 'finance.payment', 'admin.role_change'
   token?: string;
 }
@@ -42,6 +43,33 @@ Deno.serve(secureHandler(
         return json({ error: "Código incorreto" }, 401);
       }
       await sb.from("mfa_enrollments").update({ last_used_at: new Date().toISOString() }).eq("user_id", userId);
+      return json(await issueToken(sb, userId, body.scope));
+    }
+
+    if (body.action === "request_from_password") {
+      if (!body.password || typeof body.password !== "string" || body.password.length < 6) {
+        return json({ error: "Senha obrigatória" }, 400);
+      }
+      const { data: userRes } = await sb.auth.admin.getUserById(userId);
+      const email = userRes?.user?.email;
+      if (!email) return json({ error: "Usuário sem e-mail cadastrado" }, 412);
+
+      // Cliente isolado (publishable key) só para revalidar a senha —
+      // não interfere na sessão do navegador.
+      const check = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const { error: pwdErr } = await check.auth.signInWithPassword({ email, password: body.password });
+      if (pwdErr) {
+        await sb.from("security_events").insert({
+          event_type: "step_up.password_fail", user_id: userId, severity: "warn",
+          payload: { scope: body.scope },
+        }).then(() => {}, () => {});
+        return json({ error: "Senha incorreta" }, 401);
+      }
+      await check.auth.signOut().catch(() => {});
       return json(await issueToken(sb, userId, body.scope));
     }
 
