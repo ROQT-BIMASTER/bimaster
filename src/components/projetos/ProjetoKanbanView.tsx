@@ -9,6 +9,9 @@ import { NovaSecaoInline } from "./NovaSecaoInline";
 import { KanbanSkeleton } from "./ProjetoSkeletons";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck } from "lucide-react";
+import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -86,6 +89,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
   // Filtro por situação dos documentos da submissão (chips com contagem)
   const [docFilter, setDocFilter] = useState<DocDecisao[]>([]);
+  const [loteOpen, setLoteOpen] = useState(false);
 
   const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
   const { data: docStatusMap } = useTarefasDocStatus(projetoId, rawTaskIds);
@@ -314,6 +318,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     return (
       <>
         {docBar}
+        {loteDialog}
         <EmptyState
           icon={LayoutGrid}
           title="Nenhuma tarefa encontrada"
@@ -326,6 +331,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   return (
     <>
       {docBar}
+      {loteDialog}
 
       <DndContext
         sensors={sensors}
