@@ -25,6 +25,8 @@ import {
   CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid, Plus,
 } from "lucide-react";
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
+import { useTarefasAnexos, type TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
+import { TarefaAnexosBadge } from "./TarefaAnexosBadge";
 import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
