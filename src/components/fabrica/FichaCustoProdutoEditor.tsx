@@ -93,12 +93,14 @@ function DecimalInput({
   placeholder = "0.000",
   className = "",
   id,
+  disabled = false,
 }: {
   value: number | string;
   onChange: (val: number | string) => void;
   placeholder?: string;
   className?: string;
   id?: string;
+  disabled?: boolean;
 }) {
   const displayValue = typeof value === "string" ? value : (value === 0 ? "0" : String(value));
   return (
@@ -106,6 +108,7 @@ function DecimalInput({
       id={id}
       type="text"
       inputMode="decimal"
+      disabled={disabled}
       value={displayValue}
       onChange={(e) => {
         const raw = e.target.value.replace(",", ".");
