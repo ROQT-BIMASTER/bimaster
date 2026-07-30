@@ -107,6 +107,60 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     { enabled: !!configId }
   );
 
+  // Última revisão aprovada (para comparar com o custo vivo da ficha)
+  const { data: ultimaAprovada, refetch: refetchUltimaAprovada } = useSupabaseQuery(
+    ["ficha-ultima-aprovada", configId],
+    async () => {
+      if (!configId) return null;
+      const { data, error } = await supabase
+        .from("fabrica_ficha_custo_revisoes")
+        .select("id, versao, snapshot_totais, revisado_em")
+        .eq("config_id", configId)
+        .eq("status", "aprovada")
+        .order("versao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) { logger.error(error); return null; }
+      return data as any | null;
+    },
+    { enabled: !!configId }
+  );
+
+  const custoAprovado = ultimaAprovada?.snapshot_totais
+    ? custoTotalDoSnapshot(ultimaAprovada.snapshot_totais)
+    : null;
+
+  // Abrir nova revisão: devolve a ficha para rascunho para permitir edição
+  const [abrindoRevisao, setAbrindoRevisao] = useState(false);
+  const abrirNovaRevisao = useCallback(async () => {
+    if (!configId) return;
+    setAbrindoRevisao(true);
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_produto_custos_config")
+        .update({ status_aprovacao: "rascunho" })
+        .eq("id", configId)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Sem permissão para reabrir esta ficha.");
+      }
+      toast.success("Nova revisão aberta. A ficha voltou para rascunho e pode ser editada.");
+      try {
+        queryClient.invalidateQueries({ queryKey: ["fabrica-produtos-acabados"] });
+        queryClient.invalidateQueries({ queryKey: ["fabrica-produtos-fichas-config"] });
+      } catch {}
+      refetchStatus();
+    } catch (err: any) {
+      logger.error("Erro ao abrir nova revisão:", err);
+      toast.error("Erro ao abrir nova revisão: " + err.message);
+    } finally {
+      setAbrindoRevisao(false);
+    }
+  }, [configId, refetchStatus, queryClient]);
+
+
+
   // Função auxiliar para calcular totais simples de uma ficha (com IPI Saída embutido)
   const calcularTotaisSimples = (insumosArr: any[], configObj: any) => {
     let totalNF = 0, totalServico = 0, totalCondicao = 0;
