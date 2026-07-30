@@ -75,8 +75,11 @@ export function TarefaChinaDocsSection({ tarefaId }: Props) {
         counts={counts}
         selected={selected}
         onChange={setSelected}
+        sort={sort}
+        onSortChange={setSort}
         label="Situação"
       />
+
 
       <div className="space-y-2">
         {visiveis.length === 0 ? (
