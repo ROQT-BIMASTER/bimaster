@@ -386,7 +386,8 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     refetchApontamentos();
     refetchRequisitos();
     refetchStatus();
-  }, [refetchRevisao, refetchApontamentos, refetchRequisitos, refetchStatus]);
+    refetchUltimaAprovada();
+  }, [refetchRevisao, refetchApontamentos, refetchRequisitos, refetchStatus, refetchUltimaAprovada]);
 
   return {
     statusAprovacao: statusAprovacao || "rascunho" as StatusAprovacao,
@@ -395,6 +396,10 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     requisitos: requisitos || [],
     submitting,
     submeterParaAprovacao,
+    custoAprovado,
+    ultimaAprovada,
+    abrirNovaRevisao,
+    abrindoRevisao,
     refetchAll,
   };
 }
