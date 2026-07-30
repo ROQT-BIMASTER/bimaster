@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { CustoInsumo, CustoConfig, Totais } from "./useFichaCustoProduto";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 
 export type StatusAprovacao = "rascunho" | "em_revisao" | "aprovada" | "revisao_solicitada";
 
