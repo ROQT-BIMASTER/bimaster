@@ -562,6 +562,17 @@ function DraggableKanbanCard({
           })()}
         </div>
 
+        {/* Arquivos da tarefa (anexos + documentos China) */}
+        <div className="mt-2">
+          <TarefaAnexosBadge
+            resumo={anexosResumo}
+            esperaDocumentos={!!(tarefa as any).china_tipo_key || !!(tarefa as any).china_submissao_id}
+            darkBg={darkBg}
+          />
+        </div>
+
+
+
         {/* Footer */}
         <div className="flex items-center justify-between mt-2.5">
           <div className="flex items-center -space-x-1">
