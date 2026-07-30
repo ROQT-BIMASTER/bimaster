@@ -94,6 +94,16 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Trava de escrita: fichas em revisão ou aprovadas não aceitam alterações
+  const [bloqueado, setBloqueado] = useState(false);
+  const bloqueadoRef = useRef(false);
+  useEffect(() => { bloqueadoRef.current = bloqueado; }, [bloqueado]);
+  const bloquearEscrita = useCallback(() => {
+    if (!bloqueadoRef.current) return false;
+    toast.warning("Ficha bloqueada. Abra uma nova revisão para alterar os custos.");
+    return true;
+  }, []);
+
   // Carregar dados do produto
   const carregarProduto = useCallback(async () => {
     if (!produtoId) return;
