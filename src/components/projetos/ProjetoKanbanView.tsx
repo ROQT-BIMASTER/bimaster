@@ -10,8 +10,9 @@ import { KanbanSkeleton } from "./ProjetoSkeletons";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Download } from "lucide-react";
 import { AprovacaoLoteDialog } from "./AprovacaoLoteDialog";
+import { DownloadAnexosLoteDialog } from "./DownloadAnexosLoteDialog";
 import { useDocStatusFilterState } from "@/hooks/useDocStatusFilterState";
 import { ordenarDocs } from "@/lib/china/docSort";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,6 +98,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     setSort: setDocSort,
   } = useDocStatusFilterState(`kanban:${projetoId}`);
   const [loteOpen, setLoteOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   const rawTaskIds = useMemo(() => rawTarefas.map(t => t.id), [rawTarefas]);
   const { data: docStatusMap } = useTarefasDocStatus(projetoId, rawTaskIds);
@@ -306,6 +308,11 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   }
 
   const totalDocs = Object.values(docCounts).reduce((a, b) => a + (b || 0), 0);
+  // Anexos com arquivo em storage nas tarefas visíveis (base do download em lote).
+  const totalAnexos = tarefas.reduce(
+    (acc, t) => acc + (anexosMap?.[t.id]?.arquivos.filter((a) => !!a.storage_path).length ?? 0),
+    0,
+  );
   const docBar = (
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <DocStatusFilterBar
@@ -327,18 +334,38 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
           Ações em lote
         </Button>
       )}
+      {totalAnexos > 0 && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-[11px]"
+          onClick={() => setDownloadOpen(true)}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Baixar anexos ({totalAnexos})
+        </Button>
+      )}
     </div>
   );
 
   const loteDialog = (
-    <AprovacaoLoteDialog
-      open={loteOpen}
-      onOpenChange={setLoteOpen}
-      projetoId={projetoId}
-      tarefaIds={tarefas.map((t) => t.id)}
-      statusFiltro={docFilter}
-      sort={docSort}
-    />
+    <>
+      <AprovacaoLoteDialog
+        open={loteOpen}
+        onOpenChange={setLoteOpen}
+        projetoId={projetoId}
+        tarefaIds={tarefas.map((t) => t.id)}
+        statusFiltro={docFilter}
+        sort={docSort}
+      />
+      <DownloadAnexosLoteDialog
+        open={downloadOpen}
+        onOpenChange={setDownloadOpen}
+        projetoId={projetoId}
+        tarefas={tarefas.map((t) => ({ id: t.id, titulo: t.titulo }))}
+        anexosMap={anexosMap}
+      />
+    </>
   );
 
 
