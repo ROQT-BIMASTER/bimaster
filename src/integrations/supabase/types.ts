@@ -58785,6 +58785,10 @@ export type Database = {
       china_norm_label: { Args: { p: string }; Returns: string }
       china_path_submissao_id: { Args: { _name: string }; Returns: string }
       china_path_submissao_id_safe: { Args: { _name: string }; Returns: string }
+      china_set_doc_tarefa: {
+        Args: { p_doc_id: string; p_tarefa_id: string }
+        Returns: undefined
+      }
       china_tipo_slug: { Args: { p: string }; Returns: string }
       cleanup_audit_logs_batch: {
         Args: { batch_size?: number; retention_days?: number }
