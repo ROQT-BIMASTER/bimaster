@@ -3,9 +3,18 @@
  * dos documentos da submissão China (Em análise, Pendente de aprovação,
  * Aprovado, Não aprovado).
  */
-import { Check, Clock, FileWarning, XCircle } from "lucide-react";
+import { ArrowDownWideNarrow, Check, Clock, FileWarning, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DECISAO_LABEL, type DocDecisao } from "@/lib/china/docStatus";
+import { DOC_SORT_LABEL, type DocSortKey } from "@/lib/china/docSort";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const ORDEM: DocDecisao[] = ["em_analise", "pendente", "aprovado", "rejeitado"];
 
