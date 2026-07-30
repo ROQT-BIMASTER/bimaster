@@ -58839,6 +58839,19 @@ export type Database = {
         }
         Returns: string
       }
+      china_doc_notificar_status: {
+        Args: {
+          p_ator: string
+          p_ator_nome: string
+          p_documento_id: string
+          p_parecer?: string
+          p_projeto_id?: string
+          p_status: string
+          p_status_anterior: string
+          p_tarefa_id?: string
+        }
+        Returns: number
+      }
       china_norm_label: { Args: { p: string }; Returns: string }
       china_path_submissao_id: { Args: { _name: string }; Returns: string }
       china_path_submissao_id_safe: { Args: { _name: string }; Returns: string }
@@ -61315,6 +61328,18 @@ export type Database = {
           p_projeto_id?: string
           p_step_up_token: string
           p_tarefa_id?: string
+        }
+        Returns: Json
+      }
+      rpc_china_aprovar_documentos_lote: {
+        Args: {
+          p_decisao: string
+          p_documento_ids: string[]
+          p_metodo?: string
+          p_origem?: string
+          p_parecer?: string
+          p_projeto_id?: string
+          p_step_up_token: string
         }
         Returns: Json
       }
