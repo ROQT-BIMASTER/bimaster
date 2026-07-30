@@ -6154,6 +6154,30 @@ export type Database = {
         }
         Relationships: []
       }
+      china_document_type_labels: {
+        Row: {
+          categoria_key: string | null
+          created_at: string
+          label_pt: string
+          tipo_key: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_key?: string | null
+          created_at?: string
+          label_pt: string
+          tipo_key: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_key?: string | null
+          created_at?: string
+          label_pt?: string
+          tipo_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       china_documento_tarefa_vinculos: {
         Row: {
           created_at: string | null
