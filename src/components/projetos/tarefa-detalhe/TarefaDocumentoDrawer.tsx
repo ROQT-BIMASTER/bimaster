@@ -16,7 +16,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Eye, FileText, Loader2, ShieldCheck, XCircle, Clock } from "lucide-react";
+import { Check, Download, Eye, FileText, Loader2, ShieldCheck, XCircle, Clock } from "lucide-react";
+import { exportHomologacaoPdf } from "@/lib/china/exportHomologacaoPdf";
 import {
   Sheet,
   SheetContent,
