@@ -198,28 +198,27 @@ export function TarefaChatPanel({
           placeholder="Mensagem..."
           minRows={1}
         />
-        {uploadAnexo && (
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-1.5 gap-1 text-[10px]"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              title="Anexar arquivo (vai para os anexos da tarefa automaticamente)"
-            >
-              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
-              {uploading ? "Enviando…" : "Anexar"}
-            </Button>
+        <div className="flex items-center justify-between">
+          <ChatComposerActionsBar
+            onAttachFile={(files) => enviarArquivo(files[0])}
+            onCameraCapture={(f) => enviarArquivo(f)}
+            onRequestApproval={() =>
+              abrirAprovacao({ tipo: "tarefa", refId: tarefaId ?? "", titulo: tarefaTitulo ?? "Tarefa" })
+            }
+            onUrgentAlert={() =>
+              abrirUrgente({ tipo: "tarefa", refId: tarefaId ?? "", titulo: tarefaTitulo ?? "Tarefa" })
+            }
+            onEmojiPick={(emoji) => setChatValue((v) => v + emoji)}
+            disabled={uploading || !uploadAnexo}
+          />
+          {uploading ? (
+            <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Enviando…
+            </span>
+          ) : (
             <span className="text-[9px] text-muted-foreground">Auto-salva na tarefa</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              onChange={handleFileSelected}
-            />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
