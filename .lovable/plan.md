@@ -1,52 +1,49 @@
-## Objetivo
+# Auditoria de saída — Thalyta Dutra Fucitalo
 
-Deixar o composer de **todos** os chats do sistema com o mesmo conjunto de ações, hoje presente apenas em Pessoas, Briefings, Projetos e Submissões (China):
+Usuária localizada no sistema: **Thalyta Dutra Fucitalo** (t.dutra@distribuidoraunion.com.br), Coordenadora CSO, perfil ainda **ativo**, papel `vendedor`, membro de 15 projetos e com 7 permissões de tela individuais. Não existe cadastro grafado "Thalita".
 
-1. Anexar arquivo
-2. Capturar pela câmera
-3. Solicitar aprovação de documento
-4. Chamar atenção (mensagem urgente)
-5. Emojis
+## O que a auditoria mostra
 
-## Situação atual (verificada no código)
+Nenhuma exclusão relevante ou destrutiva foi encontrada.
 
-- `src/components/chat/v2/ChatComposerActionsBar.tsx` já é o componente padrão com os 5 botões.
-- Usam a barra hoje: `MessageInput` (Pessoas), `BriefingChatPanel`, `ProjetoChatPanel`, `ChinaChatPanel`.
-- **Não usam** (ficam só com "Anexar" ou nada):
-  - `src/components/chat/v2/TarefaChatPanel.tsx` — aba Tarefas do hub de Chat
-  - `src/components/projetos/tarefa-detalhe/TarefaChatPanel.tsx` — chat lateral da tarefa
-  - `src/components/projetos/TarefaFocusMode.tsx` — chat do modo Foco (o da imagem enviada)
-  - `src/components/processo/ProcessoChat.tsx` — chat de processos
-- As ações de aprovação/urgência fora de Pessoas passam por `useAbrirAcaoVinculada`, que chama a rotina `rpc_get_or_create_conversa_vinculada` e hoje aceita apenas `briefing | projeto | submissao`.
+- Trilha de tarefas (`tarefa_auditoria_log`): 4 eventos, todos de conclusão/reabertura. **Zero exclusões**.
+- 68 tarefas criadas por ela — **nenhuma está excluída** hoje.
+- Nenhuma tarefa que ela tocou está na lixeira.
+- Nenhum projeto consta como excluído por ela (a exclusão de projetos não registra autor; ver lacuna abaixo).
+- Nenhum download em lote de anexos registrado.
+- Documentos de produto: 35 eventos, todos `upload` — nenhuma remoção.
+- Último acesso registrado: 20/07/2026; última atividade em tarefas: 29/07/2026.
 
-## O que será feito
+Remoções pontuais encontradas (baixa criticidade, todas com rastro):
 
-### 1. Backend — suportar vínculo por tarefa e processo
-Atualizar a rotina `rpc_get_or_create_conversa_vinculada` para aceitar também `tarefa` e `processo`, mantendo o comportamento idempotente (reaproveita a conversa existente do item) e sincronizando participantes:
-- `tarefa`: criador, responsável e seguidores da tarefa + membros do projeto ao qual ela pertence.
-- `processo`: participantes já vinculados ao processo.
-Sem ampliação de permissões: o chamador continua precisando estar autenticado e só entra em conversas de itens aos quais tem acesso.
+| Data | Ação | Item | Projeto |
+|---|---|---|---|
+| 29/07 14:21 | Anexo removido | COMBO - WONDER ID 89 EMY BARRETOS (1).xlsx | Lançamento Wonder |
+| 29/07 14:21 | Anexo removido | ID key Account (6).xlsx | Lançamento Wonder |
+| 13/07 14:20 | Anexo removido | Distrivix.jpeg | Pedidos Distribuidor |
+| 08/07 13:01 | Anexo removido | WhatsApp Image 2026-07-07.jpeg | Pedidos Distribuidor |
+| 06/07 19:55 | Seguidor removido | Kauã Alves Teixeira | Digitação de Pedidos |
+| 06/07 18:19 | Anexo removido | JR EMPREENDIMENTOS.xlsx | Pedidos Distribuidor |
+| 06/07 18:19 | Anexo removido | Pedido Distribuidor - PRIMER 06-07.xlsx | Pedidos Distribuidor |
+| 06/07 12:10 | Anexo removido | Produtos do Mês Filiais _ Julho 2026.xlsx | Digitação de Pedidos |
+| 03/07 19:31 | Anexo removido | JR EMPREENDIMENTOS.xlsx | Pedidos Distribuidor |
+| 03/07 19:19 | Responsável removido | ela mesma | Pedidos Distribuidor |
 
-### 2. Hook compartilhado
-Estender `useAbrirAcaoVinculada` com os novos tipos e os rótulos correspondentes ("tarefa", "processo"), mantendo o fluxo atual (abre a conversa vinculada em `/dashboard/chat` já com o diálogo de aprovação ou de chamada de atenção).
+Padrão compatível com troca/substituição de planilhas de pedido, não com apagamento de acervo.
 
-### 3. Chats da tarefa
-Em `chat/v2/TarefaChatPanel`, `tarefa-detalhe/TarefaChatPanel` e no chat do modo Foco (`TarefaFocusMode`):
-- Substituir o botão solto de "Anexar" pela `ChatComposerActionsBar`.
-- `onAttachFile` / `onCameraCapture` reaproveitam o upload de anexo já existente da tarefa (arquivo continua indo para os Anexos da tarefa, como hoje).
-- `onRequestApproval` / `onUrgentAlert` chamam `abrirAprovacao` / `abrirUrgente` com `tipo: "tarefa"` e o título da tarefa.
-- `onEmojiPick` insere o emoji no texto em edição.
+## Entregas propostas
 
-### 4. Chat de processos
-Mesma substituição em `ProcessoChat`, preservando o seletor de documentos oficiais já existente (o botão "Anexar Doc" continua, ao lado da barra padrão).
-
-### 5. Validação
-- Testes de renderização garantindo que os 4 chats expõem os botões "Solicitar aprovação" e "Chamar atenção".
-- Teste da rotina para os novos tipos de vínculo (retorno idempotente e participantes corretos).
-- Registro no changelog e bump de versão, conforme a disciplina de release do projeto.
+1. **Relatório de desligamento em tela** (`/dashboard/admin/auditoria-desligamento`, restrito a admin): busca por usuário e período, com resumo de criações, conclusões, remoções de anexos/membros, uploads, acessos negados e último acesso, além de exportação em PDF/CSV para o RH.
+2. **Ação de offboarding assistida** a partir dessa tela: encerrar sessões ativas, inativar o perfil, revogar permissões de tela/módulo e listar os 15 projetos e as tarefas em aberto sob responsabilidade dela para reatribuição — sem apagar histórico.
+3. **Fechar a lacuna de rastreio de exclusão de projetos**: hoje `projetos.deleted_at` não guarda quem excluiu. Passar a registrar autor e motivo, e espelhar o evento na trilha imutável.
+4. **Preservação de evidências**: marcar os registros de auditoria dela como retidos, fora das rotinas de purga por tempo.
 
 ## Detalhes técnicos
 
-- Nenhuma alteração no armazenamento de mensagens das tarefas (`projeto_tarefa_messages`) — a aprovação/urgência continua vivendo na conversa vinculada, como já ocorre em Briefings e Projetos.
-- A barra aceita `size` e `accept`, então a densidade do modo Foco e do painel lateral é preservada.
-- Sem mudança nas regras de acesso a arquivos nem no fluxo de homologação de documentos da China.
+- Fontes consultadas: `tarefa_auditoria_log`, `projeto_tarefa_atividades`, `projeto_atividades`, `produto_doc_audit_log`, `access_audit_log`, `security_audit_log`, `anexos_download_log`, `projeto_tarefas.deleted_at`, `projetos.deleted_at`.
+- Nova RPC `SECURITY DEFINER` `rpc_relatorio_desligamento_usuario(_user_id, _de, _ate)` consolidando as fontes acima, com acesso restrito por `has_role(auth.uid(),'admin')`.
+- Coluna `deleted_by`/`deleted_motivo` em `projetos`, preenchida pela rotina de exclusão e replicada em `audit_log_immutable`.
+- Offboarding reaproveita `session_invalidation_queue` e os padrões já existentes em `useProjetoOffboarding`.
+- Exportação usando os utilitários de PDF já existentes, sem `window.open`.
+
+Nada é excluído do banco em nenhuma etapa; a proposta é somente leitura, revogação de acesso e reatribuição.
