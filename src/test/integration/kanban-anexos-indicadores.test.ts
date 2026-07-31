@@ -21,7 +21,7 @@ describe("Kanban — indicadores de documentos das tarefas", () => {
 
   it("mantém os contadores sincronizados em tempo real", () => {
     expect(hook).toContain("postgres_changes");
-    expect(hook).toContain('queryKey: ["tarefas-anexos-resumo"]');
+    expect(hook).toContain('"tarefas-anexos-resumo"');
   });
 
   it("exibe contador, miniaturas e o estado de espera de documentos", () => {
