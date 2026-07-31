@@ -53,7 +53,7 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
     return () => {
       cancelled = true;
     };
-  }, [open, filePath, fileName, bucketHint, cleanup]);
+  }, [open, filePath, fileName, bucketHint]);
 
   const handleClose = (v: boolean) => {
     if (!v) cleanup();

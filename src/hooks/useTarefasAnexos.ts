@@ -41,7 +41,7 @@ export type TarefasArquivosMap = Record<string, TarefaArquivosResumo>;
 
 export function useTarefasAnexos(projetoId: string | undefined, tarefaIds: string[]) {
   const qc = useQueryClient();
-  const idsKey = tarefaIds.length;
+  const idsKey = [...tarefaIds].sort().join(",");
 
   const query = useQuery({
     queryKey: ["tarefas-anexos-resumo", projetoId, idsKey],
@@ -117,7 +117,7 @@ export function useTarefasAnexos(projetoId: string | undefined, tarefaIds: strin
   // Sincronização em tempo real: inclusão/exclusão/troca de arquivos
   useEffect(() => {
     if (!projetoId || tarefaIds.length === 0) return;
-    const tarefaIdSet = new Set(tarefaIds);
+    const tarefaIdSet = new Set(idsKey.split(",").filter(Boolean));
     const invalidate = () => {
       void qc.invalidateQueries({ queryKey: ["tarefas-anexos-resumo", projetoId] });
     };
@@ -145,7 +145,7 @@ export function useTarefasAnexos(projetoId: string | undefined, tarefaIds: strin
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [projetoId, idsKey, tarefaIds, qc]);
+  }, [projetoId, idsKey, qc]);
 
   return query;
 }
