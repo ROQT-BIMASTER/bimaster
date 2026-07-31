@@ -31,6 +31,9 @@ interface Props {
   accept?: string;
   /** Tamanho dos botões (default sm). */
   size?: "sm" | "md";
+  /** Oculta anexar/câmera quando o escopo não suporta upload de arquivo. */
+  showAttach?: boolean;
+  showCamera?: boolean;
   className?: string;
 }
 
