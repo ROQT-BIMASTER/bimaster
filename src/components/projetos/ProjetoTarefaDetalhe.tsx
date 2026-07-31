@@ -647,7 +647,37 @@ export function ProjetoTarefaDetalhe({
               e.preventDefault();
             }
           }}
+          onEscapeKeyDown={(e) => {
+            // Primeiro Esc sai de um campo em edição (input/textarea/editor
+            // rico) sem fechar o drawer; o segundo Esc fecha.
+            const active = document.activeElement as HTMLElement | null;
+            const editing = active?.closest("input, textarea, [contenteditable=true]");
+            if (editing) {
+              e.preventDefault();
+              (editing as HTMLElement).blur();
+              return;
+            }
+            // Caso contrário mantém o padrão do Radix: fechar.
+          }}
+          onOpenAutoFocus={(e) => {
+            // Evita focar o primeiro botão da barra de ações (que poderia
+            // disparar navegação por Enter). Foca o próprio painel.
+            e.preventDefault();
+            const content = e.currentTarget as HTMLElement | null;
+            content?.focus({ preventScroll: true });
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const opener = openerElementRef.current;
+            if (opener && document.body.contains(opener)) {
+              opener.focus({ preventScroll: true });
+              return;
+            }
+            const card = document.querySelector<HTMLElement>(`[data-tarefa-card-id="${tarefa.id}"]`);
+            card?.focus({ preventScroll: true });
+          }}
         >
+
           <SheetHeader className="sr-only">
             <SheetTitle>Detalhe da tarefa</SheetTitle>
             <SheetDescription>Visualize e edite os detalhes da tarefa selecionada</SheetDescription>
