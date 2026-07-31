@@ -1,49 +1,44 @@
-# Auditoria de saída — Thalyta Dutra Fucitalo
+# Substituição de Thalyta por Debora (Gerente de CSO)
 
-Usuária localizada no sistema: **Thalyta Dutra Fucitalo** (t.dutra@distribuidoraunion.com.br), Coordenadora CSO, perfil ainda **ativo**, papel `vendedor`, membro de 15 projetos e com 7 permissões de tela individuais. Não existe cadastro grafado "Thalita".
+## O que foi levantado no ambiente
 
-## O que a auditoria mostra
+Thalyta Dutra Fucitalo participa hoje de **10 projetos ativos** (mais 5 vínculos em projetos já excluídos):
 
-Nenhuma exclusão relevante ou destrutiva foi encontrada.
+| Projeto | Papel dela |
+|---|---|
+| Digitação de Pedidos | coordenador |
+| Redigitação de Pedidos | coordenador |
+| Lançamento Wonder | coordenador |
+| Pedidos Distribuidor | coordenador |
+| Suporte - Administrativo CSO | coordenador |
+| AGENDAMENTO | membro |
+| Ajuste de valor em pedidos | membro |
+| Produtos solicitados a reserva. | membro |
+| Reserva Grandes Redes | membro |
+| Pessoal (projeto pessoal dela) | coordenador |
 
-- Trilha de tarefas (`tarefa_auditoria_log`): 4 eventos, todos de conclusão/reabertura. **Zero exclusões**.
-- 68 tarefas criadas por ela — **nenhuma está excluída** hoje.
-- Nenhuma tarefa que ela tocou está na lixeira.
-- Nenhum projeto consta como excluído por ela (a exclusão de projetos não registra autor; ver lacuna abaixo).
-- Nenhum download em lote de anexos registrado.
-- Documentos de produto: 35 eventos, todos `upload` — nenhuma remoção.
-- Último acesso registrado: 20/07/2026; última atividade em tarefas: 29/07/2026.
+Outros vínculos: é criadora de 4 projetos operacionais (Digitação, Redigitação, Lançamento Wonder, Pedidos Distribuidor), responsável direta por 7 tarefas (1 em aberto), corresponsável em 8 e colaboradora em 9 tarefas, além de participante de 5 conversas de chat. Não é responsável por nenhum departamento, não tem subordinados e não tem chamados de suporte atribuídos.
 
-Remoções pontuais encontradas (baixa criticidade, todas com rastro):
+Debora Ap de Mello Pacheco hoje só tem o projeto "Pessoal" — ou seja, ainda não está em nenhum projeto do CSO.
 
-| Data | Ação | Item | Projeto |
-|---|---|---|---|
-| 29/07 14:21 | Anexo removido | COMBO - WONDER ID 89 EMY BARRETOS (1).xlsx | Lançamento Wonder |
-| 29/07 14:21 | Anexo removido | ID key Account (6).xlsx | Lançamento Wonder |
-| 13/07 14:20 | Anexo removido | Distrivix.jpeg | Pedidos Distribuidor |
-| 08/07 13:01 | Anexo removido | WhatsApp Image 2026-07-07.jpeg | Pedidos Distribuidor |
-| 06/07 19:55 | Seguidor removido | Kauã Alves Teixeira | Digitação de Pedidos |
-| 06/07 18:19 | Anexo removido | JR EMPREENDIMENTOS.xlsx | Pedidos Distribuidor |
-| 06/07 18:19 | Anexo removido | Pedido Distribuidor - PRIMER 06-07.xlsx | Pedidos Distribuidor |
-| 06/07 12:10 | Anexo removido | Produtos do Mês Filiais _ Julho 2026.xlsx | Digitação de Pedidos |
-| 03/07 19:31 | Anexo removido | JR EMPREENDIMENTOS.xlsx | Pedidos Distribuidor |
-| 03/07 19:19 | Responsável removido | ela mesma | Pedidos Distribuidor |
+## O que será feito
 
-Padrão compatível com troca/substituição de planilhas de pedido, não com apagamento de acervo.
-
-## Entregas propostas
-
-1. **Relatório de desligamento em tela** (`/dashboard/admin/auditoria-desligamento`, restrito a admin): busca por usuário e período, com resumo de criações, conclusões, remoções de anexos/membros, uploads, acessos negados e último acesso, além de exportação em PDF/CSV para o RH.
-2. **Ação de offboarding assistida** a partir dessa tela: encerrar sessões ativas, inativar o perfil, revogar permissões de tela/módulo e listar os 15 projetos e as tarefas em aberto sob responsabilidade dela para reatribuição — sem apagar histórico.
-3. **Fechar a lacuna de rastreio de exclusão de projetos**: hoje `projetos.deleted_at` não guarda quem excluiu. Passar a registrar autor e motivo, e espelhar o evento na trilha imutável.
-4. **Preservação de evidências**: marcar os registros de auditoria dela como retidos, fora das rotinas de purga por tempo.
+1. **Adicionar Debora a todos os 9 projetos operacionais** com o mesmo papel que Thalyta tinha (coordenador onde ela era coordenadora, membro nos demais). O projeto "Pessoal" da Thalyta **não** é transferido — é área pessoal e cada usuário tem a sua.
+2. **Transferir a titularidade dos 4 projetos** criados por ela (Digitação de Pedidos, Redigitação de Pedidos, Lançamento Wonder, Pedidos Distribuidor) para Debora.
+3. **Transferir as tarefas em aberto** (pendente / em andamento) em que Thalyta é responsável, corresponsável ou colaboradora, passando Debora para o lugar dela.
+4. **Preservar o histórico**: tarefas já concluídas mantêm o registro da Thalyta como executora original — não reescrevemos histórico concluído nem logs de auditoria.
+5. **Incluir Debora nas conversas de chat** dos projetos transferidos, para que ela receba as tratativas em andamento.
+6. **Encerrar os vínculos ativos da Thalyta**: remover das listas de membros dos projetos operacionais e revogar o papel de acesso, mantendo o perfil e todo o rastro de auditoria intactos (offboarding sem perda de trilha).
 
 ## Detalhes técnicos
 
-- Fontes consultadas: `tarefa_auditoria_log`, `projeto_tarefa_atividades`, `projeto_atividades`, `produto_doc_audit_log`, `access_audit_log`, `security_audit_log`, `anexos_download_log`, `projeto_tarefas.deleted_at`, `projetos.deleted_at`.
-- Nova RPC `SECURITY DEFINER` `rpc_relatorio_desligamento_usuario(_user_id, _de, _ate)` consolidando as fontes acima, com acesso restrito por `has_role(auth.uid(),'admin')`.
-- Coluna `deleted_by`/`deleted_motivo` em `projetos`, preenchida pela rotina de exclusão e replicada em `audit_log_immutable`.
-- Offboarding reaproveita `session_invalidation_queue` e os padrões já existentes em `useProjetoOffboarding`.
-- Exportação usando os utilitários de PDF já existentes, sem `window.open`.
+- Operação feita por script de dados (`insert`/`update`), em transação única, sobre: `projeto_membros`, `projetos.criador_id`, `projeto_tarefas.responsavel_id`, `projeto_tarefa_responsaveis`, `projeto_tarefa_colaboradores`, `conversas_participantes` e `user_roles`.
+- Inserções em `projeto_membros` e nas junções de responsáveis usam upsert por chave (`projeto_id,user_id` / `tarefa_id,user_id`) para evitar duplicidade caso Debora já esteja vinculada.
+- Nas tarefas, a troca só se aplica onde `status <> 'concluida'` e `deleted_at IS NULL`.
+- Antes/depois da execução, gero uma contagem comparativa por tabela para conferência.
+- Nenhuma mudança de código de frontend é necessária; a Central de Trabalho e o Kanban leem esses vínculos em tempo real.
 
-Nada é excluído do banco em nenhuma etapa; a proposta é somente leitura, revogação de acesso e reatribuição.
+## Confirmações antes de executar
+
+- Se preferir que Thalyta permaneça como membro somente leitura em vez de ser removida, ajusto o passo 6.
+- Se quiser que também as tarefas concluídas passem para Debora, informo o impacto no histórico e altero o passo 3/4.
