@@ -340,27 +340,31 @@ export function TarefaChatPanel({ tarefaId }: Props) {
             className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0 text-sm"
           />
           <div className="flex items-center justify-between mt-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handlePickFile}
-              disabled={uploading}
-              className="gap-1.5"
-              title="Anexar arquivo"
-            >
-              {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Paperclip className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              <ChatComposerActionsBar
+                onAttachFile={(files) => enviarArquivo(files[0])}
+                onCameraCapture={(f) => enviarArquivo(f)}
+                onRequestApproval={() =>
+                  abrirAprovacao({
+                    tipo: "tarefa",
+                    refId: tarefaId,
+                    titulo: tarefa?.titulo ?? "Tarefa",
+                  })
+                }
+                onUrgentAlert={() =>
+                  abrirUrgente({
+                    tipo: "tarefa",
+                    refId: tarefaId,
+                    titulo: tarefa?.titulo ?? "Tarefa",
+                  })
+                }
+                onEmojiPick={(emoji) => setTexto((v) => v + emoji)}
+                disabled={uploading}
+              />
+              {uploading && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
               )}
-              Anexar
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              onChange={handleFileSelected}
-            />
+            </div>
             <Button
               size="sm"
               onClick={enviar}
