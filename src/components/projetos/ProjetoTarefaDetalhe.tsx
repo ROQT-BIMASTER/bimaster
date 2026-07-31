@@ -76,6 +76,8 @@ import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { perfMark, startTimer } from "@/lib/debug/perfMetrics";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -162,6 +164,13 @@ export function ProjetoTarefaDetalhe({
   }
   const tarefa = tarefaProp ?? (open ? lastOpenTarefaRef.current : null);
   flickerLog("drawer-render", { tarefaId: tarefa?.id, open, isTemp: String(tarefa?.id ?? "").startsWith("temp-") });
+  useRenderMetrics("ProjetoTarefaDetalhe", {
+    tarefaId: tarefa?.id ?? null,
+    open,
+    externalSaving,
+    highlightCommentId,
+    secoesCount: secoes.length,
+  });
 
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
@@ -173,6 +182,28 @@ export function ProjetoTarefaDetalhe({
     comentarios, addComentario, editComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, removeFromCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
+
+  // Tempo entre a abertura do drawer (ou troca de tarefa) e a chegada dos anexos.
+  const aberturaTimerRef = useRef<((extra?: Record<string, unknown>) => void) | null>(null);
+  const tarefaIdMedidaRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !tarefa?.id) {
+      aberturaTimerRef.current = null;
+      tarefaIdMedidaRef.current = null;
+      return;
+    }
+    if (tarefaIdMedidaRef.current === tarefa.id) return;
+    tarefaIdMedidaRef.current = tarefa.id;
+    perfMark("drawer:abrir", { tarefaId: tarefa.id });
+    aberturaTimerRef.current = startTimer("drawer:abrir-ate-anexos", { tarefaId: tarefa.id });
+  }, [open, tarefa?.id]);
+
+  useEffect(() => {
+    if (!open || !anexos) return;
+    aberturaTimerRef.current?.({ anexos: anexos.length });
+    aberturaTimerRef.current = null;
+  }, [open, anexos]);
+
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
@@ -614,6 +645,7 @@ export function ProjetoTarefaDetalhe({
         // pedido de fechamento do Sheet pai — assim re-renders colaterais
         // não derrubam o estado e não fazem a tela "saltar" para o Sheet.
         if (focusMode) return;
+        if (!next) perfMark("drawer:fechar", { tarefaId: tarefa?.id ?? null });
         onOpenChange(next);
       }}>
         <SheetContent

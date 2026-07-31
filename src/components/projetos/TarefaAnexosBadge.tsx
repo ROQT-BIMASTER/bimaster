@@ -5,7 +5,7 @@
  * - Qualquer arquivo abre o visualizador (imagem, PDF ou download).
  * - Tarefas de checklist sem arquivo recebem o selo "Aguardando documentos".
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Paperclip, FileText, FileSpreadsheet, Image as ImageIcon, PenTool, FileQuestion, ZoomIn } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -14,6 +14,8 @@ import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { ArquivoPreviewDialog, type ArquivoPreviewItem } from "@/components/comum/ArquivoPreviewDialog";
 import { useInView } from "@/hooks/useInView";
 import { getThumbUrlCache, setThumbUrlCache } from "@/lib/utils/thumbUrlCache";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { measureAsync, startTimer } from "@/lib/debug/perfMetrics";
 
 import type { TarefaArquivo, TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 
@@ -45,12 +47,17 @@ function useThumbUrl(arquivo: TarefaArquivo, enabled: boolean) {
     gcTime: 55 * 60 * 1000,
     initialData: cacheHit ?? undefined,
     queryFn: async () => {
-      const { signedUrl } = await getSignedUrl(arquivo.bucket, arquivo.storage_path as string);
+      const { signedUrl } = await measureAsync(
+        "anexos:thumb-signed-url",
+        () => getSignedUrl(arquivo.bucket, arquivo.storage_path as string),
+        { bucket: arquivo.bucket },
+      );
       setThumbUrlCache(arquivo.bucket, arquivo.storage_path as string, signedUrl);
       return signedUrl;
     },
   });
 }
+
 
 
 function ImagemPreview({
@@ -70,8 +77,20 @@ function ImagemPreview({
   const { ref, inView } = useInView<HTMLButtonElement>("250px");
   const { data: url, isFetching } = useThumbUrl(arquivo, enabled && inView);
   const [carregada, setCarregada] = useState(false);
+  useRenderMetrics("TarefaAnexosBadge/ImagemPreview", {
+    arquivoId: arquivo.id,
+    inView,
+    temUrl: !!url,
+    carregada,
+    isFetching,
+  });
+  const decodeTimerRef = useRef<((extra?: Record<string, unknown>) => void) | null>(null);
+  if (url && !carregada && !decodeTimerRef.current) {
+    decodeTimerRef.current = startTimer("anexos:thumb-img-load", { arquivoId: arquivo.id });
+  }
 
   const mostrandoPlaceholder = !url || !carregada;
+
 
   const botao = (
     <button
@@ -105,7 +124,14 @@ function ImagemPreview({
           alt={arquivo.nome}
           decoding="async"
           loading="lazy"
-          onLoad={() => setCarregada(true)}
+          onLoad={(e) => {
+            decodeTimerRef.current?.({
+              w: (e.currentTarget as HTMLImageElement).naturalWidth,
+              h: (e.currentTarget as HTMLImageElement).naturalHeight,
+            });
+            decodeTimerRef.current = null;
+            setCarregada(true);
+          }}
           className={cn(
             "h-full w-full object-cover transition-opacity duration-300",
             carregada ? "opacity-100" : "opacity-0",
@@ -171,6 +197,14 @@ export function TarefaAnexosBadge({
   const [indice, setIndice] = useState(0);
 
   const total = resumo?.total ?? 0;
+  useRenderMetrics("TarefaAnexosBadge", {
+    tarefaId: (resumo as any)?.tarefa_id ?? null,
+    total,
+    previewAberto,
+    indice,
+    preview,
+  });
+
 
   const abrir = (arquivoId: string) => {
     const idx = (resumo?.arquivos ?? []).findIndex((a) => a.id === arquivoId);

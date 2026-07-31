@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { measureAsync, perfMark, startTimer } from "@/lib/debug/perfMetrics";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { toast } from "sonner";
 
@@ -53,6 +55,11 @@ function isPdf(nome: string) {
 type Status = "idle" | "loading" | "ready" | "error";
 
 export function ArquivoPreviewDialog({ open, onOpenChange, arquivos, indiceInicial = 0 }: Props) {
+  useRenderMetrics("ArquivoPreviewDialog", {
+    open,
+    indiceInicial,
+    totalArquivos: arquivos.length,
+  });
   const [indice, setIndice] = useState(indiceInicial);
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
@@ -75,12 +82,21 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivos, indiceInici
     setErro(null);
     setUrl(null);
     setZoom(false);
+    const stop = startTimer("preview:resolver-url", {
+      bucket: atual.bucket,
+      familia: isImagem(atual.nome ?? "") ? "imagem" : isPdf(atual.nome ?? "") ? "pdf" : "outro",
+    });
     try {
       if (atual.storage_path) {
-        const { signedUrl, error } = await getSignedUrl(atual.bucket, atual.storage_path, 3600);
+        const { signedUrl, error } = await measureAsync(
+          "preview:getSignedUrl",
+          () => getSignedUrl(atual.bucket, atual.storage_path as string, 3600),
+          { bucket: atual.bucket },
+        );
         if (error || !signedUrl) {
           setStatus("error");
           setErro(error?.message ?? "Não foi possível carregar o arquivo.");
+          stop({ resultado: "erro" });
           return;
         }
         setUrl(signedUrl);
@@ -92,9 +108,11 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivos, indiceInici
         setStatus("error");
         setErro("Arquivo indisponível.");
       }
+      stop({ resultado: "ok" });
     } catch (e: any) {
       setStatus("error");
       setErro(e?.message ?? "Não foi possível carregar o arquivo.");
+      stop({ resultado: "excecao" });
     }
   }, [atual]);
 
@@ -105,8 +123,9 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivos, indiceInici
       setErro(null);
       return;
     }
+    perfMark("preview:abrir", { indice });
     resolver();
-  }, [open, resolver]);
+  }, [open, resolver, indice]);
 
   const handleDownload = async () => {
     if (!atual) return;
