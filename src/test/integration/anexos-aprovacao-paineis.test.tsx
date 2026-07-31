@@ -5,7 +5,7 @@
  *  1. A barra padrão do composer entrega EXATAMENTE o arquivo selecionado
  *     (nome, tipo, tamanho) e limpa o input para permitir reenvio do mesmo arquivo.
  *  2. O NovaAprovacaoDialog exibe os arquivos escolhidos, respeita o limite de
- *     20MB, bloqueia envio sem documento e envia cada arquivo correto ao
+ *     limite unificado de upload, bloqueia envio sem documento e envia cada arquivo correto ao
  *     storage + RPC de anexo, na ordem.
  *  3. Os três painéis de chat da tarefa (painel lateral, chat v2 e Modo Foco)
  *     montam a barra de ações e encaminham o arquivo escolhido para o envio.
@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import fs from "node:fs";
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 
 const rpcMock = vi.fn();
 const uploadMock = vi.fn();
@@ -184,10 +185,10 @@ describe("NovaAprovacaoDialog — documentos corretos são exibidos e enviados",
     expect(screen.getByText("foto.png")).toBeTruthy();
   });
 
-  it("rejeita arquivo acima de 20MB e não o inclui na lista", async () => {
+  it("rejeita arquivo acima do limite unificado de upload e não o inclui na lista", async () => {
     const { baseElement } = renderDialog();
     const input = getFileInput(baseElement as HTMLElement);
-    const grande = makeFile("gigante.pdf", "application/pdf", 21 * 1024 * 1024);
+    const grande = makeFile("gigante.pdf", "application/pdf", UPLOAD_MAX_BYTES + 1);
     Object.defineProperty(input, "files", {
       configurable: true,
       value: Object.assign([grande], { item: (i: number) => [grande][i], length: 1 }),
