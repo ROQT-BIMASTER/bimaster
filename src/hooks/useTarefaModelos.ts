@@ -7,6 +7,8 @@ import {
   capturarTarefaComoModelo,
   type TarefaModeloPayload,
 } from "@/lib/tarefas/duplicarTarefa";
+import { createProjetoTarefasCache } from "@/lib/projetos/projetoTarefasCache";
+
 
 export type TarefaModeloEscopo = "pessoal" | "departamento" | "organizacao";
 
