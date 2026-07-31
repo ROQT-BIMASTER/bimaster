@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ChatAnexoCard } from "../chat/ChatAnexoCard";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 import type { TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 
 interface Message {
