@@ -93,12 +93,13 @@ export function AprovacaoLoteDialog({
 
   useEffect(() => {
     if (!open) {
-      setSelecionados([]);
+      setSelecionados((prev) => (prev.length === 0 ? prev : []));
       setParecer("");
       setSenha("");
       setAcao("aprovado");
     }
   }, [open]);
+
 
   // Remove da seleção itens que saíram da lista elegível ao trocar de ação.
   // Mantém a mesma referência quando nada muda, evitando loop de renderização.
