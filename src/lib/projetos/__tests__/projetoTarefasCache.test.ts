@@ -190,4 +190,34 @@ describe("projetoTarefasCache", () => {
     ).not.toThrow();
     expect(cache.get()).toBeUndefined();
   });
+
+  it("upsertTarefas insere a tarefa duplicada imediatamente (sem F5)", () => {
+    const t1 = makeTarefa("t-1");
+    seed(qc, [t1]);
+    const cache = createProjetoTarefasCache(qc, PROJETO_ID);
+
+    cache.upsertTarefas([
+      { ...t1, id: "t-1-copia", titulo: "Tarefa t-1 (cópia)" },
+    ]);
+
+    const tarefas = cache.get()!.tarefas;
+    expect(tarefas).toHaveLength(2);
+    expect(tarefas.find((t) => t.id === "t-1-copia")?.titulo).toBe(
+      "Tarefa t-1 (cópia)",
+    );
+    // Linha pré-existente mantém identidade (sem flicker).
+    expect(tarefas.find((t) => t.id === "t-1")).toBe(t1);
+  });
+
+  it("upsertTarefas atualiza (não duplica) quando o id já existe", () => {
+    const t1 = makeTarefa("t-1");
+    seed(qc, [t1]);
+    const cache = createProjetoTarefasCache(qc, PROJETO_ID);
+
+    cache.upsertTarefas([{ id: "t-1", titulo: "servidor venceu" } as never]);
+
+    const tarefas = cache.get()!.tarefas;
+    expect(tarefas).toHaveLength(1);
+    expect(tarefas[0].titulo).toBe("servidor venceu");
+  });
 });
