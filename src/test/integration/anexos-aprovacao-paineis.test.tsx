@@ -198,11 +198,9 @@ describe("NovaAprovacaoDialog — documentos corretos são exibidos e enviados",
   it("bloqueia o envio quando não há documento anexado", async () => {
     renderDialog();
     await userEvent.type(screen.getByPlaceholderText(/Aprovar pagamento/i), "Aprovar NF");
-    await userEvent.click(screen.getByRole("button", { name: /Solicitar aprovação/i }));
-
-    await waitFor(() =>
-      expect(toastError).toHaveBeenCalledWith("Anexe ao menos um documento"),
-    );
+    const submit = screen.getByRole("button", { name: /Solicitar aprovação/i });
+    expect(submit).toBeDisabled();
+    await userEvent.click(submit);
     expect(criarAprovacaoMock).not.toHaveBeenCalled();
   });
 
