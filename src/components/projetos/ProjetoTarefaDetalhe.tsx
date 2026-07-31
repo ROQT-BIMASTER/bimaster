@@ -1683,7 +1683,10 @@ export function ProjetoTarefaDetalhe({
                   canPromoteToCofre={currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador"}
                   produtoId={(tarefa as any)?.produto_id ?? null}
                   projetoId={projetoId}
+                  tarefaId={(tarefa as any)?.id ?? null}
+                  tarefaTitulo={(tarefa as any)?.titulo ?? null}
                 />
+
               )
             )}
           </div>

@@ -31,6 +31,9 @@ interface Props {
   accept?: string;
   /** Tamanho dos botões (default sm). */
   size?: "sm" | "md";
+  /** Oculta anexar/câmera quando o escopo não suporta upload de arquivo. */
+  showAttach?: boolean;
+  showCamera?: boolean;
   className?: string;
 }
 
@@ -45,6 +48,8 @@ export function ChatComposerActionsBar({
   urgentTooltip = "Chamar atenção (mensagem urgente)",
   accept,
   size = "sm",
+  showAttach = true,
+  showCamera = true,
   className,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -66,20 +71,23 @@ export function ChatComposerActionsBar({
           e.currentTarget.value = "";
         }}
       />
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className={`${btn} shrink-0`}
-        onClick={() => fileRef.current?.click()}
-        disabled={disabled}
-        title="Anexar arquivo"
-        aria-label="Anexar arquivo"
-      >
-        <Paperclip className={icon} />
-      </Button>
+      {showAttach && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={`${btn} shrink-0`}
+          onClick={() => fileRef.current?.click()}
+          disabled={disabled}
+          title="Anexar arquivo"
+          aria-label="Anexar arquivo"
+        >
+          <Paperclip className={icon} />
+        </Button>
+      )}
 
-      <CameraCaptureButton onCapture={onCameraCapture} disabled={disabled} />
+      {showCamera && <CameraCaptureButton onCapture={onCameraCapture} disabled={disabled} />}
+
 
       <Button
         type="button"

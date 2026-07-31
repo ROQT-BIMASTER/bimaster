@@ -51,6 +51,8 @@ import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestion
 import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
 import { ChatAnexoCard } from "./chat/ChatAnexoCard";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
 import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
 
@@ -235,12 +237,10 @@ export function TarefaFocusMode({
     setChatValue("");
   };
 
-  const chatFileInputRef = useRef<HTMLInputElement>(null);
   const [chatUploading, setChatUploading] = useState(false);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
 
-  const handleChatFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const enviarArquivoChat = async (file?: File | null) => {
     if (!file) return;
     setChatUploading(true);
     try {
@@ -1089,29 +1089,35 @@ export function TarefaFocusMode({
                 minRows={1}
               />
               <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1.5 text-[11px]"
-                  onClick={() => chatFileInputRef.current?.click()}
+                <ChatComposerActionsBar
+                  onAttachFile={(files) => enviarArquivoChat(files[0])}
+                  onCameraCapture={(f) => enviarArquivoChat(f)}
+                  onRequestApproval={() =>
+                    abrirAprovacao({
+                      tipo: "tarefa",
+                      refId: (tarefa as any)?.id ?? "",
+                      titulo: (tarefa as any)?.titulo ?? "Tarefa",
+                    })
+                  }
+                  onUrgentAlert={() =>
+                    abrirUrgente({
+                      tipo: "tarefa",
+                      refId: (tarefa as any)?.id ?? "",
+                      titulo: (tarefa as any)?.titulo ?? "Tarefa",
+                    })
+                  }
+                  onEmojiPick={(emoji) => setChatValue((v) => v + emoji)}
                   disabled={chatUploading}
-                  title="Anexar arquivo (vai para os anexos da tarefa automaticamente)"
-                >
-                  {chatUploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-3.5 w-3.5" />
-                  )}
-                  {chatUploading ? "Enviando…" : "Anexar"}
-                </Button>
-                <span className="text-[9px] text-muted-foreground">Anexos vão para a tarefa</span>
+                />
+                {chatUploading ? (
+                  <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Enviando…
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-muted-foreground">Anexos vão para a tarefa</span>
+                )}
               </div>
-              <input
-                ref={chatFileInputRef}
-                type="file"
-                hidden
-                onChange={handleChatFileSelected}
-              />
+
             </div>
           </div>
         </div>

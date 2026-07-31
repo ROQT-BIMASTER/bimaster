@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 interface ProcessoChatProps {
   processId: string;
@@ -31,6 +33,7 @@ type FilterMode = "todas" | "publicas" | "privadas";
 export function ProcessoChat({ processId, moduloOrigem, availableDocs = [], compact }: ProcessoChatProps) {
   const { messages, isLoading, sendMessage, oficializarDocumento, mentionUsers, mentionModulos } = useProcessoChat(processId);
   const { user } = useAuth();
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
   const { data: profiles = [] } = useSystemProfiles();
   const [inputValue, setInputValue] = useState("");
   const [docPickerOpen, setDocPickerOpen] = useState(false);
@@ -190,6 +193,19 @@ export function ProcessoChat({ processId, moduloOrigem, availableDocs = [], comp
           >
             <Paperclip className="h-3 w-3 mr-1" /> Anexar Doc
           </Button>
+          <ChatComposerActionsBar
+            showAttach={false}
+            showCamera={false}
+            onAttachFile={() => setDocPickerOpen(true)}
+            onCameraCapture={() => setDocPickerOpen(true)}
+            onRequestApproval={() =>
+              abrirAprovacao({ tipo: "processo", refId: processId, titulo: moduloOrigem || "Processo" })
+            }
+            onUrgentAlert={() =>
+              abrirUrgente({ tipo: "processo", refId: processId, titulo: moduloOrigem || "Processo" })
+            }
+            onEmojiPick={(emoji) => setInputValue((v) => v + emoji)}
+          />
           {moduloOrigem && (
             <Badge variant="outline" className="text-[9px] h-5">{moduloOrigem}</Badge>
           )}
