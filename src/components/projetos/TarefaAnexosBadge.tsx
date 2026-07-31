@@ -124,7 +124,14 @@ function ImagemPreview({
           alt={arquivo.nome}
           decoding="async"
           loading="lazy"
-          onLoad={() => setCarregada(true)}
+          onLoad={(e) => {
+            decodeTimerRef.current?.({
+              w: (e.currentTarget as HTMLImageElement).naturalWidth,
+              h: (e.currentTarget as HTMLImageElement).naturalHeight,
+            });
+            decodeTimerRef.current = null;
+            setCarregada(true);
+          }}
           className={cn(
             "h-full w-full object-cover transition-opacity duration-300",
             carregada ? "opacity-100" : "opacity-0",
