@@ -126,3 +126,36 @@ describe("Comportamento do drawer (abrir/fechar/trocar)", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("Acessibilidade: ESC e gestao de foco", () => {
+  const drawer = read("src/components/projetos/ProjetoTarefaDetalhe.tsx");
+  const focus = read("src/components/projetos/TarefaFocusMode.tsx");
+  const kanban = read("src/components/projetos/ProjetoKanbanView.tsx");
+
+  it("ESC sai do campo em edicao antes de fechar o drawer", () => {
+    expect(drawer).toContain("onEscapeKeyDown");
+    expect(drawer).toContain('input, textarea, [contenteditable=true]');
+    expect(drawer).toContain("blur()");
+  });
+
+  it("foca o proprio painel ao abrir", () => {
+    expect(drawer).toContain("onOpenAutoFocus");
+    expect(drawer).toContain("content?.focus({ preventScroll: true })");
+  });
+
+  it("devolve o foco ao elemento que abriu o drawer", () => {
+    expect(drawer).toContain("openerElementRef");
+    expect(drawer).toContain("onCloseAutoFocus");
+    expect(drawer).toContain("data-tarefa-card-id");
+  });
+
+  it("card do Kanban expoe data-tarefa-card-id para retorno de foco", () => {
+    expect(kanban).toContain("data-tarefa-card-id={tarefa.id}");
+  });
+
+  it("Modo Foco fecha com ESC registrando intencao explicita", () => {
+    const idx = focus.indexOf("onEscapeKeyDown");
+    expect(idx).toBeGreaterThan(-1);
+    expect(focus.slice(idx, idx + 400)).toContain("requestExitFocus?.()");
+  });
+});
