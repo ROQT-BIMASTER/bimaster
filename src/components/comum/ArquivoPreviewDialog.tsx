@@ -53,6 +53,11 @@ function isPdf(nome: string) {
 type Status = "idle" | "loading" | "ready" | "error";
 
 export function ArquivoPreviewDialog({ open, onOpenChange, arquivos, indiceInicial = 0 }: Props) {
+  useRenderMetrics("ArquivoPreviewDialog", {
+    open,
+    indiceInicial,
+    totalArquivos: arquivos.length,
+  });
   const [indice, setIndice] = useState(indiceInicial);
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
