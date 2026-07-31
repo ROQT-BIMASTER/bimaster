@@ -1087,29 +1087,35 @@ export function TarefaFocusMode({
                 minRows={1}
               />
               <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1.5 text-[11px]"
-                  onClick={() => chatFileInputRef.current?.click()}
+                <ChatComposerActionsBar
+                  onAttachFile={(files) => enviarArquivoChat(files[0])}
+                  onCameraCapture={(f) => enviarArquivoChat(f)}
+                  onRequestApproval={() =>
+                    abrirAprovacao({
+                      tipo: "tarefa",
+                      refId: tarefaId,
+                      titulo: (tarefa as any)?.titulo ?? "Tarefa",
+                    })
+                  }
+                  onUrgentAlert={() =>
+                    abrirUrgente({
+                      tipo: "tarefa",
+                      refId: tarefaId,
+                      titulo: (tarefa as any)?.titulo ?? "Tarefa",
+                    })
+                  }
+                  onEmojiPick={(emoji) => setChatValue((v) => v + emoji)}
                   disabled={chatUploading}
-                  title="Anexar arquivo (vai para os anexos da tarefa automaticamente)"
-                >
-                  {chatUploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-3.5 w-3.5" />
-                  )}
-                  {chatUploading ? "Enviando…" : "Anexar"}
-                </Button>
-                <span className="text-[9px] text-muted-foreground">Anexos vão para a tarefa</span>
+                />
+                {chatUploading ? (
+                  <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Enviando…
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-muted-foreground">Anexos vão para a tarefa</span>
+                )}
               </div>
-              <input
-                ref={chatFileInputRef}
-                type="file"
-                hidden
-                onChange={handleChatFileSelected}
-              />
+
             </div>
           </div>
         </div>
