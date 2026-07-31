@@ -93,12 +93,14 @@ export function TarefaChatPanel({
   produtoId,
   projetoId,
   onOpenAnexoInTask,
+  tarefaId,
+  tarefaTitulo,
 }: TarefaChatPanelProps) {
   const meId = currentUserId ?? criadorId ?? null;
   const [chatValue, setChatValue] = useState("");
   const [uploading, setUploading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,9 +111,7 @@ export function TarefaChatPanel({
     setChatValue("");
   };
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const enviarArquivo = async (file?: File | null) => {
     if (!file || !uploadAnexo) return;
     setUploading(true);
     try {
@@ -137,6 +137,7 @@ export function TarefaChatPanel({
       setUploading(false);
     }
   };
+
 
   return (
     <div className="w-[260px] flex flex-col bg-muted/10">
