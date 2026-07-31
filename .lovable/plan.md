@@ -1,40 +1,35 @@
 ## Objetivo
+Garantir que tarefas abram e fechem com um único clique, que exclusões/alterações apareçam imediatamente sem F5 e que o Kanban não faça requisições desnecessárias.
 
-No quadro (Kanban), o usuário deve conseguir: (1) abrir a pré-visualização de qualquer arquivo direto do card, sem entrar na tarefa; (2) ver as imagens em tamanho grande no card, e não em miniaturas de 32px.
+## Diagnóstico confirmado
+- O cartão só abre a tarefa ao clicar diretamente no texto do título; o restante do card não executa a seleção (`ProjetoKanbanView.tsx:646-655`), produzindo a sensação de precisar clicar duas vezes.
+- O fechamento remove `?tarefa=` e dispara imediatamente um refetch completo das tarefas (`ProjetoDetalhe.tsx:221-227`), concorrendo com o fechamento do drawer e com as atualizações pendentes.
+- Upload e exclusão de anexos fazem atualização otimista, mas terminam com invalidação sem refetch (`refetchType: "none"` em `useProjetoTarefaDetalhe.ts:295-297, 328-330`). Como o cache global não atualiza ao voltar para a aba, dados podem permanecer antigos até F5.
+- O drawer e o card usam caches diferentes para os mesmos anexos; a mutation do drawer não atualiza explicitamente o resumo exibido no Kanban.
+- O canal de anexos do Kanban escuta alterações amplas, inclusive de outros projetos, gerando invalidações e trabalho desnecessários.
+- O preview completo baixa novamente o mesmo arquivo a cada abertura, sem reaproveitar o Blob já carregado na sessão.
 
-## Situação atual (verificada)
+## Implementação
+1. **Abertura com um clique**
+   - Tornar toda a área útil do card clicável, preservando ações independentes de concluir, arrastar, anexos, zoom e menus com `stopPropagation`.
+   - Manter acessibilidade por teclado e impedir abertura acidental ao finalizar um arraste.
 
-- `TarefaAnexosBadge.tsx` exibe apenas um contador, ícones por tipo e até 3 miniaturas de 32×32 (`h-8 w-8`), sem nenhum clique/pré-visualização.
-- O card do Kanban (`ProjetoKanbanView.tsx`, bloco "Arquivos da tarefa") só renderiza esse badge.
-- Já existe um visualizador, `ChinaDocPreviewDialog`, mas ele é fixo no bucket `china-documentos` — não serve para anexos de projeto (`projeto-anexos`) nem para outros buckets.
-- `useTarefasAnexos` já traz por tarefa: nome, `storage_path`, `bucket` e família (imagem, pdf, planilha, vetor, documento).
+2. **Fechamento imediato e confiável**
+   - Separar o fechamento visual do refetch: remover imediatamente a tarefa selecionada/URL e não bloquear a animação do drawer com consulta completa.
+   - Liberar corretamente os gates de detalhe e executar reconciliação em segundo plano somente após o drawer fechar.
+   - Tratar alterações pendentes de título/descrição antes do fechamento para não perder edição.
 
-## O que será feito
+3. **Atualização sem F5**
+   - Adicionar sincronização em tempo real filtrada pela tarefa para anexos do drawer.
+   - Após upload/exclusão, reconciliar a query ativa e atualizar/invalidate também o resumo de anexos do Kanban.
+   - Aplicar o mesmo padrão filtrado aos documentos China exibidos na tarefa, para mudanças feitas por outra aba/usuário aparecerem abertas no drawer.
 
-**1. Visualizador genérico de arquivos**
-Novo componente `src/components/comum/ArquivoPreviewDialog.tsx`, derivado do visualizador da China, porém recebendo o bucket como parâmetro:
-- Imagem: exibida em tamanho grande, com zoom por clique.
-- PDF: renderizado em iframe.
-- Demais formatos (planilhas, vetores, docs): tela de "pré-visualização não disponível" com botão de download seguro (blob autenticado, sem abrir URL direta).
-- Navegação anterior/próximo entre os arquivos da mesma tarefa, com nome e tipo no cabeçalho.
-- O visualizador da China passa a reutilizar esse componente, mantendo o comportamento atual.
+4. **Redução de lentidão**
+   - Restringir as invalidações de anexos às tarefas/projeto afetados, evitando que alterações de outros projetos recarreguem o quadro atual.
+   - Preservar o cache e prefetch existentes de thumbnails.
+   - Adicionar cache de sessão para o Blob do preview completo, evitando baixar novamente o mesmo arquivo enquanto ele não mudar.
 
-**2. Miniaturas grandes e clicáveis no card**
-Reescrita da parte visual de `TarefaAnexosBadge.tsx`:
-- Quando houver imagens, mostrar uma faixa de pré-visualização larga no card: a primeira imagem ocupando toda a largura do card com altura confortável (aprox. 128px, `object-cover`, cantos arredondados) e, havendo mais imagens, uma grade de até 3 miniaturas médias abaixo, com selo "+N" quando houver excedente.
-- Arquivos não-imagem viram chips clicáveis com ícone e nome abreviado, em vez de apenas ícones mudos.
-- Todo item abre o `ArquivoPreviewDialog` no arquivo correspondente; o clique não dispara o drag nem a abertura da tarefa.
-- O contador de arquivos continua, agora clicável (abre o primeiro arquivo).
-- Respeitar a densidade do quadro: em modo compacto a faixa grande é reduzida; comportamento controlado por uma prop `preview="grande" | "compacto"`.
-
-**3. Integração no Kanban**
-- `ProjetoKanbanView.tsx` passa a densidade atual ao badge e mantém o restante do card intacto.
-- Card em arraste (overlay) não renderiza a faixa de imagem, para não pesar o drag.
-
-## Detalhes técnicos
-
-- URLs assinadas via `getSignedUrl(bucket, path)` com cache do React Query por ~50 min (padrão já usado hoje), carregamento `lazy` e limite de imagens resolvidas por card para não estourar requisições em quadros grandes.
-- Download sempre por `downloadStorageBlob` + `triggerBlobDownload` (nunca `window.open`).
-- Somente tokens semânticos de cor; sem cores literais.
-- Testes: estender `src/test/integration/kanban-anexos-indicadores.test.ts` cobrindo seleção da imagem de capa, contagem "+N" e classificação de família para abertura no visualizador.
-- Bump de `APP_VERSION` com entrada correspondente no changelog.
+5. **Validação e proteção de produção**
+   - Criar testes para: clique único no card, fechamento pelo X após exclusão, atualização imediata do drawer e do card, e isolamento das invalidações por projeto/tarefa.
+   - Executar os testes focados e validar no preview o fluxo real: abrir tarefa, excluir anexo, fechar pelo X, reabrir com um clique e confirmar que nenhum F5 é necessário.
+   - Registrar a correção no changelog e incrementar `APP_VERSION` conforme a disciplina de release do projeto.

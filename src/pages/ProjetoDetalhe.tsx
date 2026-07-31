@@ -222,7 +222,9 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
     if (open) return;
     setSelectedTarefaId(null);
     if (id) {
-      void queryClient.refetchQueries({ queryKey: ["projeto-tarefas-v2", id], type: "active", exact: true });
+      window.setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", id], exact: true, refetchType: "active" });
+      }, 250);
     }
   }, [id, queryClient, setSelectedTarefaId]);
 

@@ -41,7 +41,7 @@ export type TarefasArquivosMap = Record<string, TarefaArquivosResumo>;
 
 export function useTarefasAnexos(projetoId: string | undefined, tarefaIds: string[]) {
   const qc = useQueryClient();
-  const idsKey = tarefaIds.length;
+  const idsKey = [...tarefaIds].sort().join(",");
 
   const query = useQuery({
     queryKey: ["tarefas-anexos-resumo", projetoId, idsKey],
@@ -116,22 +116,36 @@ export function useTarefasAnexos(projetoId: string | undefined, tarefaIds: strin
 
   // Sincronização em tempo real: inclusão/exclusão/troca de arquivos
   useEffect(() => {
-    if (!projetoId) return;
+    if (!projetoId || tarefaIds.length === 0) return;
+    const tarefaIdSet = new Set(idsKey.split(",").filter(Boolean));
     const invalidate = () => {
-      qc.invalidateQueries({ queryKey: ["tarefas-anexos-resumo"] });
-      qc.invalidateQueries({ queryKey: ["china-docs-da-tarefa"] });
-      qc.invalidateQueries({ queryKey: ["tarefa-anexos"] });
+      void qc.invalidateQueries({ queryKey: ["tarefas-anexos-resumo", projetoId] });
+    };
+    const invalidateIfCurrentTask = (payload: { new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+      const changedTaskId = String(payload.new?.tarefa_id ?? payload.old?.tarefa_id ?? "");
+      if (!tarefaIdSet.has(changedTaskId)) return;
+      invalidate();
+      void qc.invalidateQueries({ queryKey: ["tarefa-anexos", changedTaskId] });
+      void qc.invalidateQueries({ queryKey: ["china-docs-da-tarefa", changedTaskId] });
+    };
+    const invalidateIfCurrentDocument = (payload: { new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+      const changedId = String(payload.new?.id ?? payload.old?.id ?? "");
+      const current = qc.getQueryData<TarefasArquivosMap>(["tarefas-anexos-resumo", projetoId, idsKey]);
+      const belongsToBoard = Object.values(current ?? {}).some((entry) =>
+        entry.arquivos.some((arquivo) => arquivo.china_documento_id === changedId),
+      );
+      if (belongsToBoard) invalidate();
     };
     const channel = supabase
       .channel(`tarefas-anexos-${projetoId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "projeto_tarefa_anexos" }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "china_documento_tarefa_vinculos" }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "china_produto_documentos" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "projeto_tarefa_anexos" }, invalidateIfCurrentTask)
+      .on("postgres_changes", { event: "*", schema: "public", table: "china_documento_tarefa_vinculos" }, invalidateIfCurrentTask)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "china_produto_documentos" }, invalidateIfCurrentDocument)
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [projetoId, qc]);
+  }, [projetoId, idsKey, qc]);
 
   return query;
 }

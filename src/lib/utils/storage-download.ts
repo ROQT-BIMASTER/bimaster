@@ -57,6 +57,8 @@ export interface StorageBlobResult {
   error: string | null;
 }
 
+const storageBlobCache = new Map<string, { blob: Blob; contentType: string; filename: string }>();
+
 /**
  * Downloads a file from storage as a Blob with metadata.
  * Uses Supabase SDK download() which bypasses browser ad blockers.
@@ -75,6 +77,18 @@ export async function downloadStorageBlob(
       return { ...empty, error: "Não foi possível resolver o caminho do arquivo" };
     }
 
+    const cacheKey = `${resolved.bucket}:${resolved.path}`;
+    const cached = storageBlobCache.get(cacheKey);
+    if (cached) {
+      return {
+        blob: cached.blob,
+        blobUrl: URL.createObjectURL(cached.blob),
+        contentType: cached.contentType,
+        filename: originalFilename || cached.filename,
+        error: null,
+      };
+    }
+
     const { data, error } = await supabase.storage
       .from(resolved.bucket)
       .download(resolved.path);
@@ -89,6 +103,7 @@ export async function downloadStorageBlob(
       : getMimeFromFilename(filename);
 
     const typedBlob = new Blob([data], { type: contentType });
+    storageBlobCache.set(cacheKey, { blob: typedBlob, contentType, filename });
     const blobUrl = URL.createObjectURL(typedBlob);
 
     return { blob: typedBlob, blobUrl, contentType, filename, error: null };
