@@ -122,11 +122,9 @@ export function TarefaChatPanel({ tarefaId }: Props) {
     }
   };
 
-  const handlePickFile = () => fileInputRef.current?.click();
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const enviarArquivo = async (file?: File | null) => {
     if (!file) return;
     setUploading(true);
     try {
