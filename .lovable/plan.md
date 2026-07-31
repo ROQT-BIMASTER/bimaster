@@ -4,7 +4,7 @@ Leitura das anotações à caneta na coluna "Sugestão Preço - B2B" (07). Confi
 
 | Produto | Código | B2B atual no sistema | B2B anotado (novo) |
 |---|---|---|---|
-| BODY SPLASH BAUNILHA | RR-B5306 | R$ 34,4905 | **R$ 39,90** |
+| BODY SPLASH BAUNILHA | RR-B5306 | R$ 34,4905 | **R$ 39,99** |
 | COLÔNIA BAUNILHA | RR-P8006 | R$ 61,8268 | **R$ 69,90** |
 | CREME DE MÃOS BAUNILHA | RR-PA | R$ 12,8775 | **R$ 14,90** |
 | HIDRATANTE LABIAL BAUNILHA | RR-L6534 | R$ 14,4826 | **R$ 14,90** |
