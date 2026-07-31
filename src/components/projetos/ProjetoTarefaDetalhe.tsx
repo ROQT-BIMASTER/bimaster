@@ -289,6 +289,17 @@ export function ProjetoTarefaDetalhe({
   // colateral por invalidação de query após concluir subtarefa/marco, mudar
   // responsável, calendário, etc.) é ignorado para evitar "piscar e sair do foco".
   const closeFocusIntentRef = useRef(false);
+  // Acessibilidade: guarda o elemento que abriu o drawer para devolver o foco
+  // ao fechar (Esc, botão X ou clique fora), evitando "foco perdido" no body.
+  const openerElementRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (open) {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== document.body && !active.closest("[data-testid=projeto-tarefa-detalhe-drawer]")) {
+        openerElementRef.current = active;
+      }
+    }
+  }, [open]);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
