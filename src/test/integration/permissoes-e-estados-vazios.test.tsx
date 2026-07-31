@@ -296,7 +296,8 @@ describe("mensagens de erro nas ações vinculadas", () => {
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith(
-        expect.stringContaining("Não foi possível abrir a aprovação"),
+        "Não foi possível iniciar a aprovação",
+        expect.objectContaining({ description: "permission denied for table conversas" }),
       ),
     );
     expect(toastSuccess).not.toHaveBeenCalled();
@@ -308,7 +309,8 @@ describe("mensagens de erro nas ações vinculadas", () => {
     screen.getByText("urgente").click();
 
     await waitFor(() => expect(toastError).toHaveBeenCalled());
-    expect(toastError.mock.calls[0][0]).toContain("sem permissão");
+    expect(toastError.mock.calls[0][0]).toBe("Não foi possível iniciar a chamada de atenção");
+    expect(toastError.mock.calls[0][1]).toMatchObject({ description: "sem permissão" });
     expect(toastSuccess).not.toHaveBeenCalled();
   });
 });
