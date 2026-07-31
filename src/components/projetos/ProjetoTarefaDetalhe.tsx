@@ -645,6 +645,7 @@ export function ProjetoTarefaDetalhe({
         // pedido de fechamento do Sheet pai — assim re-renders colaterais
         // não derrubam o estado e não fazem a tela "saltar" para o Sheet.
         if (focusMode) return;
+        if (!next) perfMark("drawer:fechar", { tarefaId: tarefa?.id ?? null });
         onOpenChange(next);
       }}>
         <SheetContent
