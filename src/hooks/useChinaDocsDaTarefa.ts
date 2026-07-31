@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface ChinaDocDaTarefa {
   vinculo_id: string;
@@ -28,14 +30,16 @@ export interface ChinaDocDaTarefa {
 }
 
 export function useChinaDocsDaTarefa(tarefaId: string | undefined) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ["china-docs-da-tarefa", tarefaId],
     enabled: !!tarefaId,
     queryFn: async () => {
+      if (!tarefaId) return [] as ChinaDocDaTarefa[];
       const { data: vinculos, error } = await (supabase
         .from("china_documento_tarefa_vinculos" as any)
         .select("id, documento_id, tarefa_id, projeto_id, created_at, created_by, responsavel_id")
-        .eq("tarefa_id", tarefaId!)
+        .eq("tarefa_id", tarefaId)
         .order("created_at", { ascending: false }) as any);
       if (error) throw error;
       const list = (vinculos || []) as Array<any>;
@@ -97,4 +101,29 @@ export function useChinaDocsDaTarefa(tarefaId: string | undefined) {
       });
     },
   });
+
+  useEffect(() => {
+    if (!tarefaId) return;
+    const invalidate = () => {
+      void queryClient.invalidateQueries({ queryKey: ["china-docs-da-tarefa", tarefaId] });
+      void queryClient.invalidateQueries({ queryKey: ["tarefas-anexos-resumo"] });
+    };
+    const invalidateCurrentDoc = (payload: { new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+      const changedId = String(payload.new?.id ?? payload.old?.id ?? "");
+      const current = queryClient.getQueryData<ChinaDocDaTarefa[]>(["china-docs-da-tarefa", tarefaId]) ?? [];
+      if (current.some((doc) => doc.documento_id === changedId)) invalidate();
+    };
+    const channel = supabase
+      .channel(uniqueChannelName(`china-docs-tarefa-${tarefaId}`))
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "china_documento_tarefa_vinculos", filter: `tarefa_id=eq.${tarefaId}`,
+      }, invalidate)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "china_produto_documentos",
+      }, invalidateCurrentDoc)
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [tarefaId, queryClient]);
+
+  return query;
 }

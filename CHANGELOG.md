@@ -16,7 +16,9 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ## [Unreleased]
 
-- (sem entradas)
+- Projetos / Kanban: cards abrem com um clique em toda a área útil e o drawer fecha imediatamente pelo X, sem competir com o refetch da lista.
+- Projetos / documentos: anexos e documentos China reconciliam drawer e card em tempo real, sem exigir F5, com invalidações isoladas por tarefa/projeto.
+- Projetos / preview: arquivos já visualizados reutilizam o Blob durante a sessão, reduzindo downloads e espera em reaberturas.
 
 ---
 

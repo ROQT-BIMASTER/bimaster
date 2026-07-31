@@ -53,7 +53,7 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
     return () => {
       cancelled = true;
     };
-  }, [open, filePath, fileName]);
+  }, [open, filePath, fileName, bucketHint, cleanup]);
 
   const handleClose = (v: boolean) => {
     if (!v) cleanup();
@@ -61,8 +61,9 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
   };
 
   const handleDownload = () => {
-    if (result?.blobUrl) {
-      triggerBlobDownload(result.blobUrl, result.filename || fileName || "arquivo");
+    if (result?.blob) {
+      const downloadUrl = URL.createObjectURL(result.blob);
+      triggerBlobDownload(downloadUrl, result.filename || fileName || "arquivo");
     }
   };
 

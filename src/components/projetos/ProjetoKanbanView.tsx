@@ -596,6 +596,19 @@ function DraggableKanbanCard({
     <div
       ref={setNodeRef}
       style={style}
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir tarefa ${tarefa.titulo}`}
+      onClick={(event) => {
+        if (isDragging || (event.target as HTMLElement).closest("button, a, input, textarea, select, [role=menuitem]")) return;
+        onSelect();
+      }}
+      onKeyDown={(event) => {
+        if ((event.key === "Enter" || event.key === " ") && event.target === event.currentTarget) {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
       onMouseEnter={prefetchAnexos}
       onMouseLeave={cancelarPrefetch}
       onFocus={prefetchAnexos}
@@ -649,7 +662,6 @@ function DraggableKanbanCard({
               darkBg && !isCompleted && "text-white",
               isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground")
             )}
-            onClick={onSelect}
           >
             {tarefa.titulo}
           </span>

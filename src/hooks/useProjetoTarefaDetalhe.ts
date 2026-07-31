@@ -197,6 +197,20 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     enabled: !!tarefaId && !!user,
   });
 
+  useEffect(() => {
+    if (!tarefaId || !user) return;
+    const channel = supabase
+      .channel(uniqueChannelName(`tarefa-anexos-${tarefaId}`))
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "projeto_tarefa_anexos", filter: `tarefa_id=eq.${tarefaId}`,
+      }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+        void queryClient.invalidateQueries({ queryKey: ["tarefas-anexos-resumo"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [tarefaId, user, queryClient]);
+
   // ===== File validation constants =====
 
 
@@ -290,10 +304,11 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         next[idx] = data.row;
         return next;
       });
+      void queryClient.invalidateQueries({ queryKey: ["tarefas-anexos-resumo"] });
       toast.success("Anexo enviado!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
+      void queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "active" });
     },
   });
 
@@ -323,10 +338,11 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.error(err.message);
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tarefas-anexos-resumo"] });
       toast.success("Anexo removido!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
+      void queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "active" });
     },
   });
 
