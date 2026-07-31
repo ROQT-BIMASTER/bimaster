@@ -51,6 +51,8 @@ import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestion
 import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
 import { ChatAnexoCard } from "./chat/ChatAnexoCard";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
 import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
 
@@ -1093,14 +1095,14 @@ export function TarefaFocusMode({
                   onRequestApproval={() =>
                     abrirAprovacao({
                       tipo: "tarefa",
-                      refId: tarefaId,
+                      refId: (tarefa as any)?.id ?? "",
                       titulo: (tarefa as any)?.titulo ?? "Tarefa",
                     })
                   }
                   onUrgentAlert={() =>
                     abrirUrgente({
                       tipo: "tarefa",
-                      refId: tarefaId,
+                      refId: (tarefa as any)?.id ?? "",
                       titulo: (tarefa as any)?.titulo ?? "Tarefa",
                     })
                   }
