@@ -8,6 +8,20 @@ import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActions
 
 const noop = () => {};
 
+if (!window.matchMedia) {
+  // jsdom não implementa matchMedia; usado por hooks de responsividade
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 describe("ChatComposerActionsBar", () => {
   it("expõe as 5 ações padrão", () => {
     render(
