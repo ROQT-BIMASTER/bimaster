@@ -11,6 +11,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { toastAcaoIniciada, toastAcaoFalhou } from "@/lib/chat/acoesFeedback";
+import { registrarAcaoChat } from "@/lib/chat/acoesAuditoria";
 import { useCallback } from "react";
 
 export type VinculoTipo = "briefing" | "projeto" | "submissao" | "tarefa" | "processo";
@@ -37,9 +38,25 @@ export function useAbrirAcaoVinculada() {
         const conversaId = await ensureConversa(args);
         const url = `/dashboard/chat?conversaId=${encodeURIComponent(conversaId)}&abrir=aprovacao`;
         toastAcaoIniciada("aprovacao", args.tipo);
+        void registrarAcaoChat({
+          acao: "aprovacao",
+          fase: "iniciada",
+          entidadeTipo: args.tipo,
+          entidadeId: args.refId,
+          conversaId,
+          detalhe: args.titulo,
+        });
         window.location.assign(url);
       } catch (e: any) {
         toastAcaoFalhou("aprovacao", e);
+        void registrarAcaoChat({
+          acao: "aprovacao",
+          fase: "falhou",
+          entidadeTipo: args.tipo,
+          entidadeId: args.refId,
+          detalhe: args.titulo,
+          erro: e,
+        });
       }
     },
     [ensureConversa],
@@ -51,9 +68,25 @@ export function useAbrirAcaoVinculada() {
         const conversaId = await ensureConversa(args);
         const url = `/dashboard/chat?conversaId=${encodeURIComponent(conversaId)}&abrir=urgente`;
         toastAcaoIniciada("urgente", args.tipo);
+        void registrarAcaoChat({
+          acao: "urgente",
+          fase: "iniciada",
+          entidadeTipo: args.tipo,
+          entidadeId: args.refId,
+          conversaId,
+          detalhe: args.titulo,
+        });
         window.location.assign(url);
       } catch (e: any) {
         toastAcaoFalhou("urgente", e);
+        void registrarAcaoChat({
+          acao: "urgente",
+          fase: "falhou",
+          entidadeTipo: args.tipo,
+          entidadeId: args.refId,
+          detalhe: args.titulo,
+          erro: e,
+        });
       }
     },
     [ensureConversa],
