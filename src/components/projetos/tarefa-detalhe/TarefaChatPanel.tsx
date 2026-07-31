@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ChatAnexoCard } from "../chat/ChatAnexoCard";
 import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+import { TarefaAcoesHistoricoResumo } from "./TarefaAcoesHistoricoResumo";
 import type { TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 
 interface Message {
@@ -149,6 +150,7 @@ export function TarefaChatPanel({
           <X className="h-3 w-3" />
         </Button>
       </div>
+      <TarefaAcoesHistoricoResumo tarefaId={tarefaId} />
       <ScrollArea className="flex-1 px-3 py-2">
         <div className="space-y-3">
           {messages.length === 0 && (
