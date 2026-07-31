@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { measureAsync, perfMark, startTimer } from "@/lib/debug/perfMetrics";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { toast } from "sonner";
 
