@@ -101,10 +101,15 @@ export function AprovacaoLoteDialog({
   }, [open]);
 
   // Remove da seleção itens que saíram da lista elegível ao trocar de ação.
+  // Mantém a mesma referência quando nada muda, evitando loop de renderização.
   useEffect(() => {
     const ids = new Set(elegiveis.map((d) => d.documento_id));
-    setSelecionados((prev) => prev.filter((id) => ids.has(id)));
+    setSelecionados((prev) => {
+      const proximo = prev.filter((id) => ids.has(id));
+      return proximo.length === prev.length ? prev : proximo;
+    });
   }, [elegiveis]);
+
 
   const toggle = (id: string) =>
     setSelecionados((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
