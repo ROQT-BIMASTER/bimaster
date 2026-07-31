@@ -11,7 +11,7 @@
  *     montam a barra de ações e encaminham o arquivo escolhido para o envio.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import fs from "node:fs";
 
@@ -186,10 +186,13 @@ describe("NovaAprovacaoDialog — documentos corretos são exibidos e enviados",
 
   it("rejeita arquivo acima de 20MB e não o inclui na lista", async () => {
     const { baseElement } = renderDialog();
-    await userEvent.upload(
-      getFileInput(baseElement as HTMLElement),
-      makeFile("gigante.pdf", "application/pdf", 21 * 1024 * 1024),
-    );
+    const input = getFileInput(baseElement as HTMLElement);
+    const grande = makeFile("gigante.pdf", "application/pdf", 21 * 1024 * 1024);
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      value: Object.assign([grande], { item: (i: number) => [grande][i], length: 1 }),
+    });
+    fireEvent.change(input);
 
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(screen.queryByText("gigante.pdf")).toBeNull();
