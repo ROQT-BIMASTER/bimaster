@@ -60,11 +60,18 @@ export interface ProjetoTarefasCache {
    */
   markStale(): void;
   /**
+   * Insere/atualiza linhas recém-criadas no snapshot (duplicar tarefa,
+   * aplicar modelo). Sem isso a cópia só aparece após F5 — o realtime
+   * apenas marca o cache stale (`refetchType: "none"`).
+   */
+  upsertTarefas(rows: Partial<ProjetoTarefa>[]): void;
+  /**
    * Invalida agressivamente (refetch imediato). Use APENAS em `onError`
    * para reconciliar com o servidor quando a mutação falhou.
    */
   invalidateNow(): void;
 }
+
 
 export function createProjetoTarefasCache(
   queryClient: QueryClient,
