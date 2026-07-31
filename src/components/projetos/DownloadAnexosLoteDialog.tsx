@@ -104,7 +104,7 @@ export function DownloadAnexosLoteDialog({
       );
       setSelecionados(new Set());
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar o pacote de download.");
+      toastErroDados(e, "download");
     }
   };
 
