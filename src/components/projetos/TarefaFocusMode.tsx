@@ -235,12 +235,10 @@ export function TarefaFocusMode({
     setChatValue("");
   };
 
-  const chatFileInputRef = useRef<HTMLInputElement>(null);
   const [chatUploading, setChatUploading] = useState(false);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
 
-  const handleChatFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const enviarArquivoChat = async (file?: File | null) => {
     if (!file) return;
     setChatUploading(true);
     try {
