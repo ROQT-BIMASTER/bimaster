@@ -43,6 +43,8 @@ import {
 import { MentionTextarea } from "@/components/briefings/MentionTextarea";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+import { TarefaAcoesHistoricoResumo } from "@/components/projetos/tarefa-detalhe/TarefaAcoesHistoricoResumo";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoTarefaDetalhe, type TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 import { useTarefaMentionableUsers } from "@/hooks/useTarefaMentionableUsers";
@@ -246,7 +248,10 @@ export function TarefaChatPanel({ tarefaId }: Props) {
         </Button>
       </header>
 
+      <TarefaAcoesHistoricoResumo tarefaId={tarefaId} />
+
       {/* Mensagens */}
+
       <ScrollArea className="flex-1 min-h-0">
         <div ref={scrollRef} className="px-4 py-3 space-y-3">
           {messages.length === 0 && (
