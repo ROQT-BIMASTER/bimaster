@@ -52,7 +52,7 @@ const Body = z
 
 Deno.serve(
   secureHandler(
-    { auth: "jwt", rateLimit: 10, rateLimitPrefix: "extrair-produto-ia" },
+    { auth: "jwt", rateLimit: 10, rateLimitPrefix: "extrair-produto-ia-v2" },
     async (req) => {
       const cors = getCorsHeaders(req);
       const json = (payload: unknown, status = 200) =>
