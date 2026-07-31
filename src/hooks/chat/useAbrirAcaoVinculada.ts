@@ -10,7 +10,7 @@
  *     a conversa e dispara a abertura do dialog apropriado em MessageInput.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toastAcaoIniciada, toastAcaoFalhou } from "@/lib/chat/acoesFeedback";
 import { useCallback } from "react";
 
 export type VinculoTipo = "briefing" | "projeto" | "submissao" | "tarefa" | "processo";
@@ -47,10 +47,10 @@ export function useAbrirAcaoVinculada() {
       try {
         const conversaId = await ensureConversa(args);
         const url = `/dashboard/chat?conversaId=${encodeURIComponent(conversaId)}&abrir=aprovacao`;
-        toast.success(`Aprovação será aberta no chat vinculado ao ${labelEscopo(args.tipo)}`);
+        toastAcaoIniciada("aprovacao", args.tipo);
         window.location.assign(url);
       } catch (e: any) {
-        toast.error("Não foi possível abrir a aprovação: " + (e?.message ?? ""));
+        toastAcaoFalhou("aprovacao", e);
       }
     },
     [ensureConversa],
@@ -61,10 +61,10 @@ export function useAbrirAcaoVinculada() {
       try {
         const conversaId = await ensureConversa(args);
         const url = `/dashboard/chat?conversaId=${encodeURIComponent(conversaId)}&abrir=urgente`;
-        toast.success(`Chamada de atenção será aberta no chat vinculado ao ${labelEscopo(args.tipo)}`);
+        toastAcaoIniciada("urgente", args.tipo);
         window.location.assign(url);
       } catch (e: any) {
-        toast.error("Não foi possível abrir a chamada: " + (e?.message ?? ""));
+        toastAcaoFalhou("urgente", e);
       }
     },
     [ensureConversa],
