@@ -7,6 +7,8 @@ import {
   capturarTarefaComoModelo,
   type TarefaModeloPayload,
 } from "@/lib/tarefas/duplicarTarefa";
+import { createProjetoTarefasCache } from "@/lib/projetos/projetoTarefasCache";
+
 
 export type TarefaModeloEscopo = "pessoal" | "departamento" | "organizacao";
 
@@ -102,13 +104,16 @@ export function useAplicarTarefaModelo() {
         .single();
       if (error || !modelo) throw error || new Error("Modelo não encontrado");
 
-      const newId = await aplicarTarefaModelo({
+      const { rootId, rows } = await aplicarTarefaModelo({
         payload: modelo.payload as TarefaModeloPayload,
         projetoId: input.projetoId,
         secaoId: input.secaoId,
         criadorId: user.id,
         parentTarefaId: input.parentTarefaId ?? null,
       });
+
+      // Patch otimista: as tarefas do modelo aparecem imediatamente.
+      createProjetoTarefasCache(qc, input.projetoId).upsertTarefas(rows);
 
       // Contador de uso (best-effort — não bloqueia sucesso).
       try {
@@ -124,13 +129,14 @@ export function useAplicarTarefaModelo() {
         /* ignore */
       }
 
-      return newId;
+      return rootId;
     },
     onSuccess: (_id, vars) => {
-      qc.invalidateQueries({ queryKey: ["projeto-tarefas-v2", vars.projetoId] });
+      void qc.refetchQueries({ queryKey: ["projeto-tarefas-v2", vars.projetoId], exact: true });
       qc.invalidateQueries({ queryKey: QK });
       toast.success("Modelo aplicado");
     },
+
     onError: (err: Error) => toast.error(err.message || "Falha ao aplicar modelo"),
   });
 }

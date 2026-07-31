@@ -93,6 +93,10 @@ async function fetchDescendantsRecursive(rootId: string): Promise<Map<string, an
 
 /**
  * Duplica uma tarefa (com subtarefas + tags) dentro do mesmo projeto/seção.
+ *
+ * Retorna também as linhas criadas (`rows`) para que a UI faça o patch
+ * otimista no cache e a cópia apareça IMEDIATAMENTE, sem depender de
+ * refetch/realtime (que hoje só marca o cache como stale).
  */
 export async function duplicarTarefa(params: {
   tarefaId: string;
@@ -100,8 +104,9 @@ export async function duplicarTarefa(params: {
   secaoId: string;
   criadorId: string;
   parentTarefaId?: string | null;
-}): Promise<string> {
+}): Promise<{ rootId: string; rows: any[] }> {
   const { tarefaId, projetoId, secaoId, criadorId, parentTarefaId = null } = params;
+  const criadas: any[] = [];
 
   const { data: source, error: srcErr } = await supabase
     .from("projeto_tarefas")
@@ -138,9 +143,11 @@ export async function duplicarTarefa(params: {
   const { data: rootNew, error: rootErr } = await supabase
     .from("projeto_tarefas")
     .insert(rootInsert)
-    .select("id")
+    .select("*")
     .single();
   if (rootErr || !rootNew) throw rootErr || new Error("Falha ao duplicar tarefa");
+  criadas.push(rootNew);
+
 
   // Tags da raiz.
   const rootTagNames = await fetchTagNamesForTarefa(tarefaId);
@@ -178,9 +185,12 @@ export async function duplicarTarefa(params: {
     const { data: inserted, error } = await supabase
       .from("projeto_tarefas")
       .insert(inserts)
-      .select("id");
+      .select("*");
     if (error) throw error;
-    (inserted || []).forEach((row: any, idx) => idMap.set(children[idx].id, row.id));
+    (inserted || []).forEach((row: any, idx) => {
+      idMap.set(children[idx].id, row.id);
+      criadas.push(row);
+    });
 
     // Tags das filhas em paralelo.
     await Promise.all(
@@ -201,7 +211,8 @@ export async function duplicarTarefa(params: {
   };
   await process(tarefaId);
 
-  return rootNew.id;
+  return { rootId: rootNew.id, rows: criadas };
+
 }
 
 /** Captura o subtree da tarefa como payload de modelo (sem responsáveis/anexos/comentários/seguidores). */
@@ -236,16 +247,20 @@ export async function capturarTarefaComoModelo(tarefaId: string): Promise<Tarefa
   return { version: 1, root: await buildNode(root) };
 }
 
-/** Aplica um modelo criando a árvore de tarefas na seção destino. */
+/**
+ * Aplica um modelo criando a árvore de tarefas na seção destino.
+ * Retorna também as linhas criadas para patch otimista imediato na UI.
+ */
 export async function aplicarTarefaModelo(params: {
   payload: TarefaModeloPayload;
   projetoId: string;
   secaoId: string;
   criadorId: string;
   parentTarefaId?: string | null;
-}): Promise<string> {
+}): Promise<{ rootId: string; rows: any[] }> {
   const { payload, projetoId, secaoId, criadorId, parentTarefaId = null } = params;
   if (!payload?.root) throw new Error("Modelo inválido");
+  const criadas: any[] = [];
 
   const hojeSp = new Date(new Date().toLocaleString("en-US", { timeZone: SP_TZ }));
   hojeSp.setHours(0, 0, 0, 0);
@@ -283,9 +298,10 @@ export async function aplicarTarefaModelo(params: {
         status: "pendente",
         criador_id: criadorId,
       })
-      .select("id")
+      .select("*")
       .single();
     if (error || !data) throw error || new Error("Falha ao aplicar modelo");
+    criadas.push(data);
 
     if (node.tags?.length) {
       const tagMap = await fetchProjetoTagIdsByName(node.tags);
@@ -299,5 +315,7 @@ export async function aplicarTarefaModelo(params: {
     return data.id;
   };
 
-  return insertNode(payload.root, parentTarefaId, baseOrdem);
+  const rootId = await insertNode(payload.root, parentTarefaId, baseOrdem);
+  return { rootId, rows: criadas };
+
 }

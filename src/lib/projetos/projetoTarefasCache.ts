@@ -60,11 +60,18 @@ export interface ProjetoTarefasCache {
    */
   markStale(): void;
   /**
+   * Insere/atualiza linhas recém-criadas no snapshot (duplicar tarefa,
+   * aplicar modelo). Sem isso a cópia só aparece após F5 — o realtime
+   * apenas marca o cache stale (`refetchType: "none"`).
+   */
+  upsertTarefas(rows: Partial<ProjetoTarefa>[]): void;
+  /**
    * Invalida agressivamente (refetch imediato). Use APENAS em `onError`
    * para reconciliar com o servidor quando a mutação falhou.
    */
   invalidateNow(): void;
 }
+
 
 export function createProjetoTarefasCache(
   queryClient: QueryClient,
@@ -137,6 +144,19 @@ export function createProjetoTarefasCache(
     queryClient.invalidateQueries({ queryKey: key, refetchType: "none" });
   };
 
+  const upsertTarefas: ProjetoTarefasCache["upsertTarefas"] = (rows) => {
+    if (!rows?.length) return;
+    patch((v) => {
+      const byId = new Map(v.tarefas.map((t) => [t.id, t]));
+      rows.forEach((row) => {
+        if (!row?.id) return;
+        const atual = byId.get(row.id);
+        byId.set(row.id, { ...(atual ?? {}), ...row } as ProjetoTarefa);
+      });
+      return { ...v, tarefas: Array.from(byId.values()) };
+    });
+  };
+
   const invalidateNow: ProjetoTarefasCache["invalidateNow"] = () => {
     queryClient.invalidateQueries({ queryKey: key });
   };
@@ -151,6 +171,8 @@ export function createProjetoTarefasCache(
     swapTempSecaoId,
     restore,
     markStale,
+    upsertTarefas,
+
     invalidateNow,
   };
 }

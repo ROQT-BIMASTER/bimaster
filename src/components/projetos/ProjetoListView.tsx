@@ -22,6 +22,8 @@ import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaC
 import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { createProjetoTarefasCache } from "@/lib/projetos/projetoTarefasCache";
+
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -60,19 +62,28 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     const t = tarefas.find((x) => x.id === tarefaId);
     if (!t) return;
     try {
-      await duplicarTarefa({
+      const { rows } = await duplicarTarefa({
         tarefaId,
         projetoId,
         secaoId: t.secao_id,
         criadorId: user.id,
         parentTarefaId: t.parent_tarefa_id ?? null,
       });
+      // Patch otimista: a cópia entra na lista NA HORA. Sem isso, o realtime
+      // apenas marca o cache stale (refetchType "none") e o usuário só via a
+      // tarefa após F5 — o que gerava duplicações acidentais.
+      createProjetoTarefasCache(queryClient, projetoId).upsertTarefas(rows);
       toast.success("Tarefa duplicada");
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      // Reconciliação com o servidor (responsáveis, códigos, contadores).
+      await queryClient.refetchQueries({
+        queryKey: ["projeto-tarefas-v2", projetoId],
+        exact: true,
+      });
     } catch (err: any) {
       toast.error(err?.message || "Falha ao duplicar");
     }
   };
+
 
   const handleSalvarModelo = (tarefaId: string) => {
     const t = tarefas.find((x) => x.id === tarefaId);
