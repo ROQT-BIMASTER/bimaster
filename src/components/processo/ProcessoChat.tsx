@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 interface ProcessoChatProps {
   processId: string;
@@ -31,6 +33,7 @@ type FilterMode = "todas" | "publicas" | "privadas";
 export function ProcessoChat({ processId, moduloOrigem, availableDocs = [], compact }: ProcessoChatProps) {
   const { messages, isLoading, sendMessage, oficializarDocumento, mentionUsers, mentionModulos } = useProcessoChat(processId);
   const { user } = useAuth();
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
   const { data: profiles = [] } = useSystemProfiles();
   const [inputValue, setInputValue] = useState("");
   const [docPickerOpen, setDocPickerOpen] = useState(false);
