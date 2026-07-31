@@ -4817,6 +4817,51 @@ export type Database = {
           },
         ]
       }
+      chat_acoes_auditoria: {
+        Row: {
+          acao: string
+          conversa_id: string | null
+          created_at: string
+          detalhe: string | null
+          entidade_id: string | null
+          entidade_tipo: string
+          erro: string | null
+          fase: string
+          id: string
+          metadata: Json
+          referencia_id: string | null
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          conversa_id?: string | null
+          created_at?: string
+          detalhe?: string | null
+          entidade_id?: string | null
+          entidade_tipo: string
+          erro?: string | null
+          fase: string
+          id?: string
+          metadata?: Json
+          referencia_id?: string | null
+          user_id?: string
+        }
+        Update: {
+          acao?: string
+          conversa_id?: string | null
+          created_at?: string
+          detalhe?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string
+          erro?: string | null
+          fase?: string
+          id?: string
+          metadata?: Json
+          referencia_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_anexo_arquivamentos: {
         Row: {
           anexo_id: string
@@ -61215,6 +61260,28 @@ export type Database = {
         Args: { p_briefing_id: string }
         Returns: undefined
       }
+      rpc_chat_acoes_auditoria_historico: {
+        Args: {
+          p_entidade_id: string
+          p_entidade_tipo: string
+          p_limit?: number
+        }
+        Returns: {
+          acao: string
+          conversa_id: string
+          created_at: string
+          detalhe: string
+          entidade_id: string
+          entidade_tipo: string
+          erro: string
+          fase: string
+          id: string
+          metadata: Json
+          referencia_id: string
+          user_id: string
+          user_nome: string
+        }[]
+      }
       rpc_chat_adicionar_participantes: {
         Args: { p_conversa_id: string; p_users: string[] }
         Returns: undefined
@@ -62390,6 +62457,20 @@ export type Database = {
       rpc_recalcular_alertas_china: {
         Args: { _submissao_id: string }
         Returns: number
+      }
+      rpc_registrar_acao_chat_auditoria: {
+        Args: {
+          p_acao: string
+          p_conversa_id?: string
+          p_detalhe?: string
+          p_entidade_id?: string
+          p_entidade_tipo: string
+          p_erro?: string
+          p_fase: string
+          p_metadata?: Json
+          p_referencia_id?: string
+        }
+        Returns: string
       }
       rpc_registrar_escopo_versao: {
         Args: { p_produto_ids: string[]; p_versao_id: string }
