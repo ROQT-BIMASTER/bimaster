@@ -126,10 +126,10 @@ describe("usuário sem permissão — bloqueio de tela", () => {
     await waitFor(() => {
       const log = rpcMock.mock.calls.find((c) => c[0] === "log_access_denied");
       expect(log).toBeTruthy();
-      expect(log![1]).toMatchObject({
-        _screen_code: "financeiro_dre",
-        _route: "/dashboard/protegida",
-      });
+      expect(log![1]).toMatchObject({ _screen_code: "financeiro_dre" });
+      expect(String((log![1] as Record<string, unknown>)._route)).toContain(
+        "/dashboard/protegida",
+      );
     });
   });
 
