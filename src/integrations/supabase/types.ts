@@ -62616,6 +62616,20 @@ export type Database = {
         }
         Returns: number
       }
+      rpc_tarefa_historico_acoes_chat: {
+        Args: { p_limit?: number; p_tarefa_id: string }
+        Returns: {
+          created_at: string
+          detalhe: string
+          id: string
+          status: string
+          tipo: string
+          titulo: string
+          usuario_avatar: string
+          usuario_id: string
+          usuario_nome: string
+        }[]
+      }
       rpc_toggle_curtida_tarefa: {
         Args: { p_tarefa_id: string }
         Returns: Json
