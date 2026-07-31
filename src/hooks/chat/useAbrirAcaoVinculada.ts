@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCallback } from "react";
 
-export type VinculoTipo = "briefing" | "projeto" | "submissao";
+export type VinculoTipo = "briefing" | "projeto" | "submissao" | "tarefa" | "processo";
 
 interface Args {
   tipo: VinculoTipo;
