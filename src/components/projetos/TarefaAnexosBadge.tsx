@@ -77,8 +77,20 @@ function ImagemPreview({
   const { ref, inView } = useInView<HTMLButtonElement>("250px");
   const { data: url, isFetching } = useThumbUrl(arquivo, enabled && inView);
   const [carregada, setCarregada] = useState(false);
+  useRenderMetrics("TarefaAnexosBadge/ImagemPreview", {
+    arquivoId: arquivo.id,
+    inView,
+    temUrl: !!url,
+    carregada,
+    isFetching,
+  });
+  const decodeTimerRef = useRef<((extra?: Record<string, unknown>) => void) | null>(null);
+  if (url && !carregada && !decodeTimerRef.current) {
+    decodeTimerRef.current = startTimer("anexos:thumb-img-load", { arquivoId: arquivo.id });
+  }
 
   const mostrandoPlaceholder = !url || !carregada;
+
 
   const botao = (
     <button
