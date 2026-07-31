@@ -47,12 +47,17 @@ function useThumbUrl(arquivo: TarefaArquivo, enabled: boolean) {
     gcTime: 55 * 60 * 1000,
     initialData: cacheHit ?? undefined,
     queryFn: async () => {
-      const { signedUrl } = await getSignedUrl(arquivo.bucket, arquivo.storage_path as string);
+      const { signedUrl } = await measureAsync(
+        "anexos:thumb-signed-url",
+        () => getSignedUrl(arquivo.bucket, arquivo.storage_path as string),
+        { bucket: arquivo.bucket },
+      );
       setThumbUrlCache(arquivo.bucket, arquivo.storage_path as string, signedUrl);
       return signedUrl;
     },
   });
 }
+
 
 
 function ImagemPreview({
