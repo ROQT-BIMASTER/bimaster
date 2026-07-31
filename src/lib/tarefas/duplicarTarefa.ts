@@ -185,9 +185,12 @@ export async function duplicarTarefa(params: {
     const { data: inserted, error } = await supabase
       .from("projeto_tarefas")
       .insert(inserts)
-      .select("id");
+      .select("*");
     if (error) throw error;
-    (inserted || []).forEach((row: any, idx) => idMap.set(children[idx].id, row.id));
+    (inserted || []).forEach((row: any, idx) => {
+      idMap.set(children[idx].id, row.id);
+      criadas.push(row);
+    });
 
     // Tags das filhas em paralelo.
     await Promise.all(
@@ -208,7 +211,8 @@ export async function duplicarTarefa(params: {
   };
   await process(tarefaId);
 
-  return rootNew.id;
+  return { rootId: rootNew.id, rows: criadas };
+
 }
 
 /** Captura o subtree da tarefa como payload de modelo (sem responsáveis/anexos/comentários/seguidores). */
