@@ -89,8 +89,13 @@ export function CadastroIAStep({ onBack, onDataExtracted, edgeFunctionName = "ex
       onDataExtracted(extracted, imageBase64 ? "image" : "text");
     } catch (err: any) {
       logger.error("Erro ao extrair dados:", err);
-      toast.error(err.message || "Erro ao analisar dados com IA");
+      const raw = String(err?.message ?? "");
+      const amigavel = /Failed to send a request|Failed to fetch|NetworkError|non-2xx/i.test(raw)
+        ? "Não foi possível contatar o serviço de análise. Tente novamente em instantes."
+        : raw || "Erro ao analisar dados com IA";
+      toast.error(amigavel);
     } finally {
+
       setLoading(false);
     }
   };
