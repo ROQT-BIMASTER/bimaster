@@ -247,16 +247,20 @@ export async function capturarTarefaComoModelo(tarefaId: string): Promise<Tarefa
   return { version: 1, root: await buildNode(root) };
 }
 
-/** Aplica um modelo criando a árvore de tarefas na seção destino. */
+/**
+ * Aplica um modelo criando a árvore de tarefas na seção destino.
+ * Retorna também as linhas criadas para patch otimista imediato na UI.
+ */
 export async function aplicarTarefaModelo(params: {
   payload: TarefaModeloPayload;
   projetoId: string;
   secaoId: string;
   criadorId: string;
   parentTarefaId?: string | null;
-}): Promise<string> {
+}): Promise<{ rootId: string; rows: any[] }> {
   const { payload, projetoId, secaoId, criadorId, parentTarefaId = null } = params;
   if (!payload?.root) throw new Error("Modelo inválido");
+  const criadas: any[] = [];
 
   const hojeSp = new Date(new Date().toLocaleString("en-US", { timeZone: SP_TZ }));
   hojeSp.setHours(0, 0, 0, 0);
@@ -294,9 +298,10 @@ export async function aplicarTarefaModelo(params: {
         status: "pendente",
         criador_id: criadorId,
       })
-      .select("id")
+      .select("*")
       .single();
     if (error || !data) throw error || new Error("Falha ao aplicar modelo");
+    criadas.push(data);
 
     if (node.tags?.length) {
       const tagMap = await fetchProjetoTagIdsByName(node.tags);
@@ -310,5 +315,7 @@ export async function aplicarTarefaModelo(params: {
     return data.id;
   };
 
-  return insertNode(payload.root, parentTarefaId, baseOrdem);
+  const rootId = await insertNode(payload.root, parentTarefaId, baseOrdem);
+  return { rootId, rows: criadas };
+
 }
