@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadAprovacaoDoc } from "./aprovacaoDocs";
 import { formatBytes } from "./utils";
 import { toast } from "sonner";
+import { registrarAcaoChat } from "@/lib/chat/acoesAuditoria";
 import { toastAcaoValidacao, toastAcaoConcluida, toastAcaoEnvioFalhou } from "@/lib/chat/acoesFeedback";
 
 type Destino = "chat" | "central";
@@ -73,6 +74,17 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
         descricao: descricao.trim() || undefined,
       });
 
+      void registrarAcaoChat({
+        acao: "aprovacao",
+        fase: "concluida",
+        entidadeTipo: "conversa",
+        entidadeId: conversaId,
+        conversaId,
+        referenciaId: aprovacaoId,
+        detalhe: titulo.trim(),
+        metadata: { destino, documentos: files.length },
+      });
+
       let ok = 0;
       setUploading(true);
       for (const file of files) {
@@ -105,6 +117,15 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
           } as any);
           if (error) {
             toastAcaoEnvioFalhou("aprovacao", error);
+            void registrarAcaoChat({
+              acao: "aprovacao",
+              fase: "falhou",
+              entidadeTipo: "conversa",
+              entidadeId: conversaId,
+              conversaId,
+              referenciaId: aprovacaoId,
+              erro: error,
+            });
           } else {
             toastAcaoConcluida("aprovacao", "Enviada para a Central de Aprovações.");
           }

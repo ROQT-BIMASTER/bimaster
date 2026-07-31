@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AlertOctagon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { registrarAcaoChat } from "@/lib/chat/acoesAuditoria";
 import { toastAcaoValidacao, toastAcaoConcluida, toastAcaoEnvioFalhou } from "@/lib/chat/acoesFeedback";
 
 interface Props {
@@ -45,12 +46,28 @@ export function UrgentSendDialog({ open, onOpenChange, conversaId, conteudoInici
       } as any);
       if (error) throw error;
       toastAcaoConcluida("urgente");
+      void registrarAcaoChat({
+        acao: "urgente",
+        fase: "concluida",
+        entidadeTipo: "conversa",
+        entidadeId: conversaId,
+        conversaId,
+        detalhe: m,
+      });
       setMotivo("");
       setConteudo("");
       onOpenChange(false);
       onSent();
     } catch (e: any) {
       toastAcaoEnvioFalhou("urgente", e);
+      void registrarAcaoChat({
+        acao: "urgente",
+        fase: "falhou",
+        entidadeTipo: "conversa",
+        entidadeId: conversaId,
+        conversaId,
+        erro: e,
+      });
     } finally {
       setSending(false);
     }
