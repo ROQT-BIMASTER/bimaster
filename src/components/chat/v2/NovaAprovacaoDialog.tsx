@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadAprovacaoDoc } from "./aprovacaoDocs";
 import { formatBytes } from "./utils";
 import { toast } from "sonner";
+import { toastAcaoValidacao, toastAcaoConcluida, toastAcaoEnvioFalhou } from "@/lib/chat/acoesFeedback";
 
 type Destino = "chat" | "central";
 
@@ -62,9 +63,9 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
   const reset = () => { setTitulo(""); setDescricao(""); setFiles([]); setDestino("chat"); };
 
   const submit = async () => {
-    if (!titulo.trim()) return toast.error("Defina um título");
-    if (files.length === 0) return toast.error("Anexe ao menos um documento");
-    if (!user?.id) return toast.error("Sessão expirada");
+    if (!titulo.trim()) return toastAcaoValidacao("aprovacao", "Defina um título para a solicitação.");
+    if (files.length === 0) return toastAcaoValidacao("aprovacao", "Anexe ao menos um documento.");
+    if (!user?.id) return toastAcaoValidacao("aprovacao", "Sessão expirada. Entre novamente para continuar.");
     try {
       const aprovacaoId = await mutateAsync({
         conversaId,
@@ -97,15 +98,15 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
       // uma aprovação na Central sem documento contradiz o anexo obrigatório.
       if (destino === "central") {
         if (ok === 0) {
-          toast.error("Aprovação criada sem documentos — não enviada à Central");
+          toastAcaoEnvioFalhou("aprovacao", { message: "Aprovação criada sem documentos — não enviada à Central." });
         } else {
           const { error } = await supabase.rpc("rpc_chat_aprovacao_enviar_central" as any, {
             p_aprovacao_id: aprovacaoId,
           } as any);
           if (error) {
-            toast.error("Falha ao enviar para a Central", { description: error.message });
+            toastAcaoEnvioFalhou("aprovacao", error);
           } else {
-            toast.success("Enviado para a Central de Aprovações");
+            toastAcaoConcluida("aprovacao", "Enviada para a Central de Aprovações.");
           }
         }
       }

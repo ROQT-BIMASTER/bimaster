@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AlertOctagon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toastAcaoValidacao, toastAcaoConcluida, toastAcaoEnvioFalhou } from "@/lib/chat/acoesFeedback";
 
 interface Props {
   open: boolean;
@@ -33,8 +33,8 @@ export function UrgentSendDialog({ open, onOpenChange, conversaId, conteudoInici
   const enviar = async () => {
     const c = conteudo.trim();
     const m = motivo.trim();
-    if (!c) return toast.error("Mensagem vazia");
-    if (m.length < 8) return toast.error("Motivo precisa ter ao menos 8 caracteres");
+    if (!c) return toastAcaoValidacao("urgente", "Escreva a mensagem antes de enviar.");
+    if (m.length < 8) return toastAcaoValidacao("urgente", "O motivo precisa ter ao menos 8 caracteres.");
     setSending(true);
     try {
       const { error } = await supabase.rpc("rpc_enviar_mensagem_urgente" as any, {
@@ -44,13 +44,13 @@ export function UrgentSendDialog({ open, onOpenChange, conversaId, conteudoInici
         p_responde_a_id: respondeAId ?? null,
       } as any);
       if (error) throw error;
-      toast.success("Mensagem urgente enviada");
+      toastAcaoConcluida("urgente");
       setMotivo("");
       setConteudo("");
       onOpenChange(false);
       onSent();
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar");
+      toastAcaoEnvioFalhou("urgente", e);
     } finally {
       setSending(false);
     }

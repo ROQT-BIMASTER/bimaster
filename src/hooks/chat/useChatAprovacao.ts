@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { toast } from "sonner";
+import { toastAcaoEnvioFalhou } from "@/lib/chat/acoesFeedback";
 
 export interface ChatAprovacao {
   id: string;
@@ -88,6 +89,6 @@ export function useCriarAprovacao() {
       if (error) throw error;
       return data as unknown as string;
     },
-    onError: (e: any) => toast.error("Erro ao solicitar: " + (e?.message ?? "falha")),
+    onError: (e: any) => toastAcaoEnvioFalhou("aprovacao", e),
   });
 }
