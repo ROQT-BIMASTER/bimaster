@@ -43,6 +43,8 @@ import {
 import { MentionTextarea } from "@/components/briefings/MentionTextarea";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+import { TarefaAcoesHistoricoResumo } from "@/components/projetos/tarefa-detalhe/TarefaAcoesHistoricoResumo";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoTarefaDetalhe, type TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 import { useTarefaMentionableUsers } from "@/hooks/useTarefaMentionableUsers";
