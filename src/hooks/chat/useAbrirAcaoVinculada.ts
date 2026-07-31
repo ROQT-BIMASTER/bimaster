@@ -23,7 +23,15 @@ interface Args {
 
 export function useAbrirAcaoVinculada() {
   const labelEscopo = (t: VinculoTipo) =>
-    t === "briefing" ? "briefing" : t === "projeto" ? "projeto" : "submissão";
+    t === "briefing"
+      ? "briefing"
+      : t === "projeto"
+        ? "projeto"
+        : t === "tarefa"
+          ? "tarefa"
+          : t === "processo"
+            ? "processo"
+            : "submissão";
 
   const ensureConversa = useCallback(async ({ tipo, refId, titulo }: Args) => {
     const { data, error } = await (supabase.rpc as any)(
