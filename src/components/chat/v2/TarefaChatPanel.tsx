@@ -41,6 +41,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MentionTextarea } from "@/components/briefings/MentionTextarea";
+import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoTarefaDetalhe, type TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 import { useTarefaMentionableUsers } from "@/hooks/useTarefaMentionableUsers";
