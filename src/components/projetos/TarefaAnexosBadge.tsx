@@ -197,6 +197,14 @@ export function TarefaAnexosBadge({
   const [indice, setIndice] = useState(0);
 
   const total = resumo?.total ?? 0;
+  useRenderMetrics("TarefaAnexosBadge", {
+    tarefaId: (resumo as any)?.tarefa_id ?? null,
+    total,
+    previewAberto,
+    indice,
+    preview,
+  });
+
 
   const abrir = (arquivoId: string) => {
     const idx = (resumo?.arquivos ?? []).findIndex((a) => a.id === arquivoId);
