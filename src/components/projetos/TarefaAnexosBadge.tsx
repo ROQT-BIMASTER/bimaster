@@ -14,6 +14,8 @@ import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { ArquivoPreviewDialog, type ArquivoPreviewItem } from "@/components/comum/ArquivoPreviewDialog";
 import { useInView } from "@/hooks/useInView";
 import { getThumbUrlCache, setThumbUrlCache } from "@/lib/utils/thumbUrlCache";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { measureAsync, startTimer } from "@/lib/debug/perfMetrics";
 
 import type { TarefaArquivo, TarefaArquivosResumo } from "@/hooks/useTarefasAnexos";
 
