@@ -103,6 +103,11 @@ describe("useTarefasAnexos — erro do backend é propagado", () => {
         from: () => ({
           select: () => ({ in: async () => ({ data: null, error: erro }) }),
         }),
+        channel: () => {
+          const ch: any = { on: () => ch, subscribe: () => ch };
+          return ch;
+        },
+        removeChannel: () => {},
       },
     }));
 
