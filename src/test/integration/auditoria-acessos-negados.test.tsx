@@ -25,7 +25,10 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: rpcMock } })
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => authMock }));
 vi.mock("@/contexts/PermissionsContext", () => ({ usePermissions: () => permsMock }));
 vi.mock("@/contexts/ImpersonationContext", () => ({ useImpersonation: () => impersonationMock }));
-vi.mock("react-router-dom", () => ({ useLocation: () => locationMock.value }));
+vi.mock("react-router-dom", () => ({
+  useLocation: () => locationMock.value,
+  useNavigate: () => vi.fn(),
+}));
 
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { registrarAcaoChat } from "@/lib/chat/acoesAuditoria";
