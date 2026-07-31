@@ -22348,6 +22348,7 @@ export type Database = {
           id: string
           linha: string | null
           produto_id: string | null
+          tabela_base_id: string | null
           tabela_id: string
           tipo_markup: string
           updated_at: string
@@ -22360,6 +22361,7 @@ export type Database = {
           id?: string
           linha?: string | null
           produto_id?: string | null
+          tabela_base_id?: string | null
           tabela_id: string
           tipo_markup?: string
           updated_at?: string
@@ -22372,6 +22374,7 @@ export type Database = {
           id?: string
           linha?: string | null
           produto_id?: string | null
+          tabela_base_id?: string | null
           tabela_id?: string
           tipo_markup?: string
           updated_at?: string
@@ -22426,6 +22429,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fabrica_provadores_custo"
             referencedColumns: ["provador_id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_tabela_base_id_fkey"
+            columns: ["tabela_base_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fabrica_markup_overrides_tabela_id_fkey"
