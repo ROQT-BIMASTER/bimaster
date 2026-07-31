@@ -1,35 +1,52 @@
 ## Objetivo
-Garantir que tarefas abram e fechem com um único clique, que exclusões/alterações apareçam imediatamente sem F5 e que o Kanban não faça requisições desnecessárias.
 
-## Diagnóstico confirmado
-- O cartão só abre a tarefa ao clicar diretamente no texto do título; o restante do card não executa a seleção (`ProjetoKanbanView.tsx:646-655`), produzindo a sensação de precisar clicar duas vezes.
-- O fechamento remove `?tarefa=` e dispara imediatamente um refetch completo das tarefas (`ProjetoDetalhe.tsx:221-227`), concorrendo com o fechamento do drawer e com as atualizações pendentes.
-- Upload e exclusão de anexos fazem atualização otimista, mas terminam com invalidação sem refetch (`refetchType: "none"` em `useProjetoTarefaDetalhe.ts:295-297, 328-330`). Como o cache global não atualiza ao voltar para a aba, dados podem permanecer antigos até F5.
-- O drawer e o card usam caches diferentes para os mesmos anexos; a mutation do drawer não atualiza explicitamente o resumo exibido no Kanban.
-- O canal de anexos do Kanban escuta alterações amplas, inclusive de outros projetos, gerando invalidações e trabalho desnecessários.
-- O preview completo baixa novamente o mesmo arquivo a cada abertura, sem reaproveitar o Blob já carregado na sessão.
+Deixar o composer de **todos** os chats do sistema com o mesmo conjunto de ações, hoje presente apenas em Pessoas, Briefings, Projetos e Submissões (China):
 
-## Implementação
-1. **Abertura com um clique**
-   - Tornar toda a área útil do card clicável, preservando ações independentes de concluir, arrastar, anexos, zoom e menus com `stopPropagation`.
-   - Manter acessibilidade por teclado e impedir abertura acidental ao finalizar um arraste.
+1. Anexar arquivo
+2. Capturar pela câmera
+3. Solicitar aprovação de documento
+4. Chamar atenção (mensagem urgente)
+5. Emojis
 
-2. **Fechamento imediato e confiável**
-   - Separar o fechamento visual do refetch: remover imediatamente a tarefa selecionada/URL e não bloquear a animação do drawer com consulta completa.
-   - Liberar corretamente os gates de detalhe e executar reconciliação em segundo plano somente após o drawer fechar.
-   - Tratar alterações pendentes de título/descrição antes do fechamento para não perder edição.
+## Situação atual (verificada no código)
 
-3. **Atualização sem F5**
-   - Adicionar sincronização em tempo real filtrada pela tarefa para anexos do drawer.
-   - Após upload/exclusão, reconciliar a query ativa e atualizar/invalidate também o resumo de anexos do Kanban.
-   - Aplicar o mesmo padrão filtrado aos documentos China exibidos na tarefa, para mudanças feitas por outra aba/usuário aparecerem abertas no drawer.
+- `src/components/chat/v2/ChatComposerActionsBar.tsx` já é o componente padrão com os 5 botões.
+- Usam a barra hoje: `MessageInput` (Pessoas), `BriefingChatPanel`, `ProjetoChatPanel`, `ChinaChatPanel`.
+- **Não usam** (ficam só com "Anexar" ou nada):
+  - `src/components/chat/v2/TarefaChatPanel.tsx` — aba Tarefas do hub de Chat
+  - `src/components/projetos/tarefa-detalhe/TarefaChatPanel.tsx` — chat lateral da tarefa
+  - `src/components/projetos/TarefaFocusMode.tsx` — chat do modo Foco (o da imagem enviada)
+  - `src/components/processo/ProcessoChat.tsx` — chat de processos
+- As ações de aprovação/urgência fora de Pessoas passam por `useAbrirAcaoVinculada`, que chama a rotina `rpc_get_or_create_conversa_vinculada` e hoje aceita apenas `briefing | projeto | submissao`.
 
-4. **Redução de lentidão**
-   - Restringir as invalidações de anexos às tarefas/projeto afetados, evitando que alterações de outros projetos recarreguem o quadro atual.
-   - Preservar o cache e prefetch existentes de thumbnails.
-   - Adicionar cache de sessão para o Blob do preview completo, evitando baixar novamente o mesmo arquivo enquanto ele não mudar.
+## O que será feito
 
-5. **Validação e proteção de produção**
-   - Criar testes para: clique único no card, fechamento pelo X após exclusão, atualização imediata do drawer e do card, e isolamento das invalidações por projeto/tarefa.
-   - Executar os testes focados e validar no preview o fluxo real: abrir tarefa, excluir anexo, fechar pelo X, reabrir com um clique e confirmar que nenhum F5 é necessário.
-   - Registrar a correção no changelog e incrementar `APP_VERSION` conforme a disciplina de release do projeto.
+### 1. Backend — suportar vínculo por tarefa e processo
+Atualizar a rotina `rpc_get_or_create_conversa_vinculada` para aceitar também `tarefa` e `processo`, mantendo o comportamento idempotente (reaproveita a conversa existente do item) e sincronizando participantes:
+- `tarefa`: criador, responsável e seguidores da tarefa + membros do projeto ao qual ela pertence.
+- `processo`: participantes já vinculados ao processo.
+Sem ampliação de permissões: o chamador continua precisando estar autenticado e só entra em conversas de itens aos quais tem acesso.
+
+### 2. Hook compartilhado
+Estender `useAbrirAcaoVinculada` com os novos tipos e os rótulos correspondentes ("tarefa", "processo"), mantendo o fluxo atual (abre a conversa vinculada em `/dashboard/chat` já com o diálogo de aprovação ou de chamada de atenção).
+
+### 3. Chats da tarefa
+Em `chat/v2/TarefaChatPanel`, `tarefa-detalhe/TarefaChatPanel` e no chat do modo Foco (`TarefaFocusMode`):
+- Substituir o botão solto de "Anexar" pela `ChatComposerActionsBar`.
+- `onAttachFile` / `onCameraCapture` reaproveitam o upload de anexo já existente da tarefa (arquivo continua indo para os Anexos da tarefa, como hoje).
+- `onRequestApproval` / `onUrgentAlert` chamam `abrirAprovacao` / `abrirUrgente` com `tipo: "tarefa"` e o título da tarefa.
+- `onEmojiPick` insere o emoji no texto em edição.
+
+### 4. Chat de processos
+Mesma substituição em `ProcessoChat`, preservando o seletor de documentos oficiais já existente (o botão "Anexar Doc" continua, ao lado da barra padrão).
+
+### 5. Validação
+- Testes de renderização garantindo que os 4 chats expõem os botões "Solicitar aprovação" e "Chamar atenção".
+- Teste da rotina para os novos tipos de vínculo (retorno idempotente e participantes corretos).
+- Registro no changelog e bump de versão, conforme a disciplina de release do projeto.
+
+## Detalhes técnicos
+
+- Nenhuma alteração no armazenamento de mensagens das tarefas (`projeto_tarefa_messages`) — a aprovação/urgência continua vivendo na conversa vinculada, como já ocorre em Briefings e Projetos.
+- A barra aceita `size` e `accept`, então a densidade do modo Foco e do painel lateral é preservada.
+- Sem mudança nas regras de acesso a arquivos nem no fluxo de homologação de documentos da China.
