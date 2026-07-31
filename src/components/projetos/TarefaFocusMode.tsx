@@ -366,12 +366,12 @@ export function TarefaFocusMode({
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
-        onEscapeKeyDown={(e) => {
-          // Esc fecha — comportamento esperado. Mas se houver overlay
-          // portalizado aberto (AlertDialog/Popover), o próprio overlay
-          // captura o Esc primeiro, então aqui só chega quando nada está
-          // aberto sobre o foco.
-          // Mantém comportamento padrão (fechar).
+        onEscapeKeyDown={() => {
+          // Esc fecha — registra a intenção explícita do usuário para que o
+          // guard de fechamento (handleOpenChangeSafe) não ignore o evento.
+          // Overlays portalizados (AlertDialog/Popover) capturam o Esc antes,
+          // então aqui só chega quando nada está aberto sobre o foco.
+          requestExitFocus?.();
         }}
       >
         <VisuallyHidden>

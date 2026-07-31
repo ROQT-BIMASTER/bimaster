@@ -598,6 +598,7 @@ function DraggableKanbanCard({
       style={style}
       role="button"
       tabIndex={0}
+      data-tarefa-card-id={tarefa.id}
       aria-label={`Abrir tarefa ${tarefa.titulo}`}
       onClick={(event) => {
         if (isDragging || (event.target as HTMLElement).closest("button, a, input, textarea, select, [role=menuitem]")) return;
