@@ -76,6 +76,8 @@ import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
+import { useRenderMetrics } from "@/hooks/useRenderMetrics";
+import { perfMark, startTimer } from "@/lib/debug/perfMetrics";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
