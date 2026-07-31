@@ -46,7 +46,7 @@ function focaveis(root: HTMLElement): HTMLElement[] {
     root.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
-  ).filter((el) => el.offsetParent !== null || el.getAttribute("tabindex") !== null);
+  ).filter((el) => !el.hasAttribute("hidden") && el.getAttribute("aria-hidden") !== "true");
 }
 
 beforeEach(() => {

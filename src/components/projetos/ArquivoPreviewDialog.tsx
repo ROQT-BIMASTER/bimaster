@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,12 @@ interface Props {
 
 export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }: Props) {
   const navigate = useNavigate();
+  // Guarda quem abriu o visualizador para devolver o foco ao fechar
+  // (navegação por teclado: o usuário volta exatamente ao ponto de origem).
+  const openerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (open) openerRef.current = document.activeElement as HTMLElement | null;
+  }, [open]);
   const kind = arquivo ? detectFileKind(arquivo.nome, arquivo.tipo) : "other";
   const isImage = kind === "image";
   const isPdf = kind === "pdf";
@@ -51,7 +58,17 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden">
+      <DialogContent
+        className="max-w-5xl p-0 overflow-hidden"
+        aria-describedby={undefined}
+        onCloseAutoFocus={(e) => {
+          const opener = openerRef.current;
+          if (opener && document.body.contains(opener)) {
+            e.preventDefault();
+            opener.focus({ preventScroll: true });
+          }
+        }}
+      >
         <DialogHeader className="px-5 py-3 border-b border-border/40">
           <DialogTitle className="text-sm truncate pr-8">{arquivo.nome}</DialogTitle>
           {arquivo.tarefa_titulo && (
