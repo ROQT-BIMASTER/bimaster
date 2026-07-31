@@ -1,36 +1,43 @@
-# Linha Baunilha — novos percentuais de precificação
+# Linha Baunilha — percentuais de precificação em toda a hierarquia
 
 ## Objetivo
 
-Ajustar o cálculo de preços apenas para a linha **BAUNILHA** (8 produtos MELU), sem alterar as demais linhas.
+Registrar exceções de markup para a linha **BAUNILHA** em toda a cadeia de tabelas, sem alterar as demais linhas.
 
-## Regra nova (só Baunilha)
+## Regra para a linha Baunilha
 
 ```text
 Custo Fábrica
-   └─ Clear      : 10%  (hoje 25%)
-        └─ Mude      : 42%  (hoje 20%)
-             └─ Primavera : 8%   (hoje 15%)
+   └─ Clear        : 10%            (padrão hoje: 25%)
+        ├─ Mude        : 42%        (padrão hoje: 20%)
+        |     ├─ Primavera : 8%     (padrão hoje: 15%)
+        |     └─ Deep      : x1,7   (igual ao padrão)
+        |           └─ B2B     : x1,7 (igual ao padrão)
+        └─ E-commerce : 300%        (igual ao padrão)
 ```
 
-Demais tabelas (Deep, B2B, E-commerce) seguem a regra padrão.
+Observação de estrutura confirmada no sistema: Deep deriva de Mude, B2B deriva de Deep e E-commerce deriva de Clear. Assim, mesmo mantendo os fatores atuais em Deep, B2B e E-commerce, os preços finais mudam porque a base (Clear/Mude) muda.
 
 ## Como será feito
 
-O sistema já suporta exceções por linha na precificação (prioridade: exceção por produto > exceção por linha > percentual padrão da tabela). Serão criadas 3 exceções ativas para a linha `BAUNILHA`:
+O cálculo já suporta exceções por linha (prioridade: exceção por produto > exceção por linha > percentual padrão da tabela). Serão criadas exceções ativas para `BAUNILHA`:
 
-- Tabela Clear → percentual 10
-- Tabela Mude → percentual 42
-- Tabela Primavera → percentual 8
+- Clear → percentual 10
+- Mude → percentual 42
+- Primavera → percentual 8
+- Deep → multiplicador 1,7
+- E-commerce → percentual 300
+- B2B → multiplicador 1,7
 
-Nenhuma alteração de código é necessária: o cálculo, a tela de gestão de exceções e o gerador de preços já leem essas regras.
+Nenhuma alteração de código: cálculo, tela de exceções e gerador de preços já leem essas regras.
 
 ## Detalhes técnicos
 
-- Inserção de 3 registros em `fabrica_markup_overrides` (`linha = 'BAUNILHA'`, `tipo_markup = 'percentual'`, `ativo = true`), respeitando a restrição única `(tabela_id, linha, produto_id)`.
-- Preços já gerados anteriormente não mudam sozinhos: será preciso rodar o gerador de preços para a linha Baunilha nas tabelas Clear, Mude e Primavera para materializar os novos valores.
+- Inserção de 6 registros em `fabrica_markup_overrides` com `linha = 'BAUNILHA'`, `ativo = true`, respeitando a restrição única `(tabela_id, linha, produto_id)`.
+- `tipo_markup`: `percentual` para Clear, Mude, Primavera e E-commerce; `multiplicador` para Deep e B2B.
+- Preços já gerados não mudam sozinhos: é preciso rodar o gerador de preços para a linha Baunilha nas 6 tabelas, na ordem da hierarquia, para materializar os novos valores.
 
 ## Verificação
 
-- Conferir na tela de exceções de markup as 3 regras da linha Baunilha.
-- Simular a cascata em um produto Baunilha e conferir 10% / 42% / 8%.
+- Conferir as 6 exceções da linha Baunilha na tela de exceções de markup.
+- Simular a cascata em um produto Baunilha e validar 10% → 42% → 8%, além de Deep x1,7, B2B x1,7 e E-commerce 300%.
