@@ -74,6 +74,9 @@ interface TarefaChatPanelProps {
   produtoId?: string | null;
   projetoId?: string | null;
   onOpenAnexoInTask?: (anexoId: string) => void;
+  /** Identificação da tarefa para ações vinculadas (aprovação / chamar atenção). */
+  tarefaId?: string | null;
+  tarefaTitulo?: string | null;
 }
 
 export function TarefaChatPanel({
