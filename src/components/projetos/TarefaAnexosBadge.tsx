@@ -5,7 +5,7 @@
  * - Qualquer arquivo abre o visualizador (imagem, PDF ou download).
  * - Tarefas de checklist sem arquivo recebem o selo "Aguardando documentos".
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Paperclip, FileText, FileSpreadsheet, Image as ImageIcon, PenTool, FileQuestion, ZoomIn } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
