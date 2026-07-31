@@ -190,6 +190,19 @@ export function ProcessoChat({ processId, moduloOrigem, availableDocs = [], comp
           >
             <Paperclip className="h-3 w-3 mr-1" /> Anexar Doc
           </Button>
+          <ChatComposerActionsBar
+            showAttach={false}
+            showCamera={false}
+            onAttachFile={() => setDocPickerOpen(true)}
+            onCameraCapture={() => setDocPickerOpen(true)}
+            onRequestApproval={() =>
+              abrirAprovacao({ tipo: "processo", refId: processId, titulo: moduloOrigem || "Processo" })
+            }
+            onUrgentAlert={() =>
+              abrirUrgente({ tipo: "processo", refId: processId, titulo: moduloOrigem || "Processo" })
+            }
+            onEmojiPick={(emoji) => setInputValue((v) => v + emoji)}
+          />
           {moduloOrigem && (
             <Badge variant="outline" className="text-[9px] h-5">{moduloOrigem}</Badge>
           )}
