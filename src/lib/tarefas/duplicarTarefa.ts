@@ -93,6 +93,10 @@ async function fetchDescendantsRecursive(rootId: string): Promise<Map<string, an
 
 /**
  * Duplica uma tarefa (com subtarefas + tags) dentro do mesmo projeto/seção.
+ *
+ * Retorna também as linhas criadas (`rows`) para que a UI faça o patch
+ * otimista no cache e a cópia apareça IMEDIATAMENTE, sem depender de
+ * refetch/realtime (que hoje só marca o cache como stale).
  */
 export async function duplicarTarefa(params: {
   tarefaId: string;
@@ -100,8 +104,9 @@ export async function duplicarTarefa(params: {
   secaoId: string;
   criadorId: string;
   parentTarefaId?: string | null;
-}): Promise<string> {
+}): Promise<{ rootId: string; rows: any[] }> {
   const { tarefaId, projetoId, secaoId, criadorId, parentTarefaId = null } = params;
+  const criadas: any[] = [];
 
   const { data: source, error: srcErr } = await supabase
     .from("projeto_tarefas")
@@ -138,9 +143,11 @@ export async function duplicarTarefa(params: {
   const { data: rootNew, error: rootErr } = await supabase
     .from("projeto_tarefas")
     .insert(rootInsert)
-    .select("id")
+    .select("*")
     .single();
   if (rootErr || !rootNew) throw rootErr || new Error("Falha ao duplicar tarefa");
+  criadas.push(rootNew);
+
 
   // Tags da raiz.
   const rootTagNames = await fetchTagNamesForTarefa(tarefaId);
