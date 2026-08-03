@@ -73,28 +73,25 @@ const SENT_STATUSES = new Set([
 ]);
 
 const STATUS_LABEL: Record<string, string> = {
+  nao_criado: "Não criado",
   aprovado: "Aprovado",
   ciencia: "Ciente",
   enviado: "Enviado",
   enviado_brasil: "Enviado ao Brasil",
+  enviado_parcial: "Enviado (parcial)",
+  arte_enviada: "Docs enviados",
   pendente: "Pendente análise",
-  rejeitado: "Rejeitado",
+  em_analise: "Em análise",
+  em_revisao: "Em análise",
+  rejeitado: "Não aprovado",
   contestado: "Contestado",
   rascunho: "Rascunho",
   planejado: "Planejado",
 };
 
-const STATUS_CLS: Record<string, string> = {
-  aprovado: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  ciencia: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  enviado: "bg-primary/15 text-primary border-primary/30",
-  enviado_brasil: "bg-primary/15 text-primary border-primary/30",
-  pendente: "bg-primary/15 text-primary border-primary/30",
-  contestado: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  rejeitado: "bg-rose-500/15 text-rose-500 border-rose-500/30",
-  rascunho: "bg-muted text-muted-foreground border-border",
-  planejado: "bg-muted text-muted-foreground border-border",
-};
+/** Classes de badge derivadas da paleta única de status. */
+const statusBadgeCls = (status: string) => docStatusVisual(status).badge;
+
 
 type FilterKey = "todos" | "enviados" | "pendentes" | "rejeitados" | "nao_criados";
 
