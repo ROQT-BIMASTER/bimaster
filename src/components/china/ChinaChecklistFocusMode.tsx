@@ -88,6 +88,8 @@ const statusIcons: Record<string, React.ReactNode> = {
   planejado: <CalendarIcon className="h-3.5 w-3.5 text-primary" />,
   rascunho: <Save className="h-3.5 w-3.5 text-muted-foreground" />,
   pendente: <Clock className="h-3.5 w-3.5 text-warning" />,
+  enviado_brasil: <Clock className="h-3.5 w-3.5 text-warning" />,
+  em_analise: <Clock className="h-3.5 w-3.5 text-primary" />,
   aprovado: <CheckCircle2 className="h-3.5 w-3.5 text-success" />,
   rejeitado: <XCircle className="h-3.5 w-3.5 text-destructive" />,
 };
@@ -97,6 +99,8 @@ const statusBorders: Record<string, string> = {
   aprovado: "border-l-success border-l-4",
   rejeitado: "border-l-destructive border-l-4",
   pendente: "border-l-warning border-l-4",
+  enviado_brasil: "border-l-warning border-l-4",
+  em_analise: "border-l-primary border-l-4",
   rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
   planejado: "border-l-primary border-l-4 border-dashed",
 };
