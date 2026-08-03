@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -15,6 +14,8 @@ interface SlaStatusBadgeProps {
   className?: string;
   /** Descrição do "tipo de atividade" (estágio/status) para o tooltip. */
   contexto?: string;
+  /** Desativa o tooltip (ex.: enquanto um card está sendo arrastado). */
+  disableTooltip?: boolean;
 }
 
 const CONFIG: Record<
@@ -60,12 +61,12 @@ export function SlaStatusBadge({
   compact = true,
   className,
   contexto,
+  disableTooltip = false,
 }: SlaStatusBadgeProps) {
   const cfg = CONFIG[status];
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
+    <Tooltip open={disableTooltip ? false : undefined} delayDuration={200}>
         <TooltipTrigger asChild>
           <span
             className={cn(
@@ -75,6 +76,7 @@ export function SlaStatusBadge({
               className,
             )}
             aria-label={cfg.label}
+            tabIndex={0}
           >
             <cfg.Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
             {cfg.label}
@@ -87,8 +89,7 @@ export function SlaStatusBadge({
             <div className="text-muted-foreground mt-1">Atividade: {contexto}</div>
           )}
         </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    </Tooltip>
   );
 }
 
