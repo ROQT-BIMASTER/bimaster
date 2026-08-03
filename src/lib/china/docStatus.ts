@@ -1,3 +1,5 @@
+import { CheckCircle2, CircleDashed, Clock, Search, Send, XCircle, type LucideIcon } from "lucide-react";
+
 /**
  * Estados administrativos de documentos vindos da submissão China.
  * Fonte da verdade: `china_produto_documentos.status`.
@@ -177,3 +179,16 @@ export function docStatusVisual(status: string | null | undefined): DocStatusVis
 
 export { VISUAL_POR_TOM as DOC_STATUS_VISUAL };
 
+
+/** Componente lucide correspondente ao status (cor não é o único sinal). */
+export function docStatusIconComponent(status: string | null | undefined): LucideIcon {
+  const map: Record<DocStatusVisual["icone"], LucideIcon> = {
+    "circle-dashed": CircleDashed,
+    clock: Clock,
+    search: Search,
+    send: Send,
+    check: CheckCircle2,
+    x: XCircle,
+  };
+  return map[docStatusVisual(status).icone];
+}
