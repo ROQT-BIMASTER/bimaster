@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
+import {
+  useChinaDecisoesSubmissao,
+  useChinaDocsRealtime,
+  DECISAO_DOC_LABEL,
+} from "@/hooks/useChinaDecisoesSubmissao";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
 import { ChecklistItemAdminSheet } from "@/components/china/checklist/ChecklistItemAdminSheet";
@@ -88,6 +93,8 @@ const statusIcons: Record<string, React.ReactNode> = {
   planejado: <CalendarIcon className="h-3.5 w-3.5 text-primary" />,
   rascunho: <Save className="h-3.5 w-3.5 text-muted-foreground" />,
   pendente: <Clock className="h-3.5 w-3.5 text-warning" />,
+  enviado_brasil: <Clock className="h-3.5 w-3.5 text-warning" />,
+  em_analise: <Clock className="h-3.5 w-3.5 text-primary" />,
   aprovado: <CheckCircle2 className="h-3.5 w-3.5 text-success" />,
   rejeitado: <XCircle className="h-3.5 w-3.5 text-destructive" />,
 };
@@ -97,6 +104,8 @@ const statusBorders: Record<string, string> = {
   aprovado: "border-l-success border-l-4",
   rejeitado: "border-l-destructive border-l-4",
   pendente: "border-l-warning border-l-4",
+  enviado_brasil: "border-l-warning border-l-4",
+  em_analise: "border-l-primary border-l-4",
   rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
   planejado: "border-l-primary border-l-4 border-dashed",
 };
@@ -155,6 +164,9 @@ export function ChinaChecklistFocusMode({
   const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
   const [adminSheetDoc, setAdminSheetDoc] = useState<DocRecord | null>(null);
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  // Sincronia em tempo real com o Kanban/Projeto + quem movimentou cada decisão
+  useChinaDocsRealtime(submissaoId);
+  const { data: decisoesPorDoc } = useChinaDecisoesSubmissao(submissaoId);
   const ultimaRevisaoPorDoc = useMemo(() => {
     const map = new Map<string, typeof revisoes[number]>();
     for (const r of revisoes) {
@@ -1464,14 +1476,19 @@ export function ChinaChecklistFocusMode({
                               const isDraft = d.status === "rascunho";
                               const isImg = hasImage && d.arquivo_url;
 
+                              const decisao = decisoesPorDoc?.get(d.id);
+
                               return (
                                 <div
                                   key={d.id}
                                   className={cn(
-                                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all",
-                                    isDraft ? "bg-muted/50 border border-dashed" : "bg-secondary/30"
+                                    "rounded-lg transition-all",
+                                    isDraft ? "bg-muted/50 border border-dashed" : "bg-secondary/30",
+                                    statusBorders[d.status] || ""
                                   )}
                                 >
+                                <div className="flex items-center gap-2 px-3 py-2 text-xs">
+
                                   {isDraft && (
                                     <Checkbox
                                       checked={selected.has(d.id)}
@@ -1558,6 +1575,24 @@ export function ChinaChecklistFocusMode({
                                       </button>
                                     )}
                                   </div>
+                                </div>
+                                {decisao && (
+                                  <div className="flex flex-wrap items-center gap-1.5 border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+                                    <span className="font-medium text-foreground">
+                                      {DECISAO_DOC_LABEL[decisao.decisao] || decisao.decisao}
+                                    </span>
+                                    <span>por {decisao.decidido_por_nome || decisao.decidido_por_email || "usuário"}</span>
+                                    <span>
+                                      em {new Date(decisao.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                                    </span>
+                                    <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
+                                      {decisao.metodo_confirmacao === "senha" ? "Confirmado com senha" : "Confirmado em sessão"}
+                                    </Badge>
+                                    {decisao.parecer && (
+                                      <span className="w-full truncate italic">Parecer: {decisao.parecer}</span>
+                                    )}
+                                  </div>
+                                )}
                                 </div>
                               );
                             })}

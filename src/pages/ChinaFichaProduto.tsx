@@ -59,6 +59,7 @@ import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilida
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { useChinaDocsRealtime } from "@/hooks/useChinaDecisoesSubmissao";
 
 export default function ChinaFichaProduto() {
   const { t } = useChinaI18n();
@@ -117,6 +118,8 @@ export default function ChinaFichaProduto() {
 
   // Checklist efetivo (default + custom + ocultos + overrides)
   const merged = useMergedChinaChecklist(id);
+  // Recebe em tempo real as decisões feitas no Kanban/Projeto
+  useChinaDocsRealtime(id);
   const { data: cores = [] } = useQuery({
     queryKey: ["china-ficha-cores", id],
     enabled: !!id,

@@ -138,6 +138,8 @@ export const STATUS_LABELS: Record<string, { pt: string; cn: string; en: string;
   rascunho: { pt: "Rascunho", cn: "草稿", en: "Draft", variant: "secondary" },
   pendente: { pt: "Pendente", cn: "待审核", en: "Pending", variant: "warning" },
   enviado: { pt: "Enviado", cn: "已发送", en: "Sent", variant: "warning" },
+  enviado_brasil: { pt: "Enviado ao Brasil", cn: "已发送至巴西", en: "Sent to Brazil", variant: "warning" },
+  em_analise: { pt: "Em análise", cn: "审核中", en: "Under review", variant: "default" },
   em_revisao: { pt: "Em Revisão", cn: "审核中", en: "In Review", variant: "default" },
   aprovado: { pt: "Aprovado", cn: "已批准", en: "Approved", variant: "success" },
   rejeitado: { pt: "Rejeitado", cn: "已拒绝", en: "Rejected", variant: "destructive" },
