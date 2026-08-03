@@ -118,6 +118,8 @@ export default function ChinaFichaProduto() {
 
   // Checklist efetivo (default + custom + ocultos + overrides)
   const merged = useMergedChinaChecklist(id);
+  // Recebe em tempo real as decisões feitas no Kanban/Projeto
+  useChinaDocsRealtime(id);
   const { data: cores = [] } = useQuery({
     queryKey: ["china-ficha-cores", id],
     enabled: !!id,
