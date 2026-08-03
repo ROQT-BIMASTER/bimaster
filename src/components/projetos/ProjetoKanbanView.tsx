@@ -361,6 +361,8 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         secoes={secoes.map((s) => ({ id: s.id, nome: s.nome }))}
         statusFiltro={docFilter}
         sort={docSort}
+      />
+
 
       <DownloadAnexosLoteDialog
         open={downloadOpen}
