@@ -5,7 +5,6 @@ import { ptBR } from "date-fns/locale";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -24,6 +23,8 @@ interface SLACountdownPillProps {
   className?: string;
   /** Não mostrar a tarefa como "ao vivo" (tarefa concluída/arquivada). */
   frozen?: boolean;
+  /** Desativa o tooltip (ex.: enquanto um card está sendo arrastado). */
+  disableTooltip?: boolean;
   /** Data de conclusão da tarefa. Quando `frozen=true`, é usada como referência ("agora congelado") para decidir se foi entregue no prazo ou em atraso. */
   completedAt?: string | Date | null;
 }
@@ -120,6 +121,7 @@ export function SLACountdownPill({
   className,
   frozen = false,
   completedAt,
+  disableTooltip = false,
 }: SLACountdownPillProps) {
   const target = useMemo(() => resolveDate(deadline), [deadline]);
   const completedDate = useMemo(() => resolveDate(completedAt ?? null), [completedAt]);
@@ -180,8 +182,7 @@ export function SLACountdownPill({
     : null;
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
+    <Tooltip open={disableTooltip ? false : undefined} delayDuration={200}>
         <TooltipTrigger asChild>
           <span
             className={cn(
@@ -214,7 +215,6 @@ export function SLACountdownPill({
           {completedAbsolute && <div>Concluída em: {completedAbsolute}</div>}
           {sourceLabel && <div className="text-muted-foreground">{sourceLabel}</div>}
         </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    </Tooltip>
   );
 }
