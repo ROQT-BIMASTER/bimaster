@@ -164,6 +164,9 @@ export function ChinaChecklistFocusMode({
   const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
   const [adminSheetDoc, setAdminSheetDoc] = useState<DocRecord | null>(null);
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  // Sincronia em tempo real com o Kanban/Projeto + quem movimentou cada decisão
+  useChinaDocsRealtime(submissaoId);
+  const { data: decisoesPorDoc } = useChinaDecisoesSubmissao(submissaoId);
   const ultimaRevisaoPorDoc = useMemo(() => {
     const map = new Map<string, typeof revisoes[number]>();
     for (const r of revisoes) {
