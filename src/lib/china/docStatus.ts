@@ -41,9 +41,9 @@ export function docStatusLabel(status: string | null | undefined): string {
 }
 
 export function docStatusTone(status: string | null | undefined): string {
-  const s = (status || "rascunho").toLowerCase();
-  return DOC_STATUS_TONE[s] || "bg-muted text-muted-foreground";
+  return docStatusVisual(status).badge;
 }
+
 
 /** Prioridade para consolidar o status de várias peças numa tarefa. */
 const PESO: Record<DocDecisao, number> = {
