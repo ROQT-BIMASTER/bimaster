@@ -1476,14 +1476,19 @@ export function ChinaChecklistFocusMode({
                               const isDraft = d.status === "rascunho";
                               const isImg = hasImage && d.arquivo_url;
 
+                              const decisao = decisoesPorDoc?.get(d.id);
+
                               return (
                                 <div
                                   key={d.id}
                                   className={cn(
-                                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all",
-                                    isDraft ? "bg-muted/50 border border-dashed" : "bg-secondary/30"
+                                    "rounded-lg transition-all",
+                                    isDraft ? "bg-muted/50 border border-dashed" : "bg-secondary/30",
+                                    statusBorders[d.status] || ""
                                   )}
                                 >
+                                <div className="flex items-center gap-2 px-3 py-2 text-xs">
+
                                   {isDraft && (
                                     <Checkbox
                                       checked={selected.has(d.id)}
