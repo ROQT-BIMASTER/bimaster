@@ -287,8 +287,15 @@ function CategoryBlock({
                     <TableCell className="py-2">
                       <Badge
                         variant="outline"
-                        className={cn("h-5 px-2 text-[10.5px] font-medium", statusCls)}
+                        className={cn(
+                          "h-5 gap-1.5 px-2 text-[10.5px] font-medium",
+                          statusCls,
+                        )}
                       >
+                        <span
+                          aria-hidden
+                          className={cn("h-1.5 w-1.5 rounded-full", visual.dot)}
+                        />
                         {statusLabel}
                       </Badge>
                     </TableCell>
@@ -470,8 +477,12 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                       <div className="mt-0.5 flex items-center justify-between gap-1">
                         <Badge
                           variant="outline"
-                          className={cn("h-4 px-1.5 text-[9.5px] font-medium", statusCls)}
+                          className={cn("h-4 gap-1 px-1.5 text-[9.5px] font-medium", statusCls)}
                         >
+                          <span
+                            aria-hidden
+                            className={cn("h-1.5 w-1.5 rounded-full", visual.dot)}
+                          />
                           {statusLabel}
                         </Badge>
                         <span className="text-[9.5px] text-muted-foreground/70">
