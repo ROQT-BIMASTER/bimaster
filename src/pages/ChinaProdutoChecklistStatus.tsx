@@ -51,7 +51,7 @@ import {
 import { toast } from "sonner";
 import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
-import { docStatusVisual } from "@/lib/china/docStatus";
+import { docStatusVisual, checklistStatusLabel, checklistStatusTexto } from "@/lib/china/docStatus";
 
 interface DocRow {
   id: string;
@@ -73,22 +73,8 @@ const SENT_STATUSES = new Set([
   "rejeitado",
 ]);
 
-const STATUS_LABEL: Record<string, string> = {
-  nao_criado: "Não criado",
-  aprovado: "Aprovado",
-  ciencia: "Ciente",
-  enviado: "Enviado",
-  enviado_brasil: "Enviado ao Brasil",
-  enviado_parcial: "Enviado (parcial)",
-  arte_enviada: "Docs enviados",
-  pendente: "Pendente análise",
-  em_analise: "Em análise",
-  em_revisao: "Em análise",
-  rejeitado: "Não aprovado",
-  contestado: "Contestado",
-  rascunho: "Rascunho",
-  planejado: "Planejado",
-};
+/** Rótulo bilíngue (PT 中文) vindo da fonte única do checklist. */
+const statusLabelBilingue = (status: string) => checklistStatusLabel(status);
 
 /** Classes de badge derivadas da paleta única de status. */
 const statusBadgeCls = (status: string) => docStatusVisual(status).badge;
@@ -257,7 +243,7 @@ function CategoryBlock({
                 const label = getLabel(tipo);
                 const sent = isSentToBrazil(doc);
                 const status = doc?.status ?? "nao_criado";
-                const statusLabel = STATUS_LABEL[status] ?? status;
+                const statusLabel = statusLabelBilingue(status);
                 const visual = docStatusVisual(status);
                 const statusCls = visual.badge;
                 const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
@@ -382,20 +368,8 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
     enviado: t("statusChecklist.colEnviado"),
     aprovado: t("statusChecklist.colAprovado"),
   };
-  const statusLabelI18n: Record<string, string> = {
-    aprovado: t("statusChecklist.aprovadoBadge"),
-    ciencia: t("statusChecklist.cienciaBadge"),
-    pendente: t("statusChecklist.pendenteAnaliseBadge"),
-    nao_criado: t("statusChecklist.naoCriadoBadge"),
-    em_analise: t("statusChecklist.emAnaliseBadge"),
-    em_revisao: t("statusChecklist.emAnaliseBadge"),
-    enviado: t("statusChecklist.enviadoBadge"),
-    enviado_brasil: t("statusChecklist.enviadoBrasilBadge"),
-    rejeitado: t("statusChecklist.rejeitadoBadge"),
-    contestado: t("statusChecklist.contestadoBadge"),
-    rascunho: t("statusChecklist.rascunhoBadge"),
-    planejado: t("statusChecklist.planejadoBadge"),
-  };
+  // Rótulos de status vêm da fonte única bilíngue (PT 中文) em `docStatus.ts`.
+
 
   type Card = {
     tipo: string;
@@ -445,8 +419,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                   const label = getLabel(tipo);
                   const FluxoIcon = cat.fluxo === "china_envia" ? ArrowUpRight : ArrowDownLeft;
                   const status = doc?.status ?? "nao_criado";
-                  const statusLabel =
-                    statusLabelI18n[status] ?? STATUS_LABEL[status] ?? status;
+                  const statusLabel = statusLabelBilingue(status);
                   const visual = docStatusVisual(status);
                   const statusCls = visual.badge;
                   const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
@@ -665,8 +638,7 @@ export default function ChinaProdutoChecklistStatus() {
         const doc = docsByTipo.get(tipo);
         const label = getLabel(tipo);
         const status = doc?.status ?? "nao_criado";
-        const statusLabel =
-          status === "nao_criado" ? "Não criado" : STATUS_LABEL[status] ?? status;
+        const statusLabel = statusLabelBilingue(status);
         rows.push({
           fluxo: fluxoLabel,
           categoria: cat.labelPt,
