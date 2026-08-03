@@ -480,8 +480,11 @@ export function AprovacaoLoteDialog({
                         {d.nome_arquivo || d.tipo_documento}
                       </span>
                       <span className="block truncate text-[10.5px] text-muted-foreground">
-                        {d.tarefa_titulo || "Sem tarefa"} · {d.tipo_documento}
+                        {secaoNome.get(colunaDe(d.tarefa_id)) || "Sem coluna"} ·{" "}
+                        {d.tarefa_titulo || "Sem tarefa"} ·{" "}
+                        {CATEGORIA_LABEL[categoriaDe(d.tipo_documento)]} · {d.tipo_documento}
                       </span>
+
                     </span>
                     <Badge className={`h-4 text-[10px] ${docStatusTone(d.status)}`}>
                       {docStatusLabel(d.status)}
