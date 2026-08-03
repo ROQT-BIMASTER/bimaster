@@ -79,6 +79,15 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 26 83% 14%;
 
+    /* Status de documento (checklist China) — indicação visual única */
+    --doc-neutro: 218 15% 46%;
+    --doc-pendente: 38 92% 45%;
+    --doc-analise: 199 89% 42%;
+    --doc-enviado: 262 83% 58%;
+    --doc-aprovado: 152 76% 36%;
+    --doc-rejeitado: 0 84% 55%;
+
+
     --border: 222 14% 88%;
     --input: 222 14% 88%;
     --ring: 221 72% 55%;
