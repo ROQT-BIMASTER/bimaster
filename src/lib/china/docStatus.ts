@@ -66,3 +66,114 @@ export const DECISAO_LABEL: Record<DocDecisao, string> = {
   aprovado: "Aprovado",
   rejeitado: "Não aprovado",
 };
+
+/* ────────────────────────────────────────────────────────────────
+ * Paleta visual única dos status de documento.
+ * Fonte da verdade para badge, borda lateral, ponto e ícone em
+ * TODOS os ambientes do checklist (tela de status, Modo Foco,
+ * cartões, drawer da tarefa, ações em lote).
+ * ──────────────────────────────────────────────────────────────── */
+
+export type DocStatusTom =
+  | "neutro"
+  | "pendente"
+  | "analise"
+  | "enviado"
+  | "aprovado"
+  | "rejeitado";
+
+export interface DocStatusVisual {
+  /** Tom semântico do status. */
+  tom: DocStatusTom;
+  /** Classes do badge (fundo + texto + borda). */
+  badge: string;
+  /** Classe de borda lateral do cartão/linha. */
+  border: string;
+  /** Classe de fundo do ponto indicador. */
+  dot: string;
+  /** Classe de texto para ícones. */
+  text: string;
+  /** Nome do ícone lucide correspondente. */
+  icone: "circle-dashed" | "clock" | "search" | "send" | "check" | "x";
+}
+
+const VISUAL_POR_TOM: Record<DocStatusTom, DocStatusVisual> = {
+  neutro: {
+    tom: "neutro",
+    badge: "bg-doc-neutro/10 text-doc-neutro border-doc-neutro/30",
+    border: "border-l-4 border-l-doc-neutro/40 border-dashed",
+    dot: "bg-doc-neutro",
+    text: "text-doc-neutro",
+    icone: "circle-dashed",
+  },
+  pendente: {
+    tom: "pendente",
+    badge: "bg-doc-pendente/15 text-doc-pendente border-doc-pendente/35",
+    border: "border-l-4 border-l-doc-pendente",
+    dot: "bg-doc-pendente",
+    text: "text-doc-pendente",
+    icone: "clock",
+  },
+  analise: {
+    tom: "analise",
+    badge: "bg-doc-analise/15 text-doc-analise border-doc-analise/35",
+    border: "border-l-4 border-l-doc-analise",
+    dot: "bg-doc-analise",
+    text: "text-doc-analise",
+    icone: "search",
+  },
+  enviado: {
+    tom: "enviado",
+    badge: "bg-doc-enviado/15 text-doc-enviado border-doc-enviado/35",
+    border: "border-l-4 border-l-doc-enviado",
+    dot: "bg-doc-enviado",
+    text: "text-doc-enviado",
+    icone: "send",
+  },
+  aprovado: {
+    tom: "aprovado",
+    badge: "bg-doc-aprovado/15 text-doc-aprovado border-doc-aprovado/35",
+    border: "border-l-4 border-l-doc-aprovado",
+    dot: "bg-doc-aprovado",
+    text: "text-doc-aprovado",
+    icone: "check",
+  },
+  rejeitado: {
+    tom: "rejeitado",
+    badge: "bg-doc-rejeitado/15 text-doc-rejeitado border-doc-rejeitado/35",
+    border: "border-l-4 border-l-doc-rejeitado",
+    dot: "bg-doc-rejeitado",
+    text: "text-doc-rejeitado",
+    icone: "x",
+  },
+};
+
+/** status bruto → tom visual. */
+const TOM_POR_STATUS: Record<string, DocStatusTom> = {
+  nao_criado: "neutro",
+  rascunho: "neutro",
+  planejado: "neutro",
+  pendente: "pendente",
+  contestado: "pendente",
+  em_analise: "analise",
+  em_revisao: "analise",
+  enviado: "enviado",
+  enviado_brasil: "enviado",
+  enviado_parcial: "enviado",
+  arte_enviada: "enviado",
+  aprovado: "aprovado",
+  ciencia: "aprovado",
+  rejeitado: "rejeitado",
+};
+
+export function docStatusTom(status: string | null | undefined): DocStatusTom {
+  return TOM_POR_STATUS[(status || "rascunho").toLowerCase()] ?? "neutro";
+}
+
+/** Visual completo (badge/borda/ponto/ícone) para qualquer status bruto. */
+export function docStatusVisual(status: string | null | undefined): DocStatusVisual {
+  return VISUAL_POR_TOM[docStatusTom(status)];
+}
+
+export { VISUAL_POR_TOM as DOC_STATUS_VISUAL };
+
