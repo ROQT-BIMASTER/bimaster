@@ -51,6 +51,7 @@ import {
 import { toast } from "sonner";
 import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { docStatusVisual } from "@/lib/china/docStatus";
 
 interface DocRow {
   id: string;
@@ -250,14 +251,9 @@ function CategoryBlock({
                 const label = getLabel(tipo);
                 const sent = isSentToBrazil(doc);
                 const status = doc?.status ?? "nao_criado";
-                const statusLabel =
-                  status === "nao_criado"
-                    ? "Não criado"
-                    : STATUS_LABEL[status] ?? status;
-                const statusCls =
-                  status === "nao_criado"
-                    ? "bg-muted text-muted-foreground border-border"
-                    : STATUS_CLS[status] ?? "bg-muted text-muted-foreground border-border";
+                const statusLabel = STATUS_LABEL[status] ?? status;
+                const visual = docStatusVisual(status);
+                const statusCls = visual.badge;
                 const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
 
                 return (
@@ -422,10 +418,8 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                   const status = doc?.status ?? "nao_criado";
                   const statusLabel =
                     statusLabelI18n[status] ?? STATUS_LABEL[status] ?? status;
-                  const statusCls =
-                    status === "nao_criado"
-                      ? "bg-muted text-muted-foreground border-border"
-                      : STATUS_CLS[status] ?? "bg-muted text-muted-foreground border-border";
+                  const visual = docStatusVisual(status);
+                  const statusCls = visual.badge;
                   const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
                   return (
                     <button
