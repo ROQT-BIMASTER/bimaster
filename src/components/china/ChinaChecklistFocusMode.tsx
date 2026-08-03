@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
+import {
+  useChinaDecisoesSubmissao,
+  useChinaDocsRealtime,
+  DECISAO_DOC_LABEL,
+} from "@/hooks/useChinaDecisoesSubmissao";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
 import { ChecklistItemAdminSheet } from "@/components/china/checklist/ChecklistItemAdminSheet";
