@@ -192,6 +192,7 @@ export function SLACountdownPill({
               className,
             )}
             aria-label={`Prazo: ${text} (${absolute})`}
+            tabIndex={0}
           >
             <styles.Icon className={size === "md" ? "h-3.5 w-3.5" : "h-3 w-3"} />
             {text}

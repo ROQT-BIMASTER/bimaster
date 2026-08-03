@@ -76,6 +76,7 @@ export function SlaStatusBadge({
               className,
             )}
             aria-label={cfg.label}
+            tabIndex={0}
           >
             <cfg.Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
             {cfg.label}
