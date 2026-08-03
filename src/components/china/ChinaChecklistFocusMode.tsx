@@ -1576,6 +1576,24 @@ export function ChinaChecklistFocusMode({
                                     )}
                                   </div>
                                 </div>
+                                {decisao && (
+                                  <div className="flex flex-wrap items-center gap-1.5 border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+                                    <span className="font-medium text-foreground">
+                                      {DECISAO_DOC_LABEL[decisao.decisao] || decisao.decisao}
+                                    </span>
+                                    <span>por {decisao.decidido_por_nome || decisao.decidido_por_email || "usuário"}</span>
+                                    <span>
+                                      em {new Date(decisao.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                                    </span>
+                                    <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
+                                      {decisao.metodo_confirmacao === "senha" ? "Confirmado com senha" : "Confirmado em sessão"}
+                                    </Badge>
+                                    {decisao.parecer && (
+                                      <span className="w-full truncate italic">Parecer: {decisao.parecer}</span>
+                                    )}
+                                  </div>
+                                )}
+                                </div>
                               );
                             })}
                           </div>
