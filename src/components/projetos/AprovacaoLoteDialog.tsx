@@ -37,6 +37,8 @@ import { DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import {
   docStatusLabel,
   docStatusTone,
+  docStatusVisual,
+
   normalizarDecisao,
   type DocDecisao,
 } from "@/lib/china/docStatus";
