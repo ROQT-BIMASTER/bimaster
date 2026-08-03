@@ -2297,6 +2297,9 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                       </thead>
                       <tbody className="text-muted-foreground">
                         {[
+                   { version: "v4.5.1 / SDK v3.3.1 / APP v3.9.2", date: "2026-07-31", changes: [
+                     "PROJETOS / CHINA — Ações em lote nos documentos ganham filtros por coluna do Kanban, categoria de documento e tarefa em `AprovacaoLoteDialog.tsx` (componente `FiltroMulti` com Popover + Checkbox, busca e contadores por opção calculados com os demais filtros ativos). `ProjetoKanbanView.tsx` passa `tarefas` (com `secao_id`) e `secoes` ao diálogo. Itens excluídos pelos filtros saem automaticamente da seleção, evitando aplicação acidental em lote. Cada linha da lista passa a exibir coluna · tarefa · categoria · tipo. Bump `APP_VERSION` 3.9.1 → 3.9.2.",
+                   ], author: "Lovable AI" },
                           ["Criar título novo (primeira vez)", "cpIncluir / crIncluir", "cpUpsert (silencia conflito)"],
                           ["Sincronizar de sistema externo (idempotente)", "cpUpsert / crUpsert", "cpIncluir (falha em duplicata)"],
                           ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "—"],
