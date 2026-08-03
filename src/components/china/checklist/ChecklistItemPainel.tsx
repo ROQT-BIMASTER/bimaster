@@ -70,8 +70,6 @@ interface Props {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "rascunho", label: "Rascunho" },
   { value: "pendente", label: "Pendente análise" },
-  { value: "em_analise", label: "Em análise" },
-  { value: "enviado_brasil", label: "Enviado ao Brasil" },
   { value: "aprovado", label: "Aprovado" },
   { value: "ciencia", label: "Ciente" },
   { value: "contestado", label: "Contestado" },
