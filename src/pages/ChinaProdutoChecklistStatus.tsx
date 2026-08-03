@@ -412,13 +412,19 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
         return (
           <div
             key={col.key}
-            className="flex min-w-[260px] max-w-[300px] flex-1 flex-col rounded-md border border-border bg-muted/20"
+            className={cn(
+              "flex min-w-[260px] max-w-[300px] flex-1 flex-col rounded-md border border-border bg-muted/20",
+              docStatusVisual(col.statusRef).border,
+            )}
           >
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
                 {colLabel[col.key]}
               </span>
-              <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", col.accent)}>
+              <Badge
+                variant="outline"
+                className={cn("h-5 px-1.5 text-[10px]", docStatusVisual(col.statusRef).badge)}
+              >
                 {items.length}
               </Badge>
             </header>
@@ -442,7 +448,10 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                       key={tipo}
                       type="button"
                       onClick={() => onOpenItem(tipo)}
-                      className="flex flex-col gap-1 rounded border border-border bg-card px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-card/80"
+                      className={cn(
+                        "flex flex-col gap-1 rounded border border-border bg-card px-2.5 py-2 text-left transition-colors hover:bg-card/80",
+                        visual.border,
+                      )}
                     >
                       <div className="flex items-start gap-1.5">
                         <FluxoIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
