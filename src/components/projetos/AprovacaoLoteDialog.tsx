@@ -182,6 +182,8 @@ export function AprovacaoLoteDialog({
   onOpenChange,
   projetoId,
   tarefaIds,
+  tarefas = [],
+  secoes = [],
   statusFiltro = [],
   sort = "none",
 }: Props) {
@@ -190,13 +192,32 @@ export function AprovacaoLoteDialog({
   const [acao, setAcao] = useState<Acao>("aprovado");
   const [parecer, setParecer] = useState("");
   const [senha, setSenha] = useState("");
+  const [colunasFiltro, setColunasFiltro] = useState<string[]>([]);
+  const [categoriasFiltro, setCategoriasFiltro] = useState<string[]>([]);
+  const [tarefasFiltro, setTarefasFiltro] = useState<string[]>([]);
   const homologar = useDecisaoLoteHomologada();
   const mudarStatus = useStatusLoteDocumentos();
   const pending = homologar.isPending || mudarStatus.isPending;
 
   const exigeSenha = acao === "aprovado" || acao === "rejeitado";
 
-  const elegiveis = useMemo(() => {
+  const tarefaSecao = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of tarefas) m.set(t.id, t.secao_id);
+    return m;
+  }, [tarefas]);
+
+  const secaoNome = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of secoes) m.set(s.id, s.nome);
+    return m;
+  }, [secoes]);
+
+  const categoriaDe = (tipo: string) => TIPO_PARA_CATEGORIA[tipo] ?? SEM_CATEGORIA;
+  const colunaDe = (tarefaId: string) => tarefaSecao.get(tarefaId) ?? SEM_COLUNA;
+
+  /** Base do lote: escopo do quadro + situação alvo, antes dos filtros locais. */
+  const base = useMemo(() => {
     let lista = docs;
     if (tarefaIds && tarefaIds.length > 0) {
       const set = new Set(tarefaIds);
@@ -206,9 +227,85 @@ export function AprovacaoLoteDialog({
       lista = lista.filter((d) => statusFiltro.includes(normalizarDecisao(d.status)));
     }
     // Não faz sentido reaplicar a mesma situação já vigente.
-    lista = lista.filter((d) => normalizarDecisao(d.status) !== acao);
+    return lista.filter((d) => normalizarDecisao(d.status) !== acao);
+  }, [docs, tarefaIds, statusFiltro, acao]);
+
+  const elegiveis = useMemo(() => {
+    let lista = base;
+    if (colunasFiltro.length > 0) {
+      lista = lista.filter((d) => colunasFiltro.includes(colunaDe(d.tarefa_id)));
+    }
+    if (categoriasFiltro.length > 0) {
+      lista = lista.filter((d) => categoriasFiltro.includes(categoriaDe(d.tipo_documento)));
+    }
+    if (tarefasFiltro.length > 0) {
+      lista = lista.filter((d) => tarefasFiltro.includes(d.tarefa_id));
+    }
     return ordenarDocs(lista, sort);
-  }, [docs, tarefaIds, statusFiltro, acao, sort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, colunasFiltro, categoriasFiltro, tarefasFiltro, sort, tarefaSecao]);
+
+  /** Contagens por opção considerando os demais filtros ativos. */
+  const contar = (
+    keyFn: (d: (typeof base)[number]) => string,
+    ignorar: "coluna" | "categoria" | "tarefa",
+  ) => {
+    const c = new Map<string, number>();
+    for (const d of base) {
+      if (ignorar !== "coluna" && colunasFiltro.length > 0 && !colunasFiltro.includes(colunaDe(d.tarefa_id)))
+        continue;
+      if (
+        ignorar !== "categoria" &&
+        categoriasFiltro.length > 0 &&
+        !categoriasFiltro.includes(categoriaDe(d.tipo_documento))
+      )
+        continue;
+      if (ignorar !== "tarefa" && tarefasFiltro.length > 0 && !tarefasFiltro.includes(d.tarefa_id))
+        continue;
+      const k = keyFn(d);
+      c.set(k, (c.get(k) || 0) + 1);
+    }
+    return c;
+  };
+
+  const opcoesColuna = useMemo(() => {
+    const c = contar((d) => colunaDe(d.tarefa_id), "coluna");
+    const opts: OpcaoFiltro[] = secoes.map((s) => ({
+      value: s.id,
+      label: s.nome,
+      count: c.get(s.id) || 0,
+    }));
+    if (c.get(SEM_COLUNA)) opts.push({ value: SEM_COLUNA, label: "Sem coluna", count: c.get(SEM_COLUNA)! });
+    return opts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, secoes, colunasFiltro, categoriasFiltro, tarefasFiltro, tarefaSecao]);
+
+  const opcoesCategoria = useMemo(() => {
+    const c = contar((d) => categoriaDe(d.tipo_documento), "categoria");
+    return [...c.keys()]
+      .map((k) => ({ value: k, label: CATEGORIA_LABEL[k] ?? k, count: c.get(k)! }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, colunasFiltro, categoriasFiltro, tarefasFiltro, tarefaSecao]);
+
+  const opcoesTarefa = useMemo(() => {
+    const c = contar((d) => d.tarefa_id, "tarefa");
+    const titulos = new Map<string, string>();
+    for (const d of base) titulos.set(d.tarefa_id, d.tarefa_titulo || "Sem tarefa");
+    return [...c.keys()]
+      .map((k) => ({ value: k, label: titulos.get(k) || "Sem tarefa", count: c.get(k)! }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, colunasFiltro, categoriasFiltro, tarefasFiltro, tarefaSecao]);
+
+  const filtrosAtivos =
+    colunasFiltro.length > 0 || categoriasFiltro.length > 0 || tarefasFiltro.length > 0;
+
+  const limparFiltros = () => {
+    setColunasFiltro([]);
+    setCategoriasFiltro([]);
+    setTarefasFiltro([]);
+  };
 
   useEffect(() => {
     if (!open) {
@@ -216,8 +313,12 @@ export function AprovacaoLoteDialog({
       setParecer("");
       setSenha("");
       setAcao("aprovado");
+      setColunasFiltro([]);
+      setCategoriasFiltro([]);
+      setTarefasFiltro([]);
     }
   }, [open]);
+
 
 
   // Remove da seleção itens que saíram da lista elegível ao trocar de ação.
