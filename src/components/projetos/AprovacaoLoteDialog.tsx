@@ -8,7 +8,15 @@
  *   uma trilha homologada separada para cada documento.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock, FileWarning, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Clock,
+  FileWarning,
+  Loader2,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +29,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import {
   docStatusLabel,
   docStatusTone,
@@ -46,17 +56,126 @@ const ACOES: Array<{ value: Acao; label: string; icon: typeof Check; senha: bool
   { value: "rejeitado", label: "Não aprovar", icon: XCircle, senha: true },
 ];
 
+const SEM_CATEGORIA = "__outros__";
+const SEM_COLUNA = "__sem_coluna__";
+
+/** tipo_documento → chave da categoria (montado uma vez). */
+const TIPO_PARA_CATEGORIA: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const cat of DOCUMENT_CATEGORIES) {
+    for (const tipo of cat.tipos) map[tipo] = cat.key;
+  }
+  return map;
+})();
+
+const CATEGORIA_LABEL: Record<string, string> = (() => {
+  const map: Record<string, string> = { [SEM_CATEGORIA]: "Outros" };
+  for (const cat of DOCUMENT_CATEGORIES) map[cat.key] = cat.labelPt;
+  return map;
+})();
+
+interface OpcaoFiltro {
+  value: string;
+  label: string;
+  count: number;
+}
+
+/** Popover de seleção múltipla com contagem por opção. */
+function FiltroMulti({
+  label,
+  opcoes,
+  selecionados,
+  onChange,
+  busca = false,
+}: {
+  label: string;
+  opcoes: OpcaoFiltro[];
+  selecionados: string[];
+  onChange: (v: string[]) => void;
+  busca?: boolean;
+}) {
+  const [termo, setTermo] = useState("");
+  const visiveis = useMemo(() => {
+    const t = termo.trim().toLowerCase();
+    if (!t) return opcoes;
+    return opcoes.filter((o) => o.label.toLowerCase().includes(t));
+  }, [opcoes, termo]);
+
+  const toggle = (value: string) =>
+    onChange(
+      selecionados.includes(value)
+        ? selecionados.filter((v) => v !== value)
+        : [...selecionados, value],
+    );
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          size="sm"
+          variant={selecionados.length > 0 ? "secondary" : "outline"}
+          className="h-7 gap-1.5 text-[11px]"
+        >
+          {label}
+          {selecionados.length > 0 && (
+            <Badge className="h-4 px-1 text-[10px]">{selecionados.length}</Badge>
+          )}
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 p-2">
+        {busca && (
+          <Input
+            value={termo}
+            onChange={(e) => setTermo(e.target.value)}
+            placeholder="Buscar…"
+            className="mb-2 h-7 text-xs"
+          />
+        )}
+        <ScrollArea className="max-h-56">
+          <div className="space-y-0.5 pr-2">
+            {visiveis.length === 0 && (
+              <p className="px-1 py-2 text-[11px] text-muted-foreground">Nenhuma opção.</p>
+            )}
+            {visiveis.map((o) => (
+              <label
+                key={o.value}
+                className={`flex items-center gap-2 rounded px-1 py-1 text-[11px] ${
+                  o.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/50"
+                }`}
+              >
+                <Checkbox
+                  checked={selecionados.includes(o.value)}
+                  disabled={o.count === 0 && !selecionados.includes(o.value)}
+                  onCheckedChange={() => toggle(o.value)}
+                />
+                <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                <span className="text-[10px] text-muted-foreground">{o.count}</span>
+              </label>
+            ))}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projetoId: string;
   /** Restringe a lista às tarefas visíveis no quadro filtrado. */
   tarefaIds?: string[];
+  /** Tarefas visíveis no quadro, com a coluna (seção) a que pertencem. */
+  tarefas?: Array<{ id: string; titulo: string; secao_id: string }>;
+  /** Colunas do quadro. */
+  secoes?: Array<{ id: string; nome: string }>;
   /** Situações selecionadas no filtro do quadro. */
   statusFiltro?: DocDecisao[];
   /** Ordenação por data aplicada no quadro. */
   sort?: DocSortKey;
 }
+
 
 export function AprovacaoLoteDialog({
   open,
