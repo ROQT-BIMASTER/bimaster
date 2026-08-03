@@ -128,13 +128,19 @@ function classifyForFilter(doc: DocRow | undefined): Exclude<FilterKey, "todos">
 
 type KanbanBucket = "nao_criados" | "pendente" | "ajuste" | "enviado" | "aprovado";
 
-const KANBAN_COLUMNS: Array<{ key: KanbanBucket; label: string; accent: string }> = [
-  { key: "nao_criados", label: "Não criados", accent: "bg-muted text-muted-foreground border-border" },
-  { key: "pendente", label: "Pendente análise", accent: "bg-primary/15 text-primary border-primary/30" },
-  { key: "ajuste", label: "Em ajuste", accent: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  { key: "enviado", label: "Enviado", accent: "bg-primary/15 text-primary border-primary/30" },
-  { key: "aprovado", label: "Aprovado", accent: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+const KANBAN_COLUMNS: Array<{
+  key: KanbanBucket;
+  label: string;
+  /** Status representativo da coluna — define o tom visual. */
+  statusRef: string;
+}> = [
+  { key: "nao_criados", label: "Não criados", statusRef: "nao_criado" },
+  { key: "pendente", label: "Pendente análise", statusRef: "pendente" },
+  { key: "ajuste", label: "Em ajuste", statusRef: "rejeitado" },
+  { key: "enviado", label: "Enviado", statusRef: "enviado_brasil" },
+  { key: "aprovado", label: "Aprovado", statusRef: "aprovado" },
 ];
+
 
 function bucketOf(doc: DocRow | undefined): KanbanBucket {
   if (!doc) return "nao_criados";
