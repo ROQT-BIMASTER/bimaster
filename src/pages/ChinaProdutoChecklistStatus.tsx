@@ -377,9 +377,19 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
   };
   const statusLabelI18n: Record<string, string> = {
     aprovado: t("statusChecklist.aprovadoBadge"),
+    ciencia: t("statusChecklist.cienciaBadge"),
     pendente: t("statusChecklist.pendenteAnaliseBadge"),
     nao_criado: t("statusChecklist.naoCriadoBadge"),
+    em_analise: t("statusChecklist.emAnaliseBadge"),
+    em_revisao: t("statusChecklist.emAnaliseBadge"),
+    enviado: t("statusChecklist.enviadoBadge"),
+    enviado_brasil: t("statusChecklist.enviadoBrasilBadge"),
+    rejeitado: t("statusChecklist.rejeitadoBadge"),
+    contestado: t("statusChecklist.contestadoBadge"),
+    rascunho: t("statusChecklist.rascunhoBadge"),
+    planejado: t("statusChecklist.planejadoBadge"),
   };
+
   type Card = {
     tipo: string;
     doc: DocRow | undefined;
