@@ -357,9 +357,13 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onOpenChange={setLoteOpen}
         projetoId={projetoId}
         tarefaIds={tarefas.map((t) => t.id)}
+        tarefas={tarefas.map((t) => ({ id: t.id, titulo: t.titulo, secao_id: t.secao_id }))}
+        secoes={secoes.map((s) => ({ id: s.id, nome: s.nome }))}
         statusFiltro={docFilter}
         sort={docSort}
       />
+
+
       <DownloadAnexosLoteDialog
         open={downloadOpen}
         onOpenChange={setDownloadOpen}
