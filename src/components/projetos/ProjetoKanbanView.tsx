@@ -464,6 +464,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                             onToggle={() => void confirmAndToggleTarefa(tarefa)}
                             darkBg={darkBg}
                             isDragActive={activeId === tarefa.id}
+                            dragEmAndamento={!!activeId}
                             metasProgress={metasProgress[tarefa.id]}
                             anexosResumo={anexosMap?.[tarefa.id]}
                             docStatus={docStatusMap?.[tarefa.id]}
@@ -558,6 +559,7 @@ function DraggableKanbanCard({
   onToggle,
   darkBg = false,
   isDragActive = false,
+  dragEmAndamento = false,
   metasProgress,
   anexosResumo,
   docStatus,
@@ -567,6 +569,7 @@ function DraggableKanbanCard({
   onToggle: () => void;
   darkBg?: boolean;
   isDragActive?: boolean;
+  dragEmAndamento?: boolean;
   metasProgress?: MetasProgress;
   anexosResumo?: TarefaArquivosResumo;
   docStatus?: TarefaDocStatus;
@@ -709,7 +712,7 @@ function DraggableKanbanCard({
             const contexto = tarefa.estagio
               ? ESTAGIO_LABELS[tarefa.estagio] ?? tarefa.estagio
               : STATUS_LABELS[tarefa.status ?? ""] ?? tarefa.status ?? undefined;
-            return <SlaStatusBadge status={slaMark} contexto={contexto} />;
+            return <SlaStatusBadge status={slaMark} contexto={contexto} disableTooltip={dragEmAndamento} />;
           })()}
         </div>
 
@@ -787,6 +790,7 @@ function DraggableKanbanCard({
                 frozen={isCompleted}
                 completedAt={(tarefa as any).data_conclusao ?? null}
                 sourceLabel={(tarefa as any).sla_limite ? "Prazo do processo operacional" : undefined}
+                disableTooltip={dragEmAndamento}
               />
             ) : null}
             {(tarefa as any).sla_protocolo && (tarefa as any).sla_status ? (
