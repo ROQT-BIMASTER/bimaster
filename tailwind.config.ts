@@ -45,6 +45,15 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        doc: {
+          neutro: "hsl(var(--doc-neutro))",
+          pendente: "hsl(var(--doc-pendente))",
+          analise: "hsl(var(--doc-analise))",
+          enviado: "hsl(var(--doc-enviado))",
+          aprovado: "hsl(var(--doc-aprovado))",
+          rejeitado: "hsl(var(--doc-rejeitado))",
+        },
+
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
