@@ -47,8 +47,8 @@ import {
   aplicarTemplateNaSubmissao, useCategoriaOverrides, useUpsertCategoriaOverride,
   type TemplateEstrutura,
 } from "@/hooks/useChinaDocChecklistTemplates";
-import { docStatusVisual, docStatusIconComponent } from "@/lib/china/docStatus";
-import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
+import { docStatusVisual, docStatusIconComponent, checklistStatusTexto } from "@/lib/china/docStatus";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA } from "@/lib/china-document-types";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -1475,7 +1475,7 @@ export function ChinaChecklistFocusMode({
                         {realDocs.length > 0 ? (
                           <div className="space-y-1.5">
                             {realDocs.map((d) => {
-                              const label = STATUS_LABELS[d.status] || STATUS_LABELS.rascunho;
+                              const label = checklistStatusTexto(d.status);
                               const isDraft = d.status === "rascunho";
                               const isImg = hasImage && d.arquivo_url;
 
@@ -1524,7 +1524,8 @@ export function ChinaChecklistFocusMode({
                                           statusBadge(d.status),
                                         )}
                                       >
-                                        {label.pt}
+                                        {label.pt}{" "}
+                                        <span className="opacity-80">{label.zh}</span>
                                       </Badge>
                                     )}
                                   </div>

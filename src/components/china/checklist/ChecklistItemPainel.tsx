@@ -67,20 +67,21 @@ interface Props {
   fluxo: "china_envia" | "brasil_envia";
 }
 
+/** Opções bilíngues (PT 中文) derivadas da fonte única de status. */
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "rascunho", label: "Rascunho" },
-  { value: "pendente", label: "Pendente análise" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "ciencia", label: "Ciente" },
-  { value: "contestado", label: "Contestado" },
-  { value: "rejeitado", label: "Rejeitado" },
-];
+  "rascunho",
+  "pendente",
+  "aprovado",
+  "ciencia",
+  "contestado",
+  "rejeitado",
+].map((value) => ({ value, label: checklistStatusLabel(value) }));
 
 /** Classes de badge derivadas da paleta única de status do checklist. */
 const statusCls = (status: string) => docStatusVisual(status).badge;
 
 import { UPLOAD_MAX_BYTES as MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
-import { docStatusVisual } from "@/lib/china/docStatus";
+import { docStatusVisual, checklistStatusLabel } from "@/lib/china/docStatus";
 
 export function ChecklistItemPainel({
   open,
@@ -270,10 +271,7 @@ export function ChecklistItemPainel({
 
   const statusAtual = ultimaVersao?.status ?? "nao_criado";
   const statusLabel = useMemo(() => {
-    const opt = STATUS_OPTIONS.find((o) => o.value === statusAtual);
-    if (opt) return opt.label;
-    if (statusAtual === "enviado_brasil") return "Enviado ao Brasil";
-    return "Não criado";
+    return checklistStatusLabel(statusAtual);
   }, [statusAtual]);
 
   return (
@@ -447,10 +445,7 @@ export function ChecklistItemPainel({
                           statusCls(v.status),
                         )}
                       >
-                        {STATUS_OPTIONS.find((o) => o.value === v.status)?.label ??
-                          (v.status === "enviado_brasil"
-                            ? "Enviado ao Brasil"
-                            : v.status)}
+                        {checklistStatusLabel(v.status)}
                       </Badge>
                     </p>
                     {v.observacao && (

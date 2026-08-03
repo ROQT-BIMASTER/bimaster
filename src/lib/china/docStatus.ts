@@ -6,18 +6,72 @@ import { CheckCircle2, CircleDashed, Clock, Search, Send, XCircle, type LucideIc
  */
 export type DocDecisao = "pendente" | "em_analise" | "aprovado" | "rejeitado";
 
-export const DOC_STATUS_LABEL: Record<string, string> = {
-  rascunho: "Pendente",
-  pendente: "Pendente de aprovação",
-  enviado: "Pendente de aprovação",
-  enviado_brasil: "Pendente de aprovação",
-  enviado_parcial: "Pendente de aprovação",
-  em_analise: "Em análise",
-  em_revisao: "Em análise",
-  aprovado: "Aprovado",
-  rejeitado: "Não aprovado",
-  contestado: "Não aprovado",
+/** Rótulo bilíngue (português + chinês) de um status. */
+export interface DocStatusTexto {
+  pt: string;
+  zh: string;
+}
+
+export type DocStatusIdioma = "bi" | "pt" | "zh";
+
+/** Formata um par PT/中文 conforme o idioma pedido (padrão: bilíngue). */
+export function formatarLabelBilingue(
+  texto: DocStatusTexto,
+  idioma: DocStatusIdioma = "bi",
+): string {
+  if (idioma === "pt") return texto.pt;
+  if (idioma === "zh") return texto.zh;
+  return `${texto.pt} ${texto.zh}`;
+}
+
+/** Rótulos administrativos (decisão) — usados em tarefas, drawer e ações em lote. */
+export const DOC_STATUS_LABEL: Record<string, DocStatusTexto> = {
+  rascunho: { pt: "Pendente", zh: "待处理" },
+  pendente: { pt: "Pendente de aprovação", zh: "待审批" },
+  enviado: { pt: "Pendente de aprovação", zh: "待审批" },
+  enviado_brasil: { pt: "Pendente de aprovação", zh: "待审批" },
+  enviado_parcial: { pt: "Pendente de aprovação", zh: "待审批" },
+  em_analise: { pt: "Em análise", zh: "审核中" },
+  em_revisao: { pt: "Em análise", zh: "审核中" },
+  aprovado: { pt: "Aprovado", zh: "已批准" },
+  rejeitado: { pt: "Não aprovado", zh: "未批准" },
+  contestado: { pt: "Não aprovado", zh: "未批准" },
 };
+
+/**
+ * Rótulos operacionais do checklist China (tela de Status, Modo Foco,
+ * painel do item e seletor de status). Fonte única bilíngue.
+ */
+export const CHECKLIST_STATUS_LABEL: Record<string, DocStatusTexto> = {
+  nao_criado: { pt: "Não criado", zh: "未创建" },
+  rascunho: { pt: "Rascunho", zh: "草稿" },
+  planejado: { pt: "Planejado", zh: "已计划" },
+  pendente: { pt: "Pendente análise", zh: "待审核" },
+  em_analise: { pt: "Em análise", zh: "审核中" },
+  em_revisao: { pt: "Em análise", zh: "审核中" },
+  enviado: { pt: "Enviado", zh: "已发送" },
+  enviado_brasil: { pt: "Enviado ao Brasil", zh: "已发送至巴西" },
+  enviado_parcial: { pt: "Enviado (parcial)", zh: "已发送（部分）" },
+  arte_enviada: { pt: "Docs enviados", zh: "文件已发送" },
+  aprovado: { pt: "Aprovado", zh: "已批准" },
+  ciencia: { pt: "Ciente", zh: "已确认" },
+  rejeitado: { pt: "Não aprovado", zh: "未批准" },
+  contestado: { pt: "Contestado", zh: "异议" },
+};
+
+/** Par PT/中文 do status no vocabulário do checklist. */
+export function checklistStatusTexto(status: string | null | undefined): DocStatusTexto {
+  const s = (status || "nao_criado").toLowerCase();
+  return CHECKLIST_STATUS_LABEL[s] ?? { pt: s, zh: s };
+}
+
+/** Rótulo do checklist já formatado (bilíngue por padrão). */
+export function checklistStatusLabel(
+  status: string | null | undefined,
+  idioma: DocStatusIdioma = "bi",
+): string {
+  return formatarLabelBilingue(checklistStatusTexto(status), idioma);
+}
 
 export const DOC_STATUS_TONE: Record<string, string> = {
   aprovado: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200",
@@ -37,9 +91,14 @@ export function normalizarDecisao(status: string | null | undefined): DocDecisao
   return "pendente";
 }
 
-export function docStatusLabel(status: string | null | undefined): string {
+export function docStatusLabel(
+  status: string | null | undefined,
+  idioma: DocStatusIdioma = "bi",
+): string {
   const s = (status || "rascunho").toLowerCase();
-  return DOC_STATUS_LABEL[s] || s;
+  const texto = DOC_STATUS_LABEL[s];
+  if (!texto) return s;
+  return formatarLabelBilingue(texto, idioma);
 }
 
 export function docStatusTone(status: string | null | undefined): string {
@@ -63,10 +122,10 @@ export function consolidarDecisoes(statuses: Array<string | null | undefined>): 
 }
 
 export const DECISAO_LABEL: Record<DocDecisao, string> = {
-  pendente: "Pendente de aprovação",
-  em_analise: "Em análise",
-  aprovado: "Aprovado",
-  rejeitado: "Não aprovado",
+  pendente: "Pendente de aprovação 待审批",
+  em_analise: "Em análise 审核中",
+  aprovado: "Aprovado 已批准",
+  rejeitado: "Não aprovado 未批准",
 };
 
 /* ────────────────────────────────────────────────────────────────
