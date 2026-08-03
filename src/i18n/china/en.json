@@ -1281,6 +1281,14 @@
     "nenhumItem": "No items",
     "pendenteAnaliseBadge": "Pending review",
     "aprovadoBadge": "Approved",
-    "naoCriadoBadge": "Not created"
+    "naoCriadoBadge": "Not created",
+    "emAnaliseBadge": "Under review",
+    "enviadoBadge": "Sent",
+    "enviadoBrasilBadge": "Sent to Brazil",
+    "rejeitadoBadge": "Not approved",
+    "contestadoBadge": "Disputed",
+    "rascunhoBadge": "Draft",
+    "planejadoBadge": "Planned",
+    "cienciaBadge": "Acknowledged"
   }
 }

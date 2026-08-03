@@ -1281,6 +1281,14 @@
     "nenhumItem": "无项目",
     "pendenteAnaliseBadge": "待审核",
     "aprovadoBadge": "已批准",
-    "naoCriadoBadge": "未创建"
+    "naoCriadoBadge": "未创建",
+    "emAnaliseBadge": "审核中",
+    "enviadoBadge": "已发送",
+    "enviadoBrasilBadge": "已发送至巴西",
+    "rejeitadoBadge": "未批准",
+    "contestadoBadge": "异议",
+    "rascunhoBadge": "草稿",
+    "planejadoBadge": "已计划",
+    "cienciaBadge": "已确认"
   }
 }
