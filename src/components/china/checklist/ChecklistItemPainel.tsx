@@ -76,19 +76,11 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "rejeitado", label: "Rejeitado" },
 ];
 
-const STATUS_CLS: Record<string, string> = {
-  aprovado: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  ciencia: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  enviado: "bg-primary/15 text-primary border-primary/30",
-  enviado_brasil: "bg-primary/15 text-primary border-primary/30",
-  pendente: "bg-primary/15 text-primary border-primary/30",
-  contestado: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  rejeitado: "bg-rose-500/15 text-rose-500 border-rose-500/30",
-  rascunho: "bg-muted text-muted-foreground border-border",
-  planejado: "bg-muted text-muted-foreground border-border",
-};
+/** Classes de badge derivadas da paleta única de status do checklist. */
+const statusCls = (status: string) => docStatusVisual(status).badge;
 
 import { UPLOAD_MAX_BYTES as MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
+import { docStatusVisual } from "@/lib/china/docStatus";
 
 export function ChecklistItemPainel({
   open,
@@ -303,7 +295,7 @@ export function ChecklistItemPainel({
             variant="outline"
             className={cn(
               "w-fit h-5 px-2 text-[10.5px] font-medium",
-              STATUS_CLS[statusAtual] ?? "bg-muted text-muted-foreground border-border",
+              statusCls(statusAtual),
             )}
           >
             {statusLabel}
@@ -452,7 +444,7 @@ export function ChecklistItemPainel({
                         variant="outline"
                         className={cn(
                           "ml-0.5 h-4 px-1.5 text-[9.5px] font-medium",
-                          STATUS_CLS[v.status] ?? "bg-muted text-muted-foreground border-border",
+                          statusCls(v.status),
                         )}
                       >
                         {STATUS_OPTIONS.find((o) => o.value === v.status)?.label ??

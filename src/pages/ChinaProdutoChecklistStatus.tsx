@@ -51,6 +51,7 @@ import {
 import { toast } from "sonner";
 import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { docStatusVisual } from "@/lib/china/docStatus";
 
 interface DocRow {
   id: string;
@@ -73,28 +74,25 @@ const SENT_STATUSES = new Set([
 ]);
 
 const STATUS_LABEL: Record<string, string> = {
+  nao_criado: "Não criado",
   aprovado: "Aprovado",
   ciencia: "Ciente",
   enviado: "Enviado",
   enviado_brasil: "Enviado ao Brasil",
+  enviado_parcial: "Enviado (parcial)",
+  arte_enviada: "Docs enviados",
   pendente: "Pendente análise",
-  rejeitado: "Rejeitado",
+  em_analise: "Em análise",
+  em_revisao: "Em análise",
+  rejeitado: "Não aprovado",
   contestado: "Contestado",
   rascunho: "Rascunho",
   planejado: "Planejado",
 };
 
-const STATUS_CLS: Record<string, string> = {
-  aprovado: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  ciencia: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  enviado: "bg-primary/15 text-primary border-primary/30",
-  enviado_brasil: "bg-primary/15 text-primary border-primary/30",
-  pendente: "bg-primary/15 text-primary border-primary/30",
-  contestado: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  rejeitado: "bg-rose-500/15 text-rose-500 border-rose-500/30",
-  rascunho: "bg-muted text-muted-foreground border-border",
-  planejado: "bg-muted text-muted-foreground border-border",
-};
+/** Classes de badge derivadas da paleta única de status. */
+const statusBadgeCls = (status: string) => docStatusVisual(status).badge;
+
 
 type FilterKey = "todos" | "enviados" | "pendentes" | "rejeitados" | "nao_criados";
 
@@ -130,13 +128,19 @@ function classifyForFilter(doc: DocRow | undefined): Exclude<FilterKey, "todos">
 
 type KanbanBucket = "nao_criados" | "pendente" | "ajuste" | "enviado" | "aprovado";
 
-const KANBAN_COLUMNS: Array<{ key: KanbanBucket; label: string; accent: string }> = [
-  { key: "nao_criados", label: "Não criados", accent: "bg-muted text-muted-foreground border-border" },
-  { key: "pendente", label: "Pendente análise", accent: "bg-primary/15 text-primary border-primary/30" },
-  { key: "ajuste", label: "Em ajuste", accent: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  { key: "enviado", label: "Enviado", accent: "bg-primary/15 text-primary border-primary/30" },
-  { key: "aprovado", label: "Aprovado", accent: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+const KANBAN_COLUMNS: Array<{
+  key: KanbanBucket;
+  label: string;
+  /** Status representativo da coluna — define o tom visual. */
+  statusRef: string;
+}> = [
+  { key: "nao_criados", label: "Não criados", statusRef: "nao_criado" },
+  { key: "pendente", label: "Pendente análise", statusRef: "pendente" },
+  { key: "ajuste", label: "Em ajuste", statusRef: "rejeitado" },
+  { key: "enviado", label: "Enviado", statusRef: "enviado_brasil" },
+  { key: "aprovado", label: "Aprovado", statusRef: "aprovado" },
 ];
+
 
 function bucketOf(doc: DocRow | undefined): KanbanBucket {
   if (!doc) return "nao_criados";
@@ -253,14 +257,9 @@ function CategoryBlock({
                 const label = getLabel(tipo);
                 const sent = isSentToBrazil(doc);
                 const status = doc?.status ?? "nao_criado";
-                const statusLabel =
-                  status === "nao_criado"
-                    ? "Não criado"
-                    : STATUS_LABEL[status] ?? status;
-                const statusCls =
-                  status === "nao_criado"
-                    ? "bg-muted text-muted-foreground border-border"
-                    : STATUS_CLS[status] ?? "bg-muted text-muted-foreground border-border";
+                const statusLabel = STATUS_LABEL[status] ?? status;
+                const visual = docStatusVisual(status);
+                const statusCls = visual.badge;
                 const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
 
                 return (
@@ -288,8 +287,15 @@ function CategoryBlock({
                     <TableCell className="py-2">
                       <Badge
                         variant="outline"
-                        className={cn("h-5 px-2 text-[10.5px] font-medium", statusCls)}
+                        className={cn(
+                          "h-5 gap-1.5 px-2 text-[10.5px] font-medium",
+                          statusCls,
+                        )}
                       >
+                        <span
+                          aria-hidden
+                          className={cn("h-1.5 w-1.5 rounded-full", visual.dot)}
+                        />
                         {statusLabel}
                       </Badge>
                     </TableCell>
@@ -378,9 +384,19 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
   };
   const statusLabelI18n: Record<string, string> = {
     aprovado: t("statusChecklist.aprovadoBadge"),
+    ciencia: t("statusChecklist.cienciaBadge"),
     pendente: t("statusChecklist.pendenteAnaliseBadge"),
     nao_criado: t("statusChecklist.naoCriadoBadge"),
+    em_analise: t("statusChecklist.emAnaliseBadge"),
+    em_revisao: t("statusChecklist.emAnaliseBadge"),
+    enviado: t("statusChecklist.enviadoBadge"),
+    enviado_brasil: t("statusChecklist.enviadoBrasilBadge"),
+    rejeitado: t("statusChecklist.rejeitadoBadge"),
+    contestado: t("statusChecklist.contestadoBadge"),
+    rascunho: t("statusChecklist.rascunhoBadge"),
+    planejado: t("statusChecklist.planejadoBadge"),
   };
+
   type Card = {
     tipo: string;
     doc: DocRow | undefined;
@@ -403,13 +419,19 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
         return (
           <div
             key={col.key}
-            className="flex min-w-[260px] max-w-[300px] flex-1 flex-col rounded-md border border-border bg-muted/20"
+            className={cn(
+              "flex min-w-[260px] max-w-[300px] flex-1 flex-col rounded-md border border-border bg-muted/20",
+              docStatusVisual(col.statusRef).border,
+            )}
           >
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
                 {colLabel[col.key]}
               </span>
-              <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", col.accent)}>
+              <Badge
+                variant="outline"
+                className={cn("h-5 px-1.5 text-[10px]", docStatusVisual(col.statusRef).badge)}
+              >
                 {items.length}
               </Badge>
             </header>
@@ -425,17 +447,18 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                   const status = doc?.status ?? "nao_criado";
                   const statusLabel =
                     statusLabelI18n[status] ?? STATUS_LABEL[status] ?? status;
-                  const statusCls =
-                    status === "nao_criado"
-                      ? "bg-muted text-muted-foreground border-border"
-                      : STATUS_CLS[status] ?? "bg-muted text-muted-foreground border-border";
+                  const visual = docStatusVisual(status);
+                  const statusCls = visual.badge;
                   const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
                   return (
                     <button
                       key={tipo}
                       type="button"
                       onClick={() => onOpenItem(tipo)}
-                      className="flex flex-col gap-1 rounded border border-border bg-card px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-card/80"
+                      className={cn(
+                        "flex flex-col gap-1 rounded border border-border bg-card px-2.5 py-2 text-left transition-colors hover:bg-card/80",
+                        visual.border,
+                      )}
                     >
                       <div className="flex items-start gap-1.5">
                         <FluxoIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
@@ -454,8 +477,12 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                       <div className="mt-0.5 flex items-center justify-between gap-1">
                         <Badge
                           variant="outline"
-                          className={cn("h-4 px-1.5 text-[9.5px] font-medium", statusCls)}
+                          className={cn("h-4 gap-1 px-1.5 text-[9.5px] font-medium", statusCls)}
                         >
+                          <span
+                            aria-hidden
+                            className={cn("h-1.5 w-1.5 rounded-full", visual.dot)}
+                          />
                           {statusLabel}
                         </Badge>
                         <span className="text-[9.5px] text-muted-foreground/70">

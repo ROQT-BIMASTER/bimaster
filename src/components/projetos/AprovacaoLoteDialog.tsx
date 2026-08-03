@@ -37,6 +37,8 @@ import { DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import {
   docStatusLabel,
   docStatusTone,
+  docStatusVisual,
+
   normalizarDecisao,
   type DocDecisao,
 } from "@/lib/china/docStatus";
@@ -466,31 +468,38 @@ export function AprovacaoLoteDialog({
                     Nenhum documento elegível para esta ação no escopo atual.
                   </p>
                 )}
-                {elegiveis.map((d) => (
-                  <label
-                    key={d.documento_id}
-                    className="flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-muted/40"
-                  >
-                    <Checkbox
-                      checked={selecionados.includes(d.documento_id)}
-                      onCheckedChange={() => toggle(d.documento_id)}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-medium">
-                        {d.nome_arquivo || d.tipo_documento}
+                {elegiveis.map((d) => {
+                  const visual = docStatusVisual(d.status);
+                  return (
+                    <label
+                      key={d.documento_id}
+                      className={`flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-muted/40 ${visual.border}`}
+                    >
+                      <Checkbox
+                        checked={selecionados.includes(d.documento_id)}
+                        onCheckedChange={() => toggle(d.documento_id)}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium">
+                          {d.nome_arquivo || d.tipo_documento}
+                        </span>
+                        <span className="block truncate text-[10.5px] text-muted-foreground">
+                          {secaoNome.get(colunaDe(d.tarefa_id)) || "Sem coluna"} ·{" "}
+                          {d.tarefa_titulo || "Sem tarefa"} ·{" "}
+                          {CATEGORIA_LABEL[categoriaDe(d.tipo_documento)]} · {d.tipo_documento}
+                        </span>
                       </span>
-                      <span className="block truncate text-[10.5px] text-muted-foreground">
-                        {secaoNome.get(colunaDe(d.tarefa_id)) || "Sem coluna"} ·{" "}
-                        {d.tarefa_titulo || "Sem tarefa"} ·{" "}
-                        {CATEGORIA_LABEL[categoriaDe(d.tipo_documento)]} · {d.tipo_documento}
-                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`h-4 gap-1 text-[10px] ${visual.badge}`}
+                      >
+                        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} />
+                        {docStatusLabel(d.status)}
+                      </Badge>
+                    </label>
+                  );
+                })}
 
-                    </span>
-                    <Badge className={`h-4 text-[10px] ${docStatusTone(d.status)}`}>
-                      {docStatusLabel(d.status)}
-                    </Badge>
-                  </label>
-                ))}
               </div>
             </ScrollArea>
           </div>

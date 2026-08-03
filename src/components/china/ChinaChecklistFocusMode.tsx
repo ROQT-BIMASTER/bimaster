@@ -47,6 +47,7 @@ import {
   aplicarTemplateNaSubmissao, useCategoriaOverrides, useUpsertCategoriaOverride,
   type TemplateEstrutura,
 } from "@/hooks/useChinaDocChecklistTemplates";
+import { docStatusVisual, docStatusIconComponent } from "@/lib/china/docStatus";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
@@ -89,26 +90,28 @@ interface ChinaChecklistFocusModeProps {
   onAfterFocus?: () => void;
 }
 
-const statusIcons: Record<string, React.ReactNode> = {
-  planejado: <CalendarIcon className="h-3.5 w-3.5 text-primary" />,
-  rascunho: <Save className="h-3.5 w-3.5 text-muted-foreground" />,
-  pendente: <Clock className="h-3.5 w-3.5 text-warning" />,
-  enviado_brasil: <Clock className="h-3.5 w-3.5 text-warning" />,
-  em_analise: <Clock className="h-3.5 w-3.5 text-primary" />,
-  aprovado: <CheckCircle2 className="h-3.5 w-3.5 text-success" />,
-  rejeitado: <XCircle className="h-3.5 w-3.5 text-destructive" />,
+/** Ícone do status — derivado da paleta única (`docStatusVisual`). */
+const statusIcon = (status: string) => {
+  const Icon = docStatusIconComponent(status);
+  return <Icon className={cn("h-3.5 w-3.5", docStatusVisual(status).text)} />;
 };
 
-// Visual border colors per status
+/** Borda lateral por status — paleta única do checklist. */
+const statusBorder = (status: string) => docStatusVisual(status).border;
+
+/** Badge por status — paleta única do checklist. */
+const statusBadge = (status: string) => docStatusVisual(status).badge;
+
 const statusBorders: Record<string, string> = {
-  aprovado: "border-l-success border-l-4",
-  rejeitado: "border-l-destructive border-l-4",
-  pendente: "border-l-warning border-l-4",
-  enviado_brasil: "border-l-warning border-l-4",
-  em_analise: "border-l-primary border-l-4",
-  rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
-  planejado: "border-l-primary border-l-4 border-dashed",
+  aprovado: statusBorder("aprovado"),
+  rejeitado: statusBorder("rejeitado"),
+  pendente: statusBorder("pendente"),
+  enviado_brasil: statusBorder("enviado_brasil"),
+  em_analise: statusBorder("em_analise"),
+  rascunho: statusBorder("rascunho"),
+  planejado: statusBorder("planejado"),
 };
+
 
 // Merged category type used internally
 interface MergedCategory {
@@ -1508,13 +1511,19 @@ export function ChinaChecklistFocusMode({
                                   <span className="truncate flex-1 text-foreground">{d.nome_arquivo || "doc"}</span>
 
                                   <div className="flex items-center gap-1 shrink-0">
-                                    {statusIcons[d.status]}
+                                    {statusIcon(d.status)}
                                     {isDraft ? (
                                       <Badge variant="warning" className="text-[9px] px-1.5 py-0 h-4 whitespace-nowrap">
                                         Não enviado ao Brasil 未发送
                                       </Badge>
                                     ) : (
-                                      <Badge variant={label.variant} className="text-[9px] px-1.5 py-0 h-4">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0 h-4",
+                                          statusBadge(d.status),
+                                        )}
+                                      >
                                         {label.pt}
                                       </Badge>
                                     )}

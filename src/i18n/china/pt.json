@@ -1281,6 +1281,14 @@
     "nenhumItem": "Nenhum item",
     "pendenteAnaliseBadge": "Pendente análise",
     "aprovadoBadge": "Aprovado",
-    "naoCriadoBadge": "Não criado"
+    "naoCriadoBadge": "Não criado",
+    "emAnaliseBadge": "Em análise",
+    "enviadoBadge": "Enviado",
+    "enviadoBrasilBadge": "Enviado ao Brasil",
+    "rejeitadoBadge": "Não aprovado",
+    "contestadoBadge": "Contestado",
+    "rascunhoBadge": "Rascunho",
+    "planejadoBadge": "Planejado",
+    "cienciaBadge": "Ciente"
   }
 }
