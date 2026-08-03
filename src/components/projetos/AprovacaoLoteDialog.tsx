@@ -401,11 +401,49 @@ export function AprovacaoLoteDialog({
             </span>
           </div>
 
-          {(tarefaIds?.length || statusFiltro.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <FiltroMulti
+              label="Coluna do Kanban"
+              opcoes={opcoesColuna}
+              selecionados={colunasFiltro}
+              onChange={setColunasFiltro}
+            />
+            <FiltroMulti
+              label="Categoria"
+              opcoes={opcoesCategoria}
+              selecionados={categoriasFiltro}
+              onChange={setCategoriasFiltro}
+              busca
+            />
+            <FiltroMulti
+              label="Tarefa"
+              opcoes={opcoesTarefa}
+              selecionados={tarefasFiltro}
+              onChange={setTarefasFiltro}
+              busca
+            />
+            {filtrosAtivos && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px]"
+                onClick={limparFiltros}
+              >
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+
+          {(tarefaIds?.length || statusFiltro.length > 0 || filtrosAtivos) && (
             <p className="text-[11px] text-muted-foreground">
-              Lista restrita ao quadro filtrado atualmente exibido.
+              Lista restrita ao quadro filtrado atualmente exibido
+              {filtrosAtivos
+                ? ` · ${elegiveis.length} de ${base.length} documento(s) após os filtros desta janela`
+                : ""}
+              .
             </p>
           )}
+
 
           <div className="rounded-md border border-border">
             <div className="flex items-center gap-2 border-b border-border px-3 py-2">
