@@ -59,6 +59,7 @@ import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilida
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { useChinaDocsRealtime } from "@/hooks/useChinaDecisoesSubmissao";
 
 export default function ChinaFichaProduto() {
   const { t } = useChinaI18n();
