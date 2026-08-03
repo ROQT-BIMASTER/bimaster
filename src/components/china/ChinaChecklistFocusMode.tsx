@@ -47,6 +47,7 @@ import {
   aplicarTemplateNaSubmissao, useCategoriaOverrides, useUpsertCategoriaOverride,
   type TemplateEstrutura,
 } from "@/hooks/useChinaDocChecklistTemplates";
+import { docStatusVisual, docStatusIconComponent } from "@/lib/china/docStatus";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
@@ -1510,13 +1511,19 @@ export function ChinaChecklistFocusMode({
                                   <span className="truncate flex-1 text-foreground">{d.nome_arquivo || "doc"}</span>
 
                                   <div className="flex items-center gap-1 shrink-0">
-                                    {statusIcons[d.status]}
+                                    {statusIcon(d.status)}
                                     {isDraft ? (
                                       <Badge variant="warning" className="text-[9px] px-1.5 py-0 h-4 whitespace-nowrap">
                                         Não enviado ao Brasil 未发送
                                       </Badge>
                                     ) : (
-                                      <Badge variant={label.variant} className="text-[9px] px-1.5 py-0 h-4">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0 h-4",
+                                          statusBadge(d.status),
+                                        )}
+                                      >
                                         {label.pt}
                                       </Badge>
                                     )}
