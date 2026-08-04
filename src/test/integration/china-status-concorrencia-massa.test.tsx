@@ -289,7 +289,7 @@ describe("China — concorrência: atualizações de status em massa", () => {
       const etiqueta = screen
         .getAllByText(rotuloDe(d.doc_status))
         .map((el) => el.parentElement!)
-        .find((el) => el.className.includes("leading-none"))!;
+        .find((el) => el.className.includes("rounded-md border"))!;
       expect(etiqueta).toBeDefined();
       for (const classe of docStatusVisual(d.doc_status).badge.split(" ")) {
         expect(etiqueta.className).toContain(classe);
