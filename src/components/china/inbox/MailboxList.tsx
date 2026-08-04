@@ -13,6 +13,8 @@ import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/aw
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
+import { DocStatusTag } from "@/components/china/DocStatusTag";
+
 
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 
@@ -261,10 +263,12 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         })()}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
+        <DocStatusTag status={item.doc_status} size="xs" idioma="bi" />
         <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
           <SbIcon className="h-2.5 w-2.5" />
           {sb.label}
         </Badge>
+
         {item.submissao_status === "aprovado" && item.checklist_total > 0 && (
           <Badge
             variant="outline"
@@ -814,7 +818,9 @@ function GroupRow({
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
+          {group.worst_status && <DocStatusTag status={group.worst_status} size="xs" idioma="bi" />}
           {!isAwaiting && (
+
             <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
               <SbIcon className="h-2.5 w-2.5" />
               {sb.label}

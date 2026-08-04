@@ -24,6 +24,8 @@ import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 import { useChinaKanbanFilters, type BucketFilter } from "@/hooks/useChinaKanbanFilters";
 import { MailboxKanbanFilters } from "@/components/china/inbox/MailboxKanbanFilters";
 import { bucketFluxo, type FluxoBucket } from "@/lib/china/docStatus";
+import { DocStatusTag } from "@/components/china/DocStatusTag";
+
 
 
 interface Props {
@@ -138,6 +140,16 @@ const FLUXO_TO_BUCKET: Record<FluxoBucket, Bucket> = {
 function bucketForDoc(d: MailboxItem): Bucket {
   return FLUXO_TO_BUCKET[bucketFluxo(d.doc_status)];
 }
+
+/** Status representativo por bucket — usado quando o doc ainda não tem status. */
+const BUCKET_STATUS_REF: Record<Bucket, string> = {
+  aprovado: "aprovado",
+  rejeitado: "rejeitado",
+  em_analise: "em_analise",
+  enviado: "enviado_brasil",
+  pendente: "pendente",
+};
+
 
 const BUCKET_TO_COLUMN: Record<"china" | "brasil", Record<Bucket, ColumnKey>> = {
   china: {
@@ -339,13 +351,8 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
   const meta = BUCKET_META[bucket];
   const Icon = meta.icon;
   const docLabel = item.tipo_documento_label || item.tipo_documento || "Item do checklist";
-  const statusLabel = ({
-    aprovado: "aprovado",
-    em_analise: "em análise",
-    enviado: "enviado",
-    pendente: "pendente",
-    rejeitado: "devolvido",
-  } as const)[bucket];
+  const statusRef = item.doc_status || BUCKET_STATUS_REF[bucket];
+
 
   // Faixa lateral por estado do anexo. Devolvido pelo Brasil tem prioridade.
   const anexado = hasAttachment(item);
@@ -398,10 +405,11 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
         <span className="opacity-60">·</span>
         <span className="truncate">{group.produto_nome}</span>
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="mt-1 flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
         <span>{safeRelative(item.created_at)}</span>
-        <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+        <DocStatusTag status={statusRef} size="xs" idioma="bi" />
       </div>
+
     </button>
   );
 }
