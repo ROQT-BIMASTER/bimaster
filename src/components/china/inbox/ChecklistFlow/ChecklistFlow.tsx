@@ -72,6 +72,7 @@ function CategoryRow({
   selectedTipo,
   getDocType,
   onFocusItem,
+  activeBuckets,
 }: {
   category: MergedChecklistCategory;
   group: MailboxGroup;
@@ -79,6 +80,8 @@ function CategoryRow({
   selectedTipo?: string | null;
   getDocType: ReturnType<typeof useMergedChinaChecklist>["getDocType"];
   onFocusItem: Props["onFocusItem"];
+  /** Estágios ativos no filtro; vazio = mostrar todos. */
+  activeBuckets: FlowBucket[];
 }) {
   const docsByTipo = useMemo(() => {
     const m = new Map<string, MailboxItem>();
@@ -110,7 +113,18 @@ function CategoryRow({
     return { done, pending, blocked, total: category.tipos.length };
   }, [category.tipos, docsByTipo]);
 
+  const tiposVisiveis = useMemo(
+    () =>
+      activeBuckets.length === 0
+        ? category.tipos
+        : category.tipos.filter((tipo) =>
+            activeBuckets.includes(bucketForDoc(docsByTipo.get(tipo))),
+          ),
+    [activeBuckets, category.tipos, docsByTipo],
+  );
+
   if (category.tipos.length === 0) return null;
+  if (tiposVisiveis.length === 0) return null;
 
   return (
     <div className="rounded-md border border-border/70 bg-card/40">
@@ -144,7 +158,7 @@ function CategoryRow({
 
       <ScrollArea className="w-full">
         <div className="flex items-start gap-0 px-2 py-2">
-          {category.tipos.map((tipo, idx) => {
+          {tiposVisiveis.map((tipo, idx) => {
             const dt = getDocType(tipo);
             const doc = docsByTipo.get(tipo) ?? null;
             const bucket = bucketForDoc(doc);
@@ -152,7 +166,7 @@ function CategoryRow({
             const labelCn = dt?.labelCn;
             const needs = needsActionForPerspective(bucket, perspective);
             const prevBucket =
-              idx === 0 ? bucket : bucketForDoc(docsByTipo.get(category.tipos[idx - 1]));
+              idx === 0 ? bucket : bucketForDoc(docsByTipo.get(tiposVisiveis[idx - 1]));
             return (
               <div key={tipo} className="flex items-start">
                 {idx > 0 && <FlowConnector fromBucket={prevBucket} />}
@@ -160,6 +174,7 @@ function CategoryRow({
                   label={labelPt}
                   labelCn={labelCn}
                   bucket={bucket}
+                  status={doc?.doc_status}
                   selected={selectedTipo === tipo}
                   needsAction={needs}
                   onClick={() =>
@@ -183,6 +198,7 @@ function CategoryRow({
     </div>
   );
 }
+
 
 function Legend() {
   const { t } = useChinaI18n();
