@@ -1,0 +1,1285 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Regressão visual — ChinaStatusFilterChips > chips com seleção ativa mantêm marcação estável 1`] = `
+<div
+  class="flex flex-wrap items-center gap-1"
+>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Em análise / 审核中"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-search h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="11"
+        cy="11"
+        r="8"
+      />
+      <path
+        d="m21 21-4.3-4.3"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Em análise 审核中
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      4
+    </span>
+  </button>
+  <button
+    aria-pressed="true"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors bg-doc-aprovado/15 text-doc-aprovado border-doc-aprovado/35 ring-1 ring-inset ring-current/40"
+    title="Aprovado / 已批准"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-check h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m9 12 2 2 4-4"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Aprovado 已批准
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      12
+    </span>
+  </button>
+  <button
+    aria-pressed="true"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors bg-doc-rejeitado/15 text-doc-rejeitado border-doc-rejeitado/35 ring-1 ring-inset ring-current/40"
+    title="Não aprovado / 未批准"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-x h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m15 9-6 6"
+      />
+      <path
+        d="m9 9 6 6"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não aprovado 未批准
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      2
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Enviado ao Brasil / 已发送至巴西"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-send h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+      />
+      <path
+        d="m21.854 2.147-10.94 10.939"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Enviado ao Brasil 已发送至巴西
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      7
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Pendente análise / 待审核"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-clock h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <polyline
+        points="12 6 12 12 16 14"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Pendente análise 待审核
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      9
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Não criado / 未创建"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-dashed h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M10.1 2.182a10 10 0 0 1 3.8 0"
+      />
+      <path
+        d="M13.9 21.818a10 10 0 0 1-3.8 0"
+      />
+      <path
+        d="M17.609 3.721a10 10 0 0 1 2.69 2.7"
+      />
+      <path
+        d="M2.182 13.9a10 10 0 0 1 0-3.8"
+      />
+      <path
+        d="M20.279 17.609a10 10 0 0 1-2.7 2.69"
+      />
+      <path
+        d="M21.818 10.1a10 10 0 0 1 0 3.8"
+      />
+      <path
+        d="M3.721 6.391a10 10 0 0 1 2.7-2.69"
+      />
+      <path
+        d="M6.391 20.279a10 10 0 0 1-2.69-2.7"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não criado 未创建
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      1
+    </span>
+  </button>
+  <button
+    class="text-[10px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+    type="button"
+  >
+    Limpar 清除
+  </button>
+</div>
+`;
+
+exports[`Regressão visual — ChinaStatusFilterChips > conjunto completo de chips (sem seleção) mantém marcação estável 1`] = `
+<div
+  class="flex flex-wrap items-center gap-1"
+>
+  <span
+    class="mr-0.5 text-[10px] font-medium text-muted-foreground"
+  >
+    Status
+    :
+  </span>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Em análise / 审核中"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-search h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="11"
+        cy="11"
+        r="8"
+      />
+      <path
+        d="m21 21-4.3-4.3"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Em análise 审核中
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      4
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Aprovado / 已批准"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-check h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m9 12 2 2 4-4"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Aprovado 已批准
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      12
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Não aprovado / 未批准"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-x h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m15 9-6 6"
+      />
+      <path
+        d="m9 9 6 6"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não aprovado 未批准
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      2
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Enviado ao Brasil / 已发送至巴西"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-send h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+      />
+      <path
+        d="m21.854 2.147-10.94 10.939"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Enviado ao Brasil 已发送至巴西
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      7
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Pendente análise / 待审核"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-clock h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <polyline
+        points="12 6 12 12 16 14"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Pendente análise 待审核
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      9
+    </span>
+  </button>
+  <button
+    aria-pressed="false"
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors border-border/60 text-muted-foreground hover:bg-muted/50"
+    title="Não criado / 未创建"
+    type="button"
+  >
+    <svg
+      class="lucide lucide-circle-dashed h-2.5 w-2.5 opacity-70"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M10.1 2.182a10 10 0 0 1 3.8 0"
+      />
+      <path
+        d="M13.9 21.818a10 10 0 0 1-3.8 0"
+      />
+      <path
+        d="M17.609 3.721a10 10 0 0 1 2.69 2.7"
+      />
+      <path
+        d="M2.182 13.9a10 10 0 0 1 0-3.8"
+      />
+      <path
+        d="M20.279 17.609a10 10 0 0 1-2.7 2.69"
+      />
+      <path
+        d="M21.818 10.1a10 10 0 0 1 0 3.8"
+      />
+      <path
+        d="M3.721 6.391a10 10 0 0 1 2.7-2.69"
+      />
+      <path
+        d="M6.391 20.279a10 10 0 0 1-2.69-2.7"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não criado 未创建
+    </span>
+    <span
+      class="rounded bg-background/70 px-1 tabular-nums"
+    >
+      1
+    </span>
+  </button>
+</div>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status aprovado mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-aprovado/15 text-doc-aprovado border-doc-aprovado/35 h-4 px-1 text-[9.5px]"
+  title="Aprovado / 已批准"
+>
+  <svg
+    class="lucide lucide-circle-check shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+    />
+    <path
+      d="m9 12 2 2 4-4"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Aprovado 已批准
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status em_analise mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-analise/15 text-doc-analise border-doc-analise/35 h-4 px-1 text-[9.5px]"
+  title="Em análise / 审核中"
+>
+  <svg
+    class="lucide lucide-search shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="11"
+      cy="11"
+      r="8"
+    />
+    <path
+      d="m21 21-4.3-4.3"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Em análise 审核中
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status enviado_brasil mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-enviado/15 text-doc-enviado border-doc-enviado/35 h-4 px-1 text-[9.5px]"
+  title="Enviado ao Brasil / 已发送至巴西"
+>
+  <svg
+    class="lucide lucide-send shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+    />
+    <path
+      d="m21.854 2.147-10.94 10.939"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Enviado ao Brasil 已发送至巴西
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status nao_criado mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-neutro/10 text-doc-neutro border-doc-neutro/30 h-4 px-1 text-[9.5px]"
+  title="Não criado / 未创建"
+>
+  <svg
+    class="lucide lucide-circle-dashed shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M10.1 2.182a10 10 0 0 1 3.8 0"
+    />
+    <path
+      d="M13.9 21.818a10 10 0 0 1-3.8 0"
+    />
+    <path
+      d="M17.609 3.721a10 10 0 0 1 2.69 2.7"
+    />
+    <path
+      d="M2.182 13.9a10 10 0 0 1 0-3.8"
+    />
+    <path
+      d="M20.279 17.609a10 10 0 0 1-2.7 2.69"
+    />
+    <path
+      d="M21.818 10.1a10 10 0 0 1 0 3.8"
+    />
+    <path
+      d="M3.721 6.391a10 10 0 0 1 2.7-2.69"
+    />
+    <path
+      d="M6.391 20.279a10 10 0 0 1-2.69-2.7"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Não criado 未创建
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status pendente mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-pendente/15 text-doc-pendente border-doc-pendente/35 h-4 px-1 text-[9.5px]"
+  title="Pendente análise / 待审核"
+>
+  <svg
+    class="lucide lucide-clock shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+    />
+    <polyline
+      points="12 6 12 12 16 14"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Pendente análise 待审核
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — DocStatusTag > etiqueta do status rejeitado mantém marcação estável 1`] = `
+<span
+  class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-rejeitado/15 text-doc-rejeitado border-doc-rejeitado/35 h-4 px-1 text-[9.5px]"
+  title="Não aprovado / 未批准"
+>
+  <svg
+    class="lucide lucide-circle-x shrink-0 h-2.5 w-2.5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+    />
+    <path
+      d="m15 9-6 6"
+    />
+    <path
+      d="m9 9 6 6"
+    />
+  </svg>
+  <span
+    class="truncate"
+  >
+    Não aprovado 未批准
+  </span>
+</span>
+`;
+
+exports[`Regressão visual — FlowNode > estado selecionado e indicador de ação mantêm marcação estável 1`] = `
+<button
+  aria-pressed="true"
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 bg-primary/5 ring-1 ring-primary/30"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-rose-500/60 bg-rose-500/10 ring-rose-500/30 scale-105"
+  >
+    <svg
+      class="lucide lucide-triangle-alert h-5 w-5 text-rose-600"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"
+      />
+      <path
+        d="M12 9v4"
+      />
+      <path
+        d="M12 17h.01"
+      />
+    </svg>
+    <span
+      aria-label="Ação necessária"
+      class="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow"
+    >
+      !
+    </span>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-rejeitado/15 text-doc-rejeitado border-doc-rejeitado/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Não aprovado / 未批准"
+  >
+    <svg
+      class="lucide lucide-circle-x shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m15 9-6 6"
+      />
+      <path
+        d="m9 9 6 6"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não aprovado 未批准
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket aprovado mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-emerald-500/60 bg-emerald-500/10 ring-emerald-500/30"
+  >
+    <svg
+      class="lucide lucide-check h-5 w-5 text-emerald-600"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M20 6 9 17l-5-5"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-aprovado/15 text-doc-aprovado border-doc-aprovado/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Aprovado / 已批准"
+  >
+    <svg
+      class="lucide lucide-circle-check shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m9 12 2 2 4-4"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Aprovado 已批准
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket em_analise mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-amber-500/60 bg-amber-500/10 ring-amber-500/30"
+  >
+    <svg
+      class="lucide lucide-clock h-5 w-5 text-amber-600"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <polyline
+        points="12 6 12 12 16 14"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-analise/15 text-doc-analise border-doc-analise/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Em análise / 审核中"
+  >
+    <svg
+      class="lucide lucide-search shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="11"
+        cy="11"
+        r="8"
+      />
+      <path
+        d="m21 21-4.3-4.3"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Em análise 审核中
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket enviado mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-amber-500/60 bg-amber-500/10 ring-amber-500/30"
+  >
+    <svg
+      class="lucide lucide-upload h-5 w-5 text-amber-600"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+      />
+      <polyline
+        points="17 8 12 3 7 8"
+      />
+      <line
+        x1="12"
+        x2="12"
+        y1="3"
+        y2="15"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-enviado/15 text-doc-enviado border-doc-enviado/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Enviado ao Brasil / 已发送至巴西"
+  >
+    <svg
+      class="lucide lucide-send shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+      />
+      <path
+        d="m21.854 2.147-10.94 10.939"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Enviado ao Brasil 已发送至巴西
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket nao_criado mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-border bg-muted/40 ring-slate-400/20"
+  >
+    <svg
+      class="lucide lucide-circle h-5 w-5 text-muted-foreground"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-neutro/10 text-doc-neutro border-doc-neutro/30 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Não criado / 未创建"
+  >
+    <svg
+      class="lucide lucide-circle-dashed shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M10.1 2.182a10 10 0 0 1 3.8 0"
+      />
+      <path
+        d="M13.9 21.818a10 10 0 0 1-3.8 0"
+      />
+      <path
+        d="M17.609 3.721a10 10 0 0 1 2.69 2.7"
+      />
+      <path
+        d="M2.182 13.9a10 10 0 0 1 0-3.8"
+      />
+      <path
+        d="M20.279 17.609a10 10 0 0 1-2.7 2.69"
+      />
+      <path
+        d="M21.818 10.1a10 10 0 0 1 0 3.8"
+      />
+      <path
+        d="M3.721 6.391a10 10 0 0 1 2.7-2.69"
+      />
+      <path
+        d="M6.391 20.279a10 10 0 0 1-2.69-2.7"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não criado 未创建
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket pendente mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-border bg-muted/40 ring-slate-400/20"
+  >
+    <svg
+      class="lucide lucide-circle h-5 w-5 text-muted-foreground"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-pendente/15 text-doc-pendente border-doc-pendente/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Pendente análise / 待审核"
+  >
+    <svg
+      class="lucide lucide-clock shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <polyline
+        points="12 6 12 12 16 14"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Pendente análise 待审核
+    </span>
+  </span>
+</button>
+`;
+
+exports[`Regressão visual — FlowNode > nó do bucket rejeitado mantém marcação estável 1`] = `
+<button
+  class="group relative flex w-[88px] shrink-0 flex-col items-center gap-1 rounded-md p-1 -m-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40"
+  title="Ficha técnica · 技术表"
+  type="button"
+>
+  <span
+    class="relative flex h-11 w-11 items-center justify-center rounded-full border-2 ring-4 shadow-sm transition-transform group-hover:scale-105 border-rose-500/60 bg-rose-500/10 ring-rose-500/30"
+  >
+    <svg
+      class="lucide lucide-triangle-alert h-5 w-5 text-rose-600"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"
+      />
+      <path
+        d="M12 9v4"
+      />
+      <path
+        d="M12 17h.01"
+      />
+    </svg>
+  </span>
+  <span
+    class="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight text-foreground/90"
+  >
+    Ficha técnica
+  </span>
+  <span
+    class="line-clamp-1 w-full text-center text-[9px] leading-tight text-muted-foreground/70"
+  >
+    技术表
+  </span>
+  <span
+    class="inline-flex max-w-full items-center gap-1 rounded-md border font-medium bg-doc-rejeitado/15 text-doc-rejeitado border-doc-rejeitado/35 h-4 px-1 text-[9.5px] mt-0.5"
+    title="Não aprovado / 未批准"
+  >
+    <svg
+      class="lucide lucide-circle-x shrink-0 h-2.5 w-2.5"
+      fill="none"
+      height="24"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+      />
+      <path
+        d="m15 9-6 6"
+      />
+      <path
+        d="m9 9 6 6"
+      />
+    </svg>
+    <span
+      class="truncate"
+    >
+      Não aprovado 未批准
+    </span>
+  </span>
+</button>
+`;
