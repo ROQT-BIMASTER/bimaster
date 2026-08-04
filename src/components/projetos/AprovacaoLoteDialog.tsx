@@ -382,7 +382,7 @@ export function AprovacaoLoteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1">
           <div className="flex flex-wrap items-center gap-2">
             {ACOES.map(({ value, label, icon: Icon }) => (
               <Button
