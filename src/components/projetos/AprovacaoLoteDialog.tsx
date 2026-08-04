@@ -542,7 +542,7 @@ export function AprovacaoLoteDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border pt-3">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancelar
           </Button>
