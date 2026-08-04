@@ -141,6 +141,16 @@ function bucketForDoc(d: MailboxItem): Bucket {
   return FLUXO_TO_BUCKET[bucketFluxo(d.doc_status)];
 }
 
+/** Status representativo por bucket — usado quando o doc ainda não tem status. */
+const BUCKET_STATUS_REF: Record<Bucket, string> = {
+  aprovado: "aprovado",
+  rejeitado: "rejeitado",
+  em_analise: "em_analise",
+  enviado: "enviado_brasil",
+  pendente: "pendente",
+};
+
+
 const BUCKET_TO_COLUMN: Record<"china" | "brasil", Record<Bucket, ColumnKey>> = {
   china: {
     aprovado: "approved",
