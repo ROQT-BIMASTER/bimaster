@@ -369,8 +369,8 @@ export function AprovacaoLoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             Ações em lote nos documentos
@@ -382,7 +382,7 @@ export function AprovacaoLoteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1">
           <div className="flex flex-wrap items-center gap-2">
             {ACOES.map(({ value, label, icon: Icon }) => (
               <Button
@@ -447,7 +447,7 @@ export function AprovacaoLoteDialog({
           )}
 
 
-          <div className="rounded-md border border-border">
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <div className="flex items-center gap-2 border-b border-border px-3 py-2">
               <Checkbox
                 checked={todosSelecionados}
@@ -473,9 +473,10 @@ export function AprovacaoLoteDialog({
                   return (
                     <label
                       key={d.documento_id}
-                      className={`flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-muted/40 ${visual.border}`}
+                      className={`flex w-full min-w-0 cursor-pointer items-start gap-2 overflow-hidden px-3 py-2 hover:bg-muted/40 ${visual.border}`}
                     >
                       <Checkbox
+                        className="mt-0.5 shrink-0"
                         checked={selecionados.includes(d.documento_id)}
                         onCheckedChange={() => toggle(d.documento_id)}
                       />
@@ -491,9 +492,9 @@ export function AprovacaoLoteDialog({
                       </span>
                       <Badge
                         variant="outline"
-                        className={`h-4 gap-1 text-[10px] ${visual.badge}`}
+                        className={`h-4 max-w-[40%] shrink-0 gap-1 truncate whitespace-nowrap text-[10px] ${visual.badge}`}
                       >
-                        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} />
+                        <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${visual.dot}`} />
                         {docStatusLabel(d.status)}
                       </Badge>
                     </label>
@@ -532,6 +533,7 @@ export function AprovacaoLoteDialog({
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 placeholder="Senha do seu usuário"
+                className="bg-background text-foreground"
               />
               <p className="text-[11px] text-muted-foreground">
                 A senha é validada no servidor e autoriza apenas este lote.
@@ -540,7 +542,7 @@ export function AprovacaoLoteDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border pt-3">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancelar
           </Button>
