@@ -77,7 +77,7 @@ export function FlowNode({ label, labelCn, bucket, status, selected, needsAction
           {labelCn}
         </span>
       )}
-      <DocStatusTag status={status || STATUS_REF[bucket]} size="xs" idioma="pt" className="mt-0.5" />
+      <DocStatusTag status={status || STATUS_REF[bucket]} size="xs" idioma="bi" className="mt-0.5" />
 
     </button>
   );
