@@ -599,10 +599,6 @@ function DraggableKanbanCard({
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
   const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
-  // Fallback de imagem: primeira imagem anexada à tarefa (qualquer projeto).
-  const fotoAnexo = anexosResumo?.arquivos.find(
-    (a) => a.familia === "imagem" && !!a.storage_path,
-  );
 
   return (
     <div
