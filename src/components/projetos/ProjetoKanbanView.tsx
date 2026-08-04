@@ -23,7 +23,7 @@ import { SLACountdownPill } from "./SLACountdownPill";
 import { SlaProtocoloBadge } from "./SlaProtocoloBadge";
 import { SlaStatusBadge, derivarSlaStatus } from "./SlaStatusBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
-import { ItemThumb } from "@/components/china/inbox/ItemThumb";
+
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
