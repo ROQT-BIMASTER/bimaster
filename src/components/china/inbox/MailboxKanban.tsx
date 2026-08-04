@@ -339,13 +339,8 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
   const meta = BUCKET_META[bucket];
   const Icon = meta.icon;
   const docLabel = item.tipo_documento_label || item.tipo_documento || "Item do checklist";
-  const statusLabel = ({
-    aprovado: "aprovado",
-    em_analise: "em análise",
-    enviado: "enviado",
-    pendente: "pendente",
-    rejeitado: "devolvido",
-  } as const)[bucket];
+  const statusRef = item.doc_status || BUCKET_STATUS_REF[bucket];
+
 
   // Faixa lateral por estado do anexo. Devolvido pelo Brasil tem prioridade.
   const anexado = hasAttachment(item);
