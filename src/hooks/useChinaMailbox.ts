@@ -327,11 +327,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     // usado para descobrir o que ainda falta criar (virtuais "fantasma").
     const realTiposBySub = new Map<string, Set<string>>();
     for (const d of docs) {
-      if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+      if (isDevolvido(d.status)) rejectedSubs.add(d.submissao_id);
       const s = subStats.get(d.submissao_id) ?? { total: 0, aprovados: 0, pendentes: 0, rejeitados: 0 };
       s.total += 1;
-      if (d.status === "aprovado") s.aprovados += 1;
-      else if (d.status === "rejeitado") s.rejeitados += 1;
+      if (isAprovado(d.status)) s.aprovados += 1;
+      else if (isDevolvido(d.status)) s.rejeitados += 1;
       else s.pendentes += 1;
       subStats.set(d.submissao_id, s);
       if (d.tipo_documento) {
