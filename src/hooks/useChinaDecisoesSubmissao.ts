@@ -5,7 +5,7 @@
  * real, quem movimentou o documento (em análise / aprovado / não aprovado),
  * com autor, método de confirmação (senha ou sessão) e data e hora.
  */
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,10 +58,13 @@ export function useChinaDecisoesSubmissao(submissaoId: string | undefined) {
  */
 export function useChinaDocsRealtime(submissaoId: string | undefined) {
   const qc = useQueryClient();
+  // Nome único por instância: a mesma submissão pode ter várias telas montadas
+  // (ficha + modo foco) e canais homônimos colidem no cliente de tempo real.
+  const instanceId = useId();
   useEffect(() => {
     if (!submissaoId) return;
     const channel = supabase
-      .channel(`china-docs-submissao-${submissaoId}`)
+      .channel(`china-docs-submissao-${submissaoId}-${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -79,5 +82,5 @@ export function useChinaDocsRealtime(submissaoId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [submissaoId, qc]);
+  }, [submissaoId, qc, instanceId]);
 }

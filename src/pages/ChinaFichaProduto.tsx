@@ -1007,9 +1007,9 @@ function FichaVisibilidadeSection({ submissaoId }: { submissaoId: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, nome_completo, email")
+        .select("id, nome, email")
         .eq("aprovado", true)
-        .order("nome_completo");
+        .order("nome");
       return (data || []) as any[];
     },
   });
@@ -1044,7 +1044,7 @@ function FichaVisibilidadeSection({ submissaoId }: { submissaoId: string }) {
           <SelectContent>
             {availableProfiles.map((p: any) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.nome_completo || p.email}
+                {p.nome || p.email}
               </SelectItem>
             ))}
           </SelectContent>
