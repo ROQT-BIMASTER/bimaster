@@ -473,9 +473,10 @@ export function AprovacaoLoteDialog({
                   return (
                     <label
                       key={d.documento_id}
-                      className={`flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-muted/40 ${visual.border}`}
+                      className={`flex w-full min-w-0 cursor-pointer items-start gap-2 overflow-hidden px-3 py-2 hover:bg-muted/40 ${visual.border}`}
                     >
                       <Checkbox
+                        className="mt-0.5 shrink-0"
                         checked={selecionados.includes(d.documento_id)}
                         onCheckedChange={() => toggle(d.documento_id)}
                       />
@@ -491,9 +492,9 @@ export function AprovacaoLoteDialog({
                       </span>
                       <Badge
                         variant="outline"
-                        className={`h-4 gap-1 text-[10px] ${visual.badge}`}
+                        className={`h-4 max-w-[40%] shrink-0 gap-1 truncate whitespace-nowrap text-[10px] ${visual.badge}`}
                       >
-                        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} />
+                        <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${visual.dot}`} />
                         {docStatusLabel(d.status)}
                       </Badge>
                     </label>
