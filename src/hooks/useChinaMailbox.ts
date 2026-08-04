@@ -398,7 +398,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_flagged: flagged.has(sub.id),
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
-        had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
+        had_previous_rejection: rejectedSubs.has(sub.id) && !isDevolvido(d.status),
         checklist_total: subStats.get(sub.id)?.total ?? 0,
         checklist_aprovados: subStats.get(sub.id)?.aprovados ?? 0,
         checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
