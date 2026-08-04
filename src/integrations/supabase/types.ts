@@ -61257,6 +61257,15 @@ export type Database = {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
       }
+      rpc_avancar_itens_aprovacao_lote: {
+        Args: {
+          p_comentario?: string
+          p_decisao: string
+          p_item_ids: string[]
+          p_step_up_token?: string
+        }
+        Returns: Json
+      }
       rpc_b2c_sync_tarefa_espelho: {
         Args: { p_item_id: string }
         Returns: Json

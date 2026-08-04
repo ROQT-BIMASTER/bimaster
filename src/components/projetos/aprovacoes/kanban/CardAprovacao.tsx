@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -42,12 +43,26 @@ interface Props {
   onOpen: (item: KanbanItem) => void;
   currentUserId?: string;
   onQuickAction?: (item: KanbanItem, destino: "aprovado" | "rejeitado" | "em_revisao") => void;
+  /** Modo de seleção múltipla (ações em lote). */
+  selecionavel?: boolean;
+  selecionado?: boolean;
+  onToggleSelecionado?: (item: KanbanItem) => void;
 }
 
-export function CardAprovacao({ item, pipeline, onOpen, currentUserId, onQuickAction }: Props) {
+export function CardAprovacao({
+  item,
+  pipeline,
+  onOpen,
+  currentUserId,
+  onQuickAction,
+  selecionavel = false,
+  selecionado = false,
+  onToggleSelecionado,
+}: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
     data: { item },
+    disabled: selecionavel,
   });
 
   const atrasado =
@@ -78,14 +93,24 @@ export function CardAprovacao({ item, pipeline, onOpen, currentUserId, onQuickAc
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      onClick={() => onOpen(item)}
+      onClick={() => (selecionavel ? onToggleSelecionado?.(item) : onOpen(item))}
       className={cn(
         "group relative p-2.5 cursor-pointer hover:border-primary/40 transition border-l-[3px] bg-card/80 backdrop-blur-sm",
         pipelineColor(item.pipeline_id),
         isDragging && "opacity-50",
+        selecionavel && selecionado && "ring-2 ring-primary",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
+        {selecionavel && (
+          <Checkbox
+            checked={selecionado}
+            onCheckedChange={() => onToggleSelecionado?.(item)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 shrink-0"
+            aria-label="Selecionar item"
+          />
+        )}
         <p className="text-xs font-semibold leading-tight line-clamp-2 flex-1 flex items-center gap-1.5">
           <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
           {item.documento_nome || item.documento_tipo || "Documento"}

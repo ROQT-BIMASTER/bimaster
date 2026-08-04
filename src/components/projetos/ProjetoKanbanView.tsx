@@ -23,6 +23,7 @@ import { SLACountdownPill } from "./SLACountdownPill";
 import { SlaProtocoloBadge } from "./SlaProtocoloBadge";
 import { SlaStatusBadge, derivarSlaStatus } from "./SlaStatusBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
@@ -598,6 +599,10 @@ function DraggableKanbanCard({
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
   const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
+  // Fallback de imagem: primeira imagem anexada à tarefa (qualquer projeto).
+  const fotoAnexo = anexosResumo?.arquivos.find(
+    (a) => a.familia === "imagem" && !!a.storage_path,
+  );
 
   return (
     <div
@@ -636,11 +641,23 @@ function DraggableKanbanCard({
 
       <div className="flex-1 p-3">
         {/* Product photo */}
-        {tarefa.produto_foto_url && (
+        {tarefa.produto_foto_url ? (
           <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="xl" className="w-full h-full rounded-md" />
           </div>
-        )}
+        ) : fotoAnexo ? (
+          <div className="mb-2">
+            <ItemThumb
+              bucket={fotoAnexo.bucket}
+              item={{
+                arquivo_path: fotoAnexo.storage_path,
+                arquivo_url: null,
+                nome_arquivo: fotoAnexo.nome,
+              }}
+              size="md"
+            />
+          </div>
+        ) : null}
 
         {/* Title row */}
         <div className="flex items-start gap-2">

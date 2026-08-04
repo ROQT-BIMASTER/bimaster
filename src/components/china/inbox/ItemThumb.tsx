@@ -10,17 +10,19 @@ import { useEffect, useRef, useState } from "react";
 import { FileText, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
-import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
+import { useDocThumbnail } from "@/hooks/useDocThumbnail";
 
 interface Props {
   item: Pick<MailboxItem, "arquivo_path" | "arquivo_url" | "nome_arquivo"> & {
     is_virtual?: boolean;
   };
+  /** Bucket do arquivo. Padrão: documentos China. */
+  bucket?: string;
   size?: "sm" | "md";
   className?: string;
 }
 
-export function ItemThumb({ item, size = "md", className }: Props) {
+export function ItemThumb({ item, bucket = "china-documentos", size = "md", className }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -47,7 +49,8 @@ export function ItemThumb({ item, size = "md", className }: Props) {
     return () => io.disconnect();
   }, [visible]);
 
-  const { kind, url } = useChinaDocThumbnail({
+  const { kind, url } = useDocThumbnail({
+    bucket,
     arquivoPath: item.arquivo_path,
     arquivoUrl: item.arquivo_url,
     nomeArquivo: item.nome_arquivo,
