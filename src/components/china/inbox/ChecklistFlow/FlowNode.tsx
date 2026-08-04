@@ -5,11 +5,24 @@ import {
   iconForBucket,
   type FlowBucket,
 } from "@/lib/china/flowTones";
+import { DocStatusTag } from "@/components/china/DocStatusTag";
+
+/** Status representativo de cada bucket, para a etiqueta quando não há doc. */
+const STATUS_REF: Record<FlowBucket, string> = {
+  aprovado: "aprovado",
+  em_analise: "em_analise",
+  enviado: "enviado_brasil",
+  pendente: "pendente",
+  rejeitado: "rejeitado",
+  nao_criado: "nao_criado",
+};
 
 interface Props {
   label: string;
   labelCn?: string;
   bucket: FlowBucket;
+  /** Status bruto do documento, quando existe (prevalece sobre o bucket). */
+  status?: string | null;
   selected?: boolean;
   needsAction?: boolean;
   onClick?: () => void;
@@ -18,9 +31,10 @@ interface Props {
 /**
  * FlowNode — círculo compacto (44px) que representa uma etapa do checklist.
  * Tonalizado por bucket (aprovado/em análise/enviado/pendente/rejeitado).
- * Mostra label abaixo (PT) com legenda CN opcional menor.
+ * Mostra label abaixo (PT), legenda CN opcional e etiqueta visual do status.
  */
-export function FlowNode({ label, labelCn, bucket, selected, needsAction, onClick }: Props) {
+export function FlowNode({ label, labelCn, bucket, status, selected, needsAction, onClick }: Props) {
+
   const tone = bucketToTone(bucket);
   const cfg = FLOW_TONE[tone];
   const Icon = iconForBucket(bucket);
