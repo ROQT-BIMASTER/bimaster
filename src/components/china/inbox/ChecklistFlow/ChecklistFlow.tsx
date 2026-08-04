@@ -336,11 +336,33 @@ export function ChecklistFlow({
   const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
+  const statusFilter = useChinaStatusFilter("china:checklist-flow:status");
 
   const brasilCats = merged.categoriesBrasilEnvia.filter((c) => c.tipos.length > 0);
   const chinaCats = merged.categoriesChinaEnvia.filter((c) => c.tipos.length > 0);
 
   const totalTipos = merged.categories.reduce((s, c) => s + c.tipos.length, 0);
+
+  /** Contagem por estágio considerando todos os tipos do checklist da submissão. */
+  const bucketCounts = useMemo(() => {
+    const latest = new Map<string, MailboxItem>();
+    for (const d of group.docs) {
+      const tipo = d.tipo_documento;
+      if (!tipo) continue;
+      const prev = latest.get(tipo);
+      if (!prev || new Date(d.created_at || 0) >= new Date(prev.created_at || 0)) {
+        latest.set(tipo, d);
+      }
+    }
+    const counts: Partial<Record<FlowBucket, number>> = {};
+    for (const cat of merged.categories) {
+      for (const tipo of cat.tipos) {
+        const b = bucketForDoc(latest.get(tipo));
+        counts[b] = (counts[b] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [group.docs, merged.categories]);
 
   if (merged.isLoading) {
     return (
@@ -357,6 +379,14 @@ export function ChecklistFlow({
     );
   }
 
+  const legend = (
+    <Legend
+      counts={bucketCounts}
+      selected={statusFilter.selected}
+      onChange={statusFilter.setSelected}
+    />
+  );
+
   const renderCategory = (cat: MergedChecklistCategory) => (
     <CategoryRow
       key={cat.key}
@@ -366,8 +396,10 @@ export function ChecklistFlow({
       selectedTipo={selectedTipo}
       getDocType={merged.getDocType}
       onFocusItem={onFocusItem}
+      activeBuckets={statusFilter.selected}
     />
   );
+
 
   if (layout === "split") {
     const showB2C = side === "both" || side === "b2c";
