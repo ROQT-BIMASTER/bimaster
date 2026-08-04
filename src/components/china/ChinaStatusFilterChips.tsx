@@ -6,7 +6,8 @@
  * O estado é local por tela; use `useChinaStatusFilter` para persistir em
  * `localStorage`.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   checklistStatusTexto,
