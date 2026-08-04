@@ -81,14 +81,89 @@ export const DOC_STATUS_TONE: Record<string, string> = {
   em_revisao: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
 };
 
+/**
+ * Estágio do fluxo China → Brasil. É a fonte ÚNICA que decide:
+ *  - a coluna do Kanban da Caixa de Entrada,
+ *  - a pasta da Caixa de Entrada,
+ *  - o chip/contador do Checklist (Status e Modo Foco).
+ *
+ * Qualquer tela que precise interpretar `china_produto_documentos.status`
+ * deve passar por aqui — nunca reimplementar a cadeia de comparações.
+ */
+export type FluxoBucket =
+  | "nao_criado"
+  | "rascunho"
+  | "pendente_envio"
+  | "enviado"
+  | "em_analise"
+  | "aprovado"
+  | "devolvido";
+
+/**
+ * Mapa explícito status persistido → estágio do fluxo.
+ * Todos os valores realmente gravados pelo sistema estão aqui; qualquer
+ * novo status precisa ser adicionado nesta tabela (e nos testes).
+ */
+export const STATUS_TO_FLUXO: Record<string, FluxoBucket> = {
+  // Ainda em preparação do lado da China
+  rascunho: "rascunho",
+  planejado: "pendente_envio",
+  em_preparacao: "pendente_envio",
+  pendente: "pendente_envio",
+  // Despachado ao Brasil, aguardando o Brasil abrir
+  enviado: "enviado",
+  enviado_brasil: "enviado",
+  enviado_parcial: "enviado",
+  arte_enviada: "enviado",
+  // Brasil abriu / está avaliando
+  em_analise: "em_analise",
+  em_revisao: "em_analise",
+  contestado: "em_analise",
+  // Decisão favorável (ciência é aceite com ressalva, conta como aprovado)
+  aprovado: "aprovado",
+  ciencia: "aprovado",
+  // Decisão de devolução
+  rejeitado: "devolvido",
+  devolvido_china: "devolvido",
+};
+
+const fluxoDesconhecidoLogado = new Set<string>();
+
+/** Estágio do fluxo de um status persistido. `null`/vazio = item ainda não criado. */
+export function bucketFluxo(status: string | null | undefined): FluxoBucket {
+  const s = (status || "").trim().toLowerCase();
+  if (!s) return "nao_criado";
+  const bucket = STATUS_TO_FLUXO[s];
+  if (bucket) return bucket;
+  if (!fluxoDesconhecidoLogado.has(s)) {
+    fluxoDesconhecidoLogado.add(s);
+    console.warn(`[china/docStatus] status desconhecido "${s}" — tratado como pendente de envio.`);
+  }
+  return "pendente_envio";
+}
+
+/** Documento já teve decisão favorável do Brasil (aprovado ou ciência). */
+export function isAprovado(status: string | null | undefined): boolean {
+  return bucketFluxo(status) === "aprovado";
+}
+
+/** Documento foi devolvido pelo Brasil (rejeitado ou devolvido à China). */
+export function isDevolvido(status: string | null | undefined): boolean {
+  return bucketFluxo(status) === "devolvido";
+}
+
 /** Normaliza qualquer status bruto para uma das quatro decisões administrativas. */
 export function normalizarDecisao(status: string | null | undefined): DocDecisao {
-  const s = (status || "").toLowerCase();
-  if (s === "aprovado") return "aprovado";
-  if (s === "rejeitado" || s === "contestado") return "rejeitado";
-  if (s === "em_analise" || s === "em_revisao") return "em_analise";
-  if (s === "rascunho" || s === "") return "pendente";
-  return "pendente";
+  switch (bucketFluxo(status)) {
+    case "aprovado":
+      return "aprovado";
+    case "devolvido":
+      return "rejeitado";
+    case "em_analise":
+      return "em_analise";
+    default:
+      return "pendente";
+  }
 }
 
 export function docStatusLabel(
