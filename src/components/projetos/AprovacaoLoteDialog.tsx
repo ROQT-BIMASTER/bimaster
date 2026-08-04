@@ -447,7 +447,7 @@ export function AprovacaoLoteDialog({
           )}
 
 
-          <div className="overflow-hidden rounded-md border border-border bg-card">ptmp
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <div className="flex items-center gap-2 border-b border-border px-3 py-2">
               <Checkbox
                 checked={todosSelecionados}
