@@ -35,7 +35,9 @@ export const DOC_STATUS_LABEL: Record<string, DocStatusTexto> = {
   em_revisao: { pt: "Em análise", zh: "审核中" },
   aprovado: { pt: "Aprovado", zh: "已批准" },
   rejeitado: { pt: "Não aprovado", zh: "未批准" },
-  contestado: { pt: "Não aprovado", zh: "未批准" },
+  contestado: { pt: "Em análise", zh: "审核中" },
+  ciencia: { pt: "Aprovado", zh: "已批准" },
+  devolvido_china: { pt: "Não aprovado", zh: "未批准" },
 };
 
 /**
@@ -76,7 +78,8 @@ export function checklistStatusLabel(
 export const DOC_STATUS_TONE: Record<string, string> = {
   aprovado: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200",
   rejeitado: "bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-200",
-  contestado: "bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-200",
+  devolvido_china: "bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-200",
+  contestado: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
   em_analise: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
   em_revisao: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
 };
