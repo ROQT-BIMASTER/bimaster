@@ -818,7 +818,9 @@ function GroupRow({
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
+          {group.worst_status && <DocStatusTag status={group.worst_status} size="xs" idioma="bi" />}
           {!isAwaiting && (
+
             <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
               <SbIcon className="h-2.5 w-2.5" />
               {sb.label}
