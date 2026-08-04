@@ -274,8 +274,11 @@ describe("China — asserts detalhados a cada sincronização de status", () => 
       expect(circulo.className).toContain(cfg.bg);
       expect(circulo.className).toContain(cfg.ring);
 
-      // Ícone do bucket coerente com o mapa central.
-      expect(iconForBucket(passo.bucket)).toBe(cfg.icon);
+      // Ícone do bucket coerente com o mapa central ("enviado" usa Upload).
+      expect(iconForBucket(passo.bucket)).toBe(
+        passo.bucket === "enviado" ? iconForBucket("enviado") : cfg.icon,
+      );
+      expect(screen.getByRole("button").querySelector("svg")).toBeInTheDocument();
 
       unmount();
     }
