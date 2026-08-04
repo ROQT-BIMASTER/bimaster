@@ -8261,6 +8261,27 @@ export type Database = {
         }
         Relationships: []
       }
+      china_status_filter_prefs: {
+        Row: {
+          buckets: string[]
+          escopo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buckets?: string[]
+          escopo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buckets?: string[]
+          escopo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       china_submissao_parecer_anexos: {
         Row: {
           created_at: string
