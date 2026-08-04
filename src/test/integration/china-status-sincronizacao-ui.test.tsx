@@ -215,3 +215,168 @@ describe("China — sincronização docStatus × bucketFluxo × UI", () => {
     expect(screen.getByText(/status_que_nao_existe/)).toBeInTheDocument();
   });
 });
+
+/* ────────────────────────────────────────────────────────────────
+ * Asserts detalhados por sincronização.
+ * A cada mudança de status simulada, verificamos os TRÊS pontos de
+ * leitura da UI ao mesmo tempo: chips de filtro, nós do fluxo e as
+ * contagens por coluna do Kanban.
+ * ──────────────────────────────────────────────────────────────── */
+
+/** Sequência real de sincronizações de um documento no fluxo China → Brasil. */
+const SINCRONIZACOES: Array<{
+  status: string;
+  bucket: FlowBucket;
+  tom: ReturnType<typeof bucketToTone>;
+  colunaChina: string;
+  colunaBrasil: string;
+}> = [
+  { status: "rascunho", bucket: "pendente", tom: "idle", colunaChina: "awaiting_send", colunaBrasil: "inbox" },
+  { status: "enviado_brasil", bucket: "enviado", tom: "prog", colunaChina: "sent_brazil", colunaBrasil: "inbox" },
+  { status: "em_analise", bucket: "em_analise", tom: "prog", colunaChina: "in_analysis", colunaBrasil: "inbox" },
+  { status: "contestado", bucket: "em_analise", tom: "prog", colunaChina: "in_analysis", colunaBrasil: "inbox" },
+  { status: "aprovado", bucket: "aprovado", tom: "done", colunaChina: "approved", colunaBrasil: "approved" },
+  { status: "ciencia", bucket: "aprovado", tom: "done", colunaChina: "approved", colunaBrasil: "approved" },
+  { status: "rejeitado", bucket: "rejeitado", tom: "block", colunaChina: "returned", colunaBrasil: "rejected" },
+  { status: "devolvido_china", bucket: "rejeitado", tom: "block", colunaChina: "returned", colunaBrasil: "rejected" },
+];
+
+const rotuloDe = (status: string) => {
+  const t = checklistStatusTexto(status);
+  return `${t.pt} ${t.zh}`;
+};
+
+describe("China — asserts detalhados a cada sincronização de status", () => {
+  it("nó do fluxo mostra rótulo, ícone e paleta exatos do status sincronizado", () => {
+    for (const passo of SINCRONIZACOES) {
+      const { unmount } = render(
+        <FlowNode label="Etapa" labelCn="步骤" bucket={passo.bucket} status={passo.status} />,
+      );
+
+      // Classificação derivada do status bruto.
+      expect(bucketForDoc({ doc_status: passo.status })).toBe(passo.bucket);
+      expect(bucketToTone(passo.bucket)).toBe(passo.tom);
+
+      // Etiqueta bilíngue correta e única.
+      const etiquetas = screen.getAllByText(rotuloDe(passo.status));
+      expect(etiquetas).toHaveLength(1);
+
+      // Badge com a paleta do status (mesma de docStatusVisual).
+      const badge = etiquetas[0].parentElement!;
+      for (const classe of docStatusVisual(passo.status).badge.split(" ")) {
+        expect(badge.className).toContain(classe);
+      }
+
+      // Círculo do nó com as classes do tom do fluxo.
+      const cfg = FLOW_TONE[passo.tom];
+      const circulo = screen.getByRole("button").querySelector("span")!;
+      expect(circulo.className).toContain(cfg.border);
+      expect(circulo.className).toContain(cfg.bg);
+      expect(circulo.className).toContain(cfg.ring);
+
+      // Ícone do bucket coerente com o mapa central.
+      expect(iconForBucket(passo.bucket)).toBe(cfg.icon);
+
+      unmount();
+    }
+  });
+
+  it("chips refletem contagem, seleção e paleta após cada sincronização", async () => {
+    const user = userEvent.setup();
+
+    for (const passo of SINCRONIZACOES) {
+      const onChange = vi.fn();
+      const counts = { [passo.bucket]: 1 } as Partial<Record<FlowBucket, number>>;
+
+      const { unmount } = render(
+        <ChinaStatusFilterChips counts={counts} selected={[passo.bucket]} onChange={onChange} />,
+      );
+
+      // Só o bucket com contagem aparece (+ botão "Limpar").
+      const chips = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-pressed"));
+      expect(chips).toHaveLength(1);
+
+      const chip = chips[0];
+      expect(chip).toHaveAttribute("aria-pressed", "true");
+      expect(within(chip).getByText("1")).toBeInTheDocument();
+
+      // Rótulo do chip = rótulo do status representativo do bucket.
+      const statusRef = FILTER_BUCKETS.find((f) => f.bucket === passo.bucket)!.statusRef;
+      expect(within(chip).getByText(rotuloDe(statusRef))).toBeInTheDocument();
+      for (const classe of docStatusVisual(statusRef).badge.split(" ")) {
+        expect(chip.className).toContain(classe);
+      }
+
+      // Desmarcar remove exatamente esse bucket.
+      await user.click(chip);
+      expect(onChange).toHaveBeenCalledWith([]);
+
+      unmount();
+    }
+  });
+
+  it("contagens por coluna acompanham cada sincronização nas duas perspectivas", () => {
+    // Documento único percorrendo o fluxo: a coluna muda a cada sincronização.
+    for (const passo of SINCRONIZACOES) {
+      expect(colunaDe(passo.status, "china")).toBe(passo.colunaChina);
+      expect(colunaDe(passo.status, "brasil")).toBe(passo.colunaBrasil);
+    }
+
+    // Lote de 3 documentos migrando de "em análise" para decisões distintas.
+    const antes = ["em_analise", "em_analise", "em_analise"];
+    const depois = ["aprovado", "rejeitado", "contestado"];
+
+    const contar = (docs: string[], p: "china" | "brasil") =>
+      docs.reduce<Record<string, number>>((acc, s) => {
+        const col = colunaDe(s, p);
+        acc[col] = (acc[col] || 0) + 1;
+        return acc;
+      }, {});
+
+    expect(contar(antes, "china")).toEqual({ in_analysis: 3 });
+    expect(contar(depois, "china")).toEqual({ approved: 1, returned: 1, in_analysis: 1 });
+    expect(contar(antes, "brasil")).toEqual({ inbox: 3 });
+    expect(contar(depois, "brasil")).toEqual({ approved: 1, rejected: 1, inbox: 1 });
+
+    // Nenhum documento se perde ou se duplica em qualquer momento.
+    for (const docs of [antes, depois]) {
+      for (const p of ["china", "brasil"] as const) {
+        const total = Object.values(contar(docs, p)).reduce((a, b) => a + b, 0);
+        expect(total).toBe(docs.length);
+      }
+    }
+  });
+
+  it("chips, nós e colunas concordam simultaneamente para o mesmo conjunto", () => {
+    const docs = SINCRONIZACOES.map((p) => p.status);
+
+    // Contagem por bucket derivada só do status bruto.
+    const counts = docs.reduce<Partial<Record<FlowBucket, number>>>((acc, s) => {
+      const b = FLUXO_TO_BUCKET[bucketFluxo(s)];
+      acc[b] = (acc[b] || 0) + 1;
+      return acc;
+    }, {});
+    expect(counts).toEqual({ pendente: 1, enviado: 1, em_analise: 2, aprovado: 2, rejeitado: 2 });
+
+    const { unmount } = render(
+      <ChinaStatusFilterChips counts={counts} selected={[]} onChange={() => {}} />,
+    );
+    // Cada chip visível mostra exatamente a contagem do seu bucket.
+    for (const { bucket, statusRef } of FILTER_BUCKETS) {
+      const esperado = counts[bucket];
+      if (!esperado) continue;
+      const chip = screen
+        .getAllByRole("button")
+        .find((b) => within(b).queryByText(rotuloDe(statusRef)))!;
+      expect(chip).toBeDefined();
+      expect(within(chip).getByText(String(esperado))).toBeInTheDocument();
+    }
+    unmount();
+
+    // E a soma das colunas do Kanban bate com a soma dos chips.
+    const totalChips = Object.values(counts).reduce((a, b) => a + (b || 0), 0);
+    const totalColunas = docs.reduce((acc, s) => acc + (colunaDe(s, "china") ? 1 : 0), 0);
+    expect(totalColunas).toBe(totalChips);
+    expect(totalChips).toBe(docs.length);
+  });
+});
