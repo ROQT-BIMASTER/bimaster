@@ -17,9 +17,14 @@ import {
 import {
   BUCKET_LABEL,
   FLOW_TONE,
+  bucketForDoc,
   bucketToTone,
   type FlowBucket,
 } from "@/lib/china/flowTones";
+import {
+  ChinaStatusFilterChips,
+  useChinaStatusFilter,
+} from "@/components/china/ChinaStatusFilterChips";
 import { FlowNode } from "./FlowNode";
 import { FlowConnector } from "./FlowConnector";
 import type { FlowItemContext } from "./types";
@@ -48,17 +53,6 @@ interface Props {
   side?: "c2b" | "b2c" | "both";
 }
 
-function bucketForDoc(d: MailboxItem | undefined | null): FlowBucket {
-  if (!d) return "nao_criado";
-  const s = (d.doc_status || "").toLowerCase();
-  if (s === "aprovado") return "aprovado";
-  if (s === "rejeitado") return "rejeitado";
-  if (s === "contestado") return "em_analise";
-  if (s === "enviado" || s === "enviado_brasil") return "enviado";
-  if (s === "pendente") return "em_analise";
-  if (s === "rascunho") return "pendente";
-  return "pendente";
-}
 
 function needsActionForPerspective(
   bucket: FlowBucket,
