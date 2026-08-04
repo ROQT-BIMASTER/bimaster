@@ -16,6 +16,10 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ## [Unreleased]
 
+- UI / Diálogos: janelas modais passam a respeitar a altura da tela (rolagem interna) e o fundo escurecido cobre toda a viewport com leve desfoque (3.9.6).
+- China / Ações em lote nos documentos: cabeçalho e rodapé fixos, lista rolável, nomes de arquivo truncados e etiquetas de status contidas dentro do cartão; campo de senha alinhado aos tokens do tema (3.9.6).
+
+
 - Projetos / Kanban: cards abrem com um clique em toda a área útil e o drawer fecha imediatamente pelo X, sem competir com o refetch da lista.
 - Projetos / documentos: anexos e documentos China reconciliam drawer e card em tempo real, sem exigir F5, com invalidações isoladas por tarefa/projeto.
 - Projetos / preview: arquivos já visualizados reutilizam o Blob durante a sessão, reduzindo downloads e espera em reaberturas.
