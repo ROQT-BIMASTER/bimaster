@@ -286,7 +286,11 @@ describe("China — concorrência: atualizações de status em massa", () => {
       const b = bucketDe(d.doc_status);
       if (vistos.has(b)) continue;
       vistos.add(b);
-      const etiqueta = screen.getAllByText(rotuloDe(d.doc_status))[0].parentElement!;
+      const etiqueta = screen
+        .getAllByText(rotuloDe(d.doc_status))
+        .map((el) => el.parentElement!)
+        .find((el) => el.className.includes("leading-none"))!;
+      expect(etiqueta).toBeDefined();
       for (const classe of docStatusVisual(d.doc_status).badge.split(" ")) {
         expect(etiqueta.className).toContain(classe);
       }
