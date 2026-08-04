@@ -120,33 +120,43 @@ interface CardProps {
   onClick: () => void;
 }
 
-// Mapeia o status do documento para um dos buckets visuais da barra/chips.
+// Buckets visuais da barra/chips — derivados do vocabulário único do módulo
+// China (`bucketFluxo`), o mesmo que alimenta as pastas da Caixa e o Checklist.
 type Bucket = "aprovado" | "rejeitado" | "em_analise" | "enviado" | "pendente";
+
+const FLUXO_TO_BUCKET: Record<FluxoBucket, Bucket> = {
+  nao_criado: "pendente",
+  rascunho: "pendente",
+  pendente_envio: "pendente",
+  enviado: "enviado",
+  em_analise: "em_analise",
+  aprovado: "aprovado",
+  devolvido: "rejeitado",
+};
+
 function bucketForDoc(d: MailboxItem): Bucket {
-  const s = (d.doc_status || "").toLowerCase();
-  if (s === "aprovado") return "aprovado";
-  if (s === "rejeitado") return "rejeitado";
-  if (s === "contestado") return "em_analise";
-  if (s === "enviado" || s === "enviado_brasil") {
-    // Documento enviado ao Brasil mas ainda não aberto = "enviado" (azul).
-    // Quando o Brasil abre, o backend muda para "em_analise" (ou contestado).
-    return "enviado";
-  }
-  return "pendente";
+  return FLUXO_TO_BUCKET[bucketFluxo(d.doc_status)];
 }
 
+const BUCKET_TO_COLUMN: Record<"china" | "brasil", Record<Bucket, ColumnKey>> = {
+  china: {
+    aprovado: "approved",
+    rejeitado: "returned",
+    em_analise: "in_analysis",
+    enviado: "sent_brazil",
+    pendente: "awaiting_send",
+  },
+  brasil: {
+    aprovado: "approved",
+    rejeitado: "rejected",
+    em_analise: "inbox",
+    enviado: "inbox",
+    pendente: "inbox",
+  },
+};
+
 function itemColumnFor(d: MailboxItem, perspective: "china" | "brasil"): ColumnKey {
-  const b = bucketForDoc(d);
-  if (perspective === "brasil") {
-    if (b === "aprovado") return "approved";
-    if (b === "rejeitado") return "rejected";
-    return "inbox";
-  }
-  if (b === "aprovado") return "approved";
-  if (b === "rejeitado") return "returned";
-  if (b === "em_analise") return "in_analysis";
-  if (b === "enviado") return "sent_brazil";
-  return "awaiting_send";
+  return BUCKET_TO_COLUMN[perspective][bucketForDoc(d)];
 }
 
 const BUCKET_META: Record<Bucket, { label: string; icon: typeof Check; cls: string; barCls: string }> = {
