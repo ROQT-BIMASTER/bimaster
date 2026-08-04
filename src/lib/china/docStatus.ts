@@ -293,7 +293,7 @@ const TOM_POR_STATUS: Record<string, DocStatusTom> = {
   rascunho: "neutro",
   planejado: "neutro",
   pendente: "pendente",
-  contestado: "pendente",
+  contestado: "analise",
   em_analise: "analise",
   em_revisao: "analise",
   enviado: "enviado",
@@ -303,6 +303,7 @@ const TOM_POR_STATUS: Record<string, DocStatusTom> = {
   aprovado: "aprovado",
   ciencia: "aprovado",
   rejeitado: "rejeitado",
+  devolvido_china: "rejeitado",
 };
 
 export function docStatusTom(status: string | null | undefined): DocStatusTom {
