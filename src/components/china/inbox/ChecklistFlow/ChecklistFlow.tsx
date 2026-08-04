@@ -411,7 +411,7 @@ export function ChecklistFlow({
             <Workflow className="h-3.5 w-3.5" />
             {t("inbox.right.fluxoChecklist")}
           </div>
-          <Legend />
+          {legend}
         </div>
 
         {/* Responsabilidade Brasil — Brasil → China */}
@@ -475,7 +475,7 @@ export function ChecklistFlow({
           <Workflow className="h-3.5 w-3.5" />
           {t("inbox.right.fluxoChecklist")}
         </div>
-        <Legend />
+        {legend}
       </div>
 
       <div className="space-y-2">{primaryFiltered.map(renderCategory)}</div>
