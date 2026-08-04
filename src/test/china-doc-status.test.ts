@@ -10,7 +10,9 @@ import {
 describe("docStatus — consolidação administrativa de documentos China", () => {
   it("normaliza status brutos para as quatro decisões", () => {
     expect(normalizarDecisao("aprovado")).toBe("aprovado");
-    expect(normalizarDecisao("contestado")).toBe("rejeitado");
+    // "contestado" = documento devolvido para reanálise do Brasil → em análise
+    expect(normalizarDecisao("contestado")).toBe("em_analise");
+    expect(normalizarDecisao("rejeitado")).toBe("rejeitado");
     expect(normalizarDecisao("em_revisao")).toBe("em_analise");
     expect(normalizarDecisao("rascunho")).toBe("pendente");
     expect(normalizarDecisao(null)).toBe("pendente");
