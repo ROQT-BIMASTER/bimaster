@@ -393,10 +393,11 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
         <span className="opacity-60">·</span>
         <span className="truncate">{group.produto_nome}</span>
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="mt-1 flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
         <span>{safeRelative(item.created_at)}</span>
-        <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+        <DocStatusTag status={statusRef} size="xs" idioma="bi" />
       </div>
+
     </button>
   );
 }
