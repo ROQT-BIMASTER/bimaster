@@ -30,7 +30,9 @@ import {
   Pencil,
   Hourglass,
   Search,
+  CheckSquare,
   X,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -54,6 +56,10 @@ import { KanbanConfigSheet } from "./KanbanConfigSheet";
 import { CardAprovacao } from "./kanban/CardAprovacao";
 import { JornadaDrawer } from "./kanban/JornadaDrawer";
 import { MoverColunaDialog } from "./kanban/MoverColunaDialog";
+import {
+  AprovacaoLoteCentralDialog,
+  type DecisaoLote,
+} from "./AprovacaoLoteCentralDialog";
 import { AprovacoesEmptyState } from "./AprovacoesEmptyState";
 
 interface Props {
@@ -482,6 +488,24 @@ export function KanbanAprovacoes({
 
   const drawerPipeline = drawerItem ? pipelineMap.get(drawerItem.pipeline_id) : undefined;
 
+  // Seleção múltipla para ações em lote
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
+  const [decisaoLote, setDecisaoLote] = useState<DecisaoLote | null>(null);
+
+  const itensSelecionados = useMemo(
+    () => itensFiltradosFinal.filter((i) => selecionados[i.id]),
+    [itensFiltradosFinal, selecionados],
+  );
+
+  function selecionarTodosVisiveis() {
+    const next: Record<string, boolean> = {};
+    itensFiltradosFinal.forEach((i) => {
+      if (i.status === "em_andamento") next[i.id] = true;
+    });
+    setSelecionados(next);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -679,35 +703,109 @@ export function KanbanAprovacoes({
       )}
 
       {!isLoading && allPipelines.length > 0 && !(escopo === "pessoal" && itens.length === 0 && filtrosAtivos === 0) && (
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="flex gap-3 overflow-x-auto pb-3">
-            {colunasVisiveis.map((k) => {
-              const cfg = getColunaConfig(prefs, k);
-              const list = itensPorColunaFinal[k];
-              return (
-                <Coluna key={k} colKey={k} title={cfg.label} count={list.length}>
-                  {list.length === 0 ? (
-                    <p className="text-[10px] text-muted-foreground/60 italic px-1 py-2">
-                      Sem itens
-                    </p>
-                  ) : (
-                    list.map((it) => (
-                      <CardAprovacao
-                        key={it.id}
-                        item={it}
-                        pipeline={pipelineMap.get(it.pipeline_id)}
-                        onOpen={setDrawerItem}
-                        currentUserId={user?.id}
-                        onQuickAction={(item, destino) => setPendingMove({ item, destino })}
-                      />
-                    ))
-                  )}
-                </Coluna>
-              );
-            })}
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={modoSelecao ? "default" : "outline"}
+              size="sm"
+              className="h-7 text-[11px] px-2.5"
+              onClick={() => {
+                setModoSelecao((v) => !v);
+                setSelecionados({});
+              }}
+            >
+              <CheckSquare className="h-3 w-3 mr-1" />
+              {modoSelecao ? "Sair da seleção" : "Selecionar vários"}
+            </Button>
+            {modoSelecao && (
+              <>
+                <span className="text-[11px] text-muted-foreground">
+                  {itensSelecionados.length} selecionado(s)
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] px-2.5"
+                  onClick={selecionarTodosVisiveis}
+                >
+                  Selecionar visíveis
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px] px-2.5"
+                  disabled={itensSelecionados.length === 0}
+                  onClick={() => setDecisaoLote("aprovado")}
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 text-[11px] px-2.5"
+                  disabled={itensSelecionados.length === 0}
+                  onClick={() => setDecisaoLote("rejeitado")}
+                >
+                  <XCircle className="h-3 w-3 mr-1" /> Reprovar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] px-2.5"
+                  disabled={itensSelecionados.length === 0}
+                  onClick={() => setDecisaoLote("em_revisao")}
+                >
+                  <Pencil className="h-3 w-3 mr-1" /> Devolver
+                </Button>
+              </>
+            )}
           </div>
-        </DndContext>
+
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <div className="flex gap-3 overflow-x-auto pb-3">
+              {colunasVisiveis.map((k) => {
+                const cfg = getColunaConfig(prefs, k);
+                const list = itensPorColunaFinal[k];
+                return (
+                  <Coluna key={k} colKey={k} title={cfg.label} count={list.length}>
+                    {list.length === 0 ? (
+                      <p className="text-[10px] text-muted-foreground/60 italic px-1 py-2">
+                        Sem itens
+                      </p>
+                    ) : (
+                      list.map((it) => (
+                        <CardAprovacao
+                          key={it.id}
+                          item={it}
+                          pipeline={pipelineMap.get(it.pipeline_id)}
+                          onOpen={setDrawerItem}
+                          currentUserId={user?.id}
+                          onQuickAction={(item, destino) => setPendingMove({ item, destino })}
+                          selecionavel={modoSelecao}
+                          selecionado={!!selecionados[it.id]}
+                          onToggleSelecionado={(item) =>
+                            setSelecionados((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
+                          }
+                        />
+                      ))
+                    )}
+                  </Coluna>
+                );
+              })}
+            </div>
+          </DndContext>
+        </>
       )}
+
+      <AprovacaoLoteCentralDialog
+        open={!!decisaoLote}
+        onOpenChange={(v) => !v && setDecisaoLote(null)}
+        itens={itensSelecionados}
+        decisao={decisaoLote}
+        onConcluido={() => {
+          setSelecionados({});
+          setModoSelecao(false);
+        }}
+      />
 
       <JornadaDrawer
         item={drawerItem}

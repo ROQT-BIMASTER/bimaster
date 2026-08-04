@@ -429,6 +429,43 @@ export function useMoverItemColuna() {
   });
 }
 
+/**
+ * Decisão em lote na Central de Aprovações.
+ * Exige confirmação de senha (step-up) — o token é validado uma única vez
+ * no servidor e cada item gera registro próprio na trilha de auditoria.
+ */
+export function useAvancarItensLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      itemIds: string[];
+      decisao: "aprovado" | "rejeitado" | "em_revisao";
+      comentario?: string;
+      stepUpToken: string;
+    }) => {
+      const { data, error } = await supabase.rpc("rpc_avancar_itens_aprovacao_lote" as any, {
+        p_item_ids: input.itemIds,
+        p_decisao: input.decisao,
+        p_comentario: input.comentario ?? null,
+        p_step_up_token: input.stepUpToken,
+      } as any);
+      if (error) throw error;
+      return data as { sucesso: number; falha: number; resultados: any[] };
+    },
+    onSuccess: (res) => {
+      if (res.falha > 0) {
+        toast.warning(`${res.sucesso} item(ns) processado(s), ${res.falha} com falha`);
+      } else {
+        toast.success(`${res.sucesso} item(ns) processado(s)`);
+      }
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+      qc.invalidateQueries({ queryKey: ["projeto-tarefas"] });
+      qc.invalidateQueries({ queryKey: ["minhas-tarefas-central"] });
+    },
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha na ação em lote")),
+  });
+}
+
 export function useSolicitarRevisao() {
   const qc = useQueryClient();
   return useMutation({
