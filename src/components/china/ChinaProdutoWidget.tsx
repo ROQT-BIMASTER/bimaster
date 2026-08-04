@@ -25,7 +25,7 @@ export function ChinaProdutoWidget({ vinculo }: ChinaProdutoWidgetProps) {
   return (
     <div
       className="p-3 rounded-lg border bg-warning/5 border-warning/20 cursor-pointer hover:bg-warning/10 transition-colors space-y-2"
-      onClick={() => navigate(`/dashboard/fabrica-china/recebimentos/${vinculo.id}`)}
+      onClick={() => navigate(`/dashboard/fabrica-china/submissao/${vinculo.id}`)}
     >
       <div className="flex items-center gap-2">
         <Ship className="h-4 w-4 text-warning shrink-0" />
