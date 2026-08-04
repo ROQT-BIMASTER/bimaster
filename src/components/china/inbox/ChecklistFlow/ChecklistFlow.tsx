@@ -334,7 +334,7 @@ export function ChecklistFlow({
   const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
-  const statusFilter = useChinaStatusFilter("china:checklist-flow:status");
+  const statusFilter = useChinaStatusFilter();
 
   const brasilCats = merged.categoriesBrasilEnvia.filter((c) => c.tipos.length > 0);
   const chinaCats = merged.categoriesChinaEnvia.filter((c) => c.tipos.length > 0);
