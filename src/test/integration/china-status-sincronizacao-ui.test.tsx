@@ -17,7 +17,7 @@ import {
   normalizarDecisao,
   type FluxoBucket,
 } from "@/lib/china/docStatus";
-import { bucketForDoc, bucketToTone, type FlowBucket } from "@/lib/china/flowTones";
+import { FLOW_TONE, bucketForDoc, bucketToTone, iconForBucket, type FlowBucket } from "@/lib/china/flowTones";
 import { DocStatusTag } from "@/components/china/DocStatusTag";
 import { FlowNode } from "@/components/china/inbox/ChecklistFlow/FlowNode";
 
