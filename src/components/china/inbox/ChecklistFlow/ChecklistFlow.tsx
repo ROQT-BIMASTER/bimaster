@@ -200,44 +200,35 @@ function CategoryRow({
 }
 
 
-function Legend() {
+/**
+ * Legenda que também é filtro: cada etiqueta liga/desliga um estágio do fluxo.
+ */
+function Legend({
+  counts,
+  selected,
+  onChange,
+}: {
+  counts: Partial<Record<FlowBucket, number>>;
+  selected: FlowBucket[];
+  onChange: (next: FlowBucket[]) => void;
+}) {
   const { t } = useChinaI18n();
-  const bucketI18n: Record<FlowBucket, string> = {
-    aprovado: t("inbox.right.legendaAprovado"),
-    em_analise: t("inbox.right.legendaEmAnalise"),
-    enviado: t("inbox.right.legendaEnviado"),
-    pendente: t("inbox.right.legendaPendente"),
-    rejeitado: t("inbox.right.legendaDevolvido"),
-    nao_criado: BUCKET_LABEL.nao_criado,
-  };
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
-      <span className="flex items-center gap-1 text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1">
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
         <Info className="h-3 w-3" /> {t("inbox.right.legenda")}
       </span>
-      {(["aprovado", "em_analise", "enviado", "pendente", "rejeitado"] as FlowBucket[]).map((b) => {
-        const tone = bucketToTone(b);
-        const cfg = FLOW_TONE[tone];
-        const Icon = cfg.icon;
-        return (
-          <span key={b} className="flex items-center gap-1">
-            <span
-              className={cn(
-                "inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border ring-2",
-                cfg.border,
-                cfg.bg,
-                cfg.ring,
-              )}
-            >
-              <Icon className={cn("h-2.5 w-2.5", cfg.text)} />
-            </span>
-            <span className={cn("font-medium", cfg.text)}>{bucketI18n[b]}</span>
-          </span>
-        );
-      })}
+      <ChinaStatusFilterChips
+        counts={counts}
+        selected={selected}
+        onChange={onChange}
+        idioma="bi"
+        hideEmpty={false}
+      />
     </div>
   );
 }
+
 
 /**
  * Cabeçalho de uma seção "Responsabilidade X" no layout split.
