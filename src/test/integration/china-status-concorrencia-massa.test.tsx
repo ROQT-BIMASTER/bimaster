@@ -247,10 +247,19 @@ describe("China — concorrência: atualizações de status em massa", () => {
 
     render(
       <div>
-        <ChinaStatusFilterChips counts={counts} selected={[]} onChange={() => {}} />
-        {docs.map((d) => (
-          <FlowNode key={d.id} label={d.id} bucket={bucketDe(d.doc_status)} status={d.doc_status} />
-        ))}
+        <div data-testid="chips">
+          <ChinaStatusFilterChips counts={counts} selected={[]} onChange={() => {}} />
+        </div>
+        <div data-testid="nos">
+          {docs.map((d) => (
+            <FlowNode
+              key={d.id}
+              label={d.id}
+              bucket={bucketDe(d.doc_status)}
+              status={d.doc_status}
+            />
+          ))}
+        </div>
       </div>,
     );
 
@@ -271,10 +280,12 @@ describe("China — concorrência: atualizações de status em massa", () => {
     }
 
     // Chips mostram as contagens reconciliadas.
+    const chips = within(screen.getByTestId("chips"));
+    const nos = within(screen.getByTestId("nos"));
     for (const { bucket, statusRef } of FILTER_BUCKETS) {
       const esperado = counts[bucket];
       if (!esperado) continue;
-      const chip = screen
+      const chip = chips
         .getAllByRole("button")
         .find((b) => within(b).queryByText(rotuloDe(statusRef)) && within(b).queryByText(String(esperado)));
       expect(chip).toBeDefined();
@@ -286,11 +297,7 @@ describe("China — concorrência: atualizações de status em massa", () => {
       const b = bucketDe(d.doc_status);
       if (vistos.has(b)) continue;
       vistos.add(b);
-      const etiqueta = screen
-        .getAllByText(rotuloDe(d.doc_status))
-        .map((el) => el.parentElement!)
-        .find((el) => el.className.includes("rounded-md border"))!;
-      expect(etiqueta).toBeDefined();
+      const etiqueta = nos.getAllByText(rotuloDe(d.doc_status))[0].parentElement!;
       for (const classe of docStatusVisual(d.doc_status).badge.split(" ")) {
         expect(etiqueta.className).toContain(classe);
       }
