@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { bucketFluxo, isAprovado, isDevolvido } from "@/lib/china/docStatus";
 import {
   evaluateAwaitingSend,
   AWAITING_SEND_REASON_LABEL,
