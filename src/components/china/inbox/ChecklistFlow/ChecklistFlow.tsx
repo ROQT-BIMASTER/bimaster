@@ -15,11 +15,14 @@ import {
   type MergedChecklistCategory,
 } from "@/hooks/useMergedChinaChecklist";
 import {
-  BUCKET_LABEL,
-  FLOW_TONE,
-  bucketToTone,
+  bucketForDoc,
   type FlowBucket,
 } from "@/lib/china/flowTones";
+
+import {
+  ChinaStatusFilterChips,
+  useChinaStatusFilter,
+} from "@/components/china/ChinaStatusFilterChips";
 import { FlowNode } from "./FlowNode";
 import { FlowConnector } from "./FlowConnector";
 import type { FlowItemContext } from "./types";
@@ -48,17 +51,6 @@ interface Props {
   side?: "c2b" | "b2c" | "both";
 }
 
-function bucketForDoc(d: MailboxItem | undefined | null): FlowBucket {
-  if (!d) return "nao_criado";
-  const s = (d.doc_status || "").toLowerCase();
-  if (s === "aprovado") return "aprovado";
-  if (s === "rejeitado") return "rejeitado";
-  if (s === "contestado") return "em_analise";
-  if (s === "enviado" || s === "enviado_brasil") return "enviado";
-  if (s === "pendente") return "em_analise";
-  if (s === "rascunho") return "pendente";
-  return "pendente";
-}
 
 function needsActionForPerspective(
   bucket: FlowBucket,
@@ -78,6 +70,7 @@ function CategoryRow({
   selectedTipo,
   getDocType,
   onFocusItem,
+  activeBuckets,
 }: {
   category: MergedChecklistCategory;
   group: MailboxGroup;
@@ -85,6 +78,8 @@ function CategoryRow({
   selectedTipo?: string | null;
   getDocType: ReturnType<typeof useMergedChinaChecklist>["getDocType"];
   onFocusItem: Props["onFocusItem"];
+  /** Estágios ativos no filtro; vazio = mostrar todos. */
+  activeBuckets: FlowBucket[];
 }) {
   const docsByTipo = useMemo(() => {
     const m = new Map<string, MailboxItem>();
@@ -116,7 +111,18 @@ function CategoryRow({
     return { done, pending, blocked, total: category.tipos.length };
   }, [category.tipos, docsByTipo]);
 
+  const tiposVisiveis = useMemo(
+    () =>
+      activeBuckets.length === 0
+        ? category.tipos
+        : category.tipos.filter((tipo) =>
+            activeBuckets.includes(bucketForDoc(docsByTipo.get(tipo))),
+          ),
+    [activeBuckets, category.tipos, docsByTipo],
+  );
+
   if (category.tipos.length === 0) return null;
+  if (tiposVisiveis.length === 0) return null;
 
   return (
     <div className="rounded-md border border-border/70 bg-card/40">
@@ -150,7 +156,7 @@ function CategoryRow({
 
       <ScrollArea className="w-full">
         <div className="flex items-start gap-0 px-2 py-2">
-          {category.tipos.map((tipo, idx) => {
+          {tiposVisiveis.map((tipo, idx) => {
             const dt = getDocType(tipo);
             const doc = docsByTipo.get(tipo) ?? null;
             const bucket = bucketForDoc(doc);
@@ -158,7 +164,7 @@ function CategoryRow({
             const labelCn = dt?.labelCn;
             const needs = needsActionForPerspective(bucket, perspective);
             const prevBucket =
-              idx === 0 ? bucket : bucketForDoc(docsByTipo.get(category.tipos[idx - 1]));
+              idx === 0 ? bucket : bucketForDoc(docsByTipo.get(tiposVisiveis[idx - 1]));
             return (
               <div key={tipo} className="flex items-start">
                 {idx > 0 && <FlowConnector fromBucket={prevBucket} />}
@@ -166,6 +172,7 @@ function CategoryRow({
                   label={labelPt}
                   labelCn={labelCn}
                   bucket={bucket}
+                  status={doc?.doc_status}
                   selected={selectedTipo === tipo}
                   needsAction={needs}
                   onClick={() =>
@@ -190,44 +197,36 @@ function CategoryRow({
   );
 }
 
-function Legend() {
+
+/**
+ * Legenda que também é filtro: cada etiqueta liga/desliga um estágio do fluxo.
+ */
+function Legend({
+  counts,
+  selected,
+  onChange,
+}: {
+  counts: Partial<Record<FlowBucket, number>>;
+  selected: FlowBucket[];
+  onChange: (next: FlowBucket[]) => void;
+}) {
   const { t } = useChinaI18n();
-  const bucketI18n: Record<FlowBucket, string> = {
-    aprovado: t("inbox.right.legendaAprovado"),
-    em_analise: t("inbox.right.legendaEmAnalise"),
-    enviado: t("inbox.right.legendaEnviado"),
-    pendente: t("inbox.right.legendaPendente"),
-    rejeitado: t("inbox.right.legendaDevolvido"),
-    nao_criado: BUCKET_LABEL.nao_criado,
-  };
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
-      <span className="flex items-center gap-1 text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1">
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
         <Info className="h-3 w-3" /> {t("inbox.right.legenda")}
       </span>
-      {(["aprovado", "em_analise", "enviado", "pendente", "rejeitado"] as FlowBucket[]).map((b) => {
-        const tone = bucketToTone(b);
-        const cfg = FLOW_TONE[tone];
-        const Icon = cfg.icon;
-        return (
-          <span key={b} className="flex items-center gap-1">
-            <span
-              className={cn(
-                "inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border ring-2",
-                cfg.border,
-                cfg.bg,
-                cfg.ring,
-              )}
-            >
-              <Icon className={cn("h-2.5 w-2.5", cfg.text)} />
-            </span>
-            <span className={cn("font-medium", cfg.text)}>{bucketI18n[b]}</span>
-          </span>
-        );
-      })}
+      <ChinaStatusFilterChips
+        counts={counts}
+        selected={selected}
+        onChange={onChange}
+        idioma="bi"
+        hideEmpty={false}
+      />
     </div>
   );
 }
+
 
 /**
  * Cabeçalho de uma seção "Responsabilidade X" no layout split.
@@ -335,11 +334,33 @@ export function ChecklistFlow({
   const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
+  const statusFilter = useChinaStatusFilter("china:checklist-flow:status");
 
   const brasilCats = merged.categoriesBrasilEnvia.filter((c) => c.tipos.length > 0);
   const chinaCats = merged.categoriesChinaEnvia.filter((c) => c.tipos.length > 0);
 
   const totalTipos = merged.categories.reduce((s, c) => s + c.tipos.length, 0);
+
+  /** Contagem por estágio considerando todos os tipos do checklist da submissão. */
+  const bucketCounts = useMemo(() => {
+    const latest = new Map<string, MailboxItem>();
+    for (const d of group.docs) {
+      const tipo = d.tipo_documento;
+      if (!tipo) continue;
+      const prev = latest.get(tipo);
+      if (!prev || new Date(d.created_at || 0) >= new Date(prev.created_at || 0)) {
+        latest.set(tipo, d);
+      }
+    }
+    const counts: Partial<Record<FlowBucket, number>> = {};
+    for (const cat of merged.categories) {
+      for (const tipo of cat.tipos) {
+        const b = bucketForDoc(latest.get(tipo));
+        counts[b] = (counts[b] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [group.docs, merged.categories]);
 
   if (merged.isLoading) {
     return (
@@ -356,6 +377,14 @@ export function ChecklistFlow({
     );
   }
 
+  const legend = (
+    <Legend
+      counts={bucketCounts}
+      selected={statusFilter.selected}
+      onChange={statusFilter.setSelected}
+    />
+  );
+
   const renderCategory = (cat: MergedChecklistCategory) => (
     <CategoryRow
       key={cat.key}
@@ -365,8 +394,10 @@ export function ChecklistFlow({
       selectedTipo={selectedTipo}
       getDocType={merged.getDocType}
       onFocusItem={onFocusItem}
+      activeBuckets={statusFilter.selected}
     />
   );
+
 
   if (layout === "split") {
     const showB2C = side === "both" || side === "b2c";
@@ -378,7 +409,7 @@ export function ChecklistFlow({
             <Workflow className="h-3.5 w-3.5" />
             {t("inbox.right.fluxoChecklist")}
           </div>
-          <Legend />
+          {legend}
         </div>
 
         {/* Responsabilidade Brasil — Brasil → China */}
@@ -442,7 +473,7 @@ export function ChecklistFlow({
           <Workflow className="h-3.5 w-3.5" />
           {t("inbox.right.fluxoChecklist")}
         </div>
-        <Legend />
+        {legend}
       </div>
 
       <div className="space-y-2">{primaryFiltered.map(renderCategory)}</div>
