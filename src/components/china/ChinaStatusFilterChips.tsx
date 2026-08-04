@@ -6,7 +6,8 @@
  * O estado é local por tela; use `useChinaStatusFilter` para persistir em
  * `localStorage`.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   checklistStatusTexto,
@@ -100,28 +101,93 @@ export function ChinaStatusFilterChips({
   );
 }
 
-/** Filtro por estágio persistido em localStorage (por tela). */
-export function useChinaStatusFilter(storageKey: string) {
-  const [selected, setSelected] = useState<FlowBucket[]>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : null;
-      return Array.isArray(parsed) ? (parsed as FlowBucket[]) : [];
-    } catch {
-      return [];
-    }
-  });
+/** Escopo compartilhado: mesma visualização em Kanban, Caixa de Entrada e Checklist. */
+export const CHINA_STATUS_FILTER_SCOPE = "china:status";
+
+const BUCKETS_VALIDOS = new Set<FlowBucket>(FILTER_BUCKETS.map((f) => f.bucket));
+
+function sanitizar(valor: unknown): FlowBucket[] {
+  if (!Array.isArray(valor)) return [];
+  return valor.filter((v): v is FlowBucket => BUCKETS_VALIDOS.has(v as FlowBucket));
+}
+
+function lerCache(escopo: string): FlowBucket[] {
+  try {
+    return sanitizar(JSON.parse(localStorage.getItem(`china-status-filter:${escopo}`) || "null"));
+  } catch {
+    return [];
+  }
+}
+
+function gravarCache(escopo: string, buckets: FlowBucket[]) {
+  try {
+    localStorage.setItem(`china-status-filter:${escopo}`, JSON.stringify(buckets));
+  } catch {
+    /* storage indisponível — filtro segue apenas em memória */
+  }
+}
+
+/**
+ * Filtro por estágio persistido por usuário no backend (com cache local para
+ * render imediato). O escopo padrão é compartilhado entre as telas do módulo
+ * China, então o time mantém a mesma visualização ao trocar de página.
+ */
+export function useChinaStatusFilter(escopo: string = CHINA_STATUS_FILTER_SCOPE) {
+  const [selected, setSelected] = useState<FlowBucket[]>(() => lerCache(escopo));
+  const userIdRef = useRef<string | null>(null);
+
+  // Carrega a preferência salva do usuário ao montar / trocar de escopo.
+  useEffect(() => {
+    let ativo = true;
+    setSelected(lerCache(escopo));
+
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id ?? null;
+      userIdRef.current = uid;
+      if (!uid || !ativo) return;
+
+      const { data, error } = await supabase
+        .from("china_status_filter_prefs")
+        .select("buckets")
+        .eq("user_id", uid)
+        .eq("escopo", escopo)
+        .maybeSingle();
+
+      if (!ativo || error || !data) return;
+      const remoto = sanitizar(data.buckets);
+      gravarCache(escopo, remoto);
+      setSelected(remoto);
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, [escopo]);
 
   const update = useCallback(
     (next: FlowBucket[]) => {
-      setSelected(next);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {
-        /* storage indisponível — filtro segue apenas em memória */
-      }
+      const limpo = sanitizar(next);
+      setSelected(limpo);
+      gravarCache(escopo, limpo);
+
+      void (async () => {
+        let uid = userIdRef.current;
+        if (!uid) {
+          const { data: auth } = await supabase.auth.getUser();
+          uid = auth?.user?.id ?? null;
+          userIdRef.current = uid;
+        }
+        if (!uid) return;
+        await supabase
+          .from("china_status_filter_prefs")
+          .upsert(
+            { user_id: uid, escopo, buckets: limpo, updated_at: new Date().toISOString() },
+            { onConflict: "user_id,escopo" },
+          );
+      })();
     },
-    [storageKey],
+    [escopo],
   );
 
   const matches = useCallback(
@@ -131,3 +197,4 @@ export function useChinaStatusFilter(storageKey: string) {
 
   return { selected, setSelected: update, matches };
 }
+
