@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { bucketFluxo, isAprovado, isDevolvido } from "@/lib/china/docStatus";
 import {
   evaluateAwaitingSend,
   AWAITING_SEND_REASON_LABEL,
@@ -326,11 +327,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     // usado para descobrir o que ainda falta criar (virtuais "fantasma").
     const realTiposBySub = new Map<string, Set<string>>();
     for (const d of docs) {
-      if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+      if (isDevolvido(d.status)) rejectedSubs.add(d.submissao_id);
       const s = subStats.get(d.submissao_id) ?? { total: 0, aprovados: 0, pendentes: 0, rejeitados: 0 };
       s.total += 1;
-      if (d.status === "aprovado") s.aprovados += 1;
-      else if (d.status === "rejeitado") s.rejeitados += 1;
+      if (isAprovado(d.status)) s.aprovados += 1;
+      else if (isDevolvido(d.status)) s.rejeitados += 1;
       else s.pendentes += 1;
       subStats.set(d.submissao_id, s);
       if (d.tipo_documento) {
@@ -397,7 +398,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_flagged: flagged.has(sub.id),
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
-        had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
+        had_previous_rejection: rejectedSubs.has(sub.id) && !isDevolvido(d.status),
         checklist_total: subStats.get(sub.id)?.total ?? 0,
         checklist_aprovados: subStats.get(sub.id)?.aprovados ?? 0,
         checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
@@ -518,28 +519,51 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const matchTrash = (i: MailboxItem) => i.is_deleted;
     const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
-    // Pastas dedicadas à perspectiva China — central de comando
-    // Pendentes de envio: regra centralizada em `awaitingSendRule` (parametrizável + testada).
-    const matchAwaitingSend = (i: MailboxItem) => evaluateAwaitingSend(i).matches;
-    // Enviadas ao Brasil: despachadas, doc ainda pendente (Brasil não abriu)
-    // Inclui status legado "enviado" e o novo "enviado_parcial" (envio fracionado
-    // via drag-and-drop ou single-doc) como sinônimos de "enviado_brasil".
-    const matchSentBrazil = (i: MailboxItem) =>
-      !i.is_deleted &&
-      (i.submissao_status === "enviado_brasil" ||
-        i.submissao_status === "enviado_parcial" ||
-        i.submissao_status === "enviado") &&
-      i.doc_status === "pendente";
-    // Em análise no Brasil: SOMENTE itens de checklist que o Brasil já abriu/contestou.
-    // Não inclui mais a submissão inteira em `em_revisao`, porque isso fazia
-    // itens novos (rascunho) caírem aqui em vez de "Pendentes de envio".
-    const matchInAnalysis = (i: MailboxItem) =>
-      !i.is_deleted &&
-      (i.doc_status === "enviado" || i.doc_status === "contestado");
-    // Retorno: ajustes solicitados pelo Brasil
+    // Pastas dedicadas à perspectiva China — central de comando.
+    // TODAS derivam do mesmo vocabulário (`bucketFluxo` em lib/china/docStatus),
+    // que também alimenta o Kanban e o Checklist. Nunca comparar `doc_status`
+    // literalmente aqui: status novos entram pela tabela STATUS_TO_FLUXO.
+    const fluxoDe = (i: MailboxItem) =>
+      i.doc_status ? bucketFluxo(i.doc_status) : "nao_criado";
+
+    /** Submissão já despachada ao Brasil (qualquer variante de "enviado"). */
+    const submissaoDespachada = (i: MailboxItem) =>
+      ["enviado", "enviado_brasil", "enviado_parcial"].includes(i.submissao_status);
+
+    /**
+     * Estágio EFETIVO do item: um documento ainda `pendente` dentro de uma
+     * submissão já despachada é, na prática, "enviado ao Brasil".
+     */
+    const estagioDe = (i: MailboxItem) => {
+      const b = fluxoDe(i);
+      if (b === "pendente_envio" && submissaoDespachada(i)) return "enviado" as const;
+      return b;
+    };
+
+    // Pendentes de envio: ainda não despachado E a regra de prontidão
+    // (`awaitingSendRule`: documento anexado + parecer da China) não passou.
+    const matchAwaitingSend = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
+      const b = estagioDe(i);
+      if (b !== "nao_criado" && b !== "rascunho" && b !== "pendente_envio") return false;
+      return evaluateAwaitingSend(i).matches;
+    };
+    // Enviadas ao Brasil: despachadas, Brasil ainda não abriu. Inclui os itens
+    // prontos (com documento e parecer) que ainda não foram movidos de status.
+    const matchSentBrazil = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
+      const b = estagioDe(i);
+      if (b === "enviado") return true;
+      return b === "pendente_envio" && !evaluateAwaitingSend(i).matches;
+    };
+    // Em análise no Brasil: Brasil abriu / está avaliando / contestou.
+    const matchInAnalysis = (i: MailboxItem) => !i.is_deleted && estagioDe(i) === "em_analise";
+    // Retorno: ajustes solicitados pelo Brasil (rejeitado / devolvido à China).
     const matchReturned = (i: MailboxItem) =>
-      !i.is_deleted &&
-      (i.doc_status === "rejeitado" || i.submissao_status === "rejeitado");
+      !i.is_deleted && (estagioDe(i) === "devolvido" || i.submissao_status === "rejeitado");
+    // Aprovados (nível item): decisão favorável — inclui "ciência".
+    const matchItemApproved = (i: MailboxItem) => !i.is_deleted && estagioDe(i) === "aprovado";
+
 
     const counts: MailboxCounts = { ...ZERO_COUNTS };
 

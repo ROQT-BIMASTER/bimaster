@@ -1,5 +1,6 @@
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
+import { bucketFluxo } from "@/lib/china/docStatus";
 
 /**
  * Item considerado "com documento anexado" — tem id do documento + caminho/URL
@@ -79,16 +80,25 @@ function emptyProgress(): MailboxGroupProgress {
 }
 
 function classifyForProgress(item: MailboxItem): keyof Omit<MailboxGroupProgress, "total"> {
-  // Itens "fantasma" (submissão sem nenhum documento) só são pendentes se
-  // a regra de pendência os marca; caso contrário, aprovados/rejeitados/enviados.
-  if (item.doc_status === "aprovado") return "aprovados";
-  if (item.doc_status === "rejeitado" || item.submissao_status === "rejeitado") return "rejeitados";
-  if (item.doc_status === "enviado" || item.doc_status === "contestado") return "em_analise";
+  // Vocabulário único (`bucketFluxo`): os contadores da barra de progresso
+  // precisam bater exatamente com as colunas do Kanban e as pastas da Caixa.
+  switch (bucketFluxo(item.doc_status)) {
+    case "aprovado":
+      return "aprovados";
+    case "devolvido":
+      return "rejeitados";
+    case "em_analise":
+      return "em_analise";
+    case "enviado":
+      return "enviados";
+    default:
+      break;
+  }
+  if (item.submissao_status === "rejeitado") return "rejeitados";
   if (evaluateAwaitingSend(item).matches) return "pendentes";
-  if (item.doc_status === "pendente") return "enviados";
-  // fallback razoável: se já tem doc anexado e não é rascunho, considera enviado.
-  if (item.documento_id && item.doc_status && item.doc_status !== "rascunho") return "enviados";
-  return "pendentes";
+  // Documento pronto (anexado + parecer) que ainda não mudou de status:
+  // do ponto de vista do fluxo já está a caminho do Brasil.
+  return item.documento_id ? "enviados" : "pendentes";
 }
 
 /**

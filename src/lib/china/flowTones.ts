@@ -10,6 +10,7 @@
  *  - idle  : ainda não iniciado (cinza)
  */
 import { Check, Circle, Clock, AlertTriangle, Upload } from "lucide-react";
+import { bucketFluxo } from "@/lib/china/docStatus";
 
 export type FlowTone = "done" | "prog" | "block" | "idle";
 
@@ -97,16 +98,27 @@ export function iconForBucket(bucket: FlowBucket): typeof Check {
   return FLOW_TONE[bucketToTone(bucket)].icon;
 }
 
-/** Deriva o bucket visual a partir do doc_status persistido. */
+/**
+ * Deriva o bucket visual a partir do doc_status persistido.
+ * Adaptador fino sobre `bucketFluxo` — vocabulário único do módulo China.
+ */
 export function bucketForDoc(d: { doc_status?: string | null } | null | undefined): FlowBucket {
   if (!d) return "nao_criado";
-  const s = (d.doc_status || "").toLowerCase();
-  if (s === "aprovado") return "aprovado";
-  if (s === "rejeitado") return "rejeitado";
-  if (s === "contestado") return "em_analise";
-  if (s === "enviado" || s === "enviado_brasil") return "enviado";
-  if (s === "pendente") return "em_analise";
-  if (s === "rascunho") return "pendente";
-  return "pendente";
+  switch (bucketFluxo(d.doc_status)) {
+    case "nao_criado":
+      return "nao_criado";
+    case "aprovado":
+      return "aprovado";
+    case "devolvido":
+      return "rejeitado";
+    case "em_analise":
+      return "em_analise";
+    case "enviado":
+      return "enviado";
+    case "rascunho":
+    case "pendente_envio":
+    default:
+      return "pendente";
+  }
 }
 
