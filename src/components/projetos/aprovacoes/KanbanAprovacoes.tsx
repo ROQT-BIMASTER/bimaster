@@ -484,6 +484,24 @@ export function KanbanAprovacoes({
 
   const drawerPipeline = drawerItem ? pipelineMap.get(drawerItem.pipeline_id) : undefined;
 
+  // Seleção múltipla para ações em lote
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
+  const [decisaoLote, setDecisaoLote] = useState<DecisaoLote | null>(null);
+
+  const itensSelecionados = useMemo(
+    () => itensFiltradosFinal.filter((i) => selecionados[i.id]),
+    [itensFiltradosFinal, selecionados],
+  );
+
+  function selecionarTodosVisiveis() {
+    const next: Record<string, boolean> = {};
+    itensFiltradosFinal.forEach((i) => {
+      if (i.status === "em_andamento") next[i.id] = true;
+    });
+    setSelecionados(next);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
