@@ -640,24 +640,13 @@ function DraggableKanbanCard({
       {accentColor && <div className={cn("w-1 flex-shrink-0 rounded-l-lg", accentColor)} />}
 
       <div className="flex-1 p-3">
-        {/* Product photo */}
+        {/* Foto do produto. Imagens anexadas já aparecem como capa em TarefaAnexosBadge. */}
         {tarefa.produto_foto_url ? (
           <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="xl" className="w-full h-full rounded-md" />
           </div>
-        ) : fotoAnexo ? (
-          <div className="mb-2">
-            <ItemThumb
-              bucket={fotoAnexo.bucket}
-              item={{
-                arquivo_path: fotoAnexo.storage_path,
-                arquivo_url: null,
-                nome_arquivo: fotoAnexo.nome,
-              }}
-              size="md"
-            />
-          </div>
         ) : null}
+
 
         {/* Title row */}
         <div className="flex items-start gap-2">
