@@ -741,10 +741,9 @@ export function MatrizPrecosComparativa() {
     setReverseDialogOpen(true);
   };
 
-  const { refetch: refetchPrecos } = useQuery({
-    queryKey: ["fabrica-matriz-precos"],
-    enabled: false,
-  });
+  const refetchPrecos = () =>
+    queryClient.invalidateQueries({ queryKey: ["fabrica-matriz-precos"] });
+
 
   const exportarExcel = async (tabelaIds?: string[]) => {
     const tabelasParaExportar = tabelaIds
