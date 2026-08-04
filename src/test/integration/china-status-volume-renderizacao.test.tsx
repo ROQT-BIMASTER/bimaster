@@ -218,7 +218,7 @@ describe("China — volume: sincronização e UI com lote grande de documentos",
   });
 
   it("consolidação de tarefas com muitos documentos segue a pior decisão", () => {
-    const todosAprovados = Array.from({ length: 300 }, (_, i) =>
+    const todosAprovados: string[] = Array.from({ length: 300 }, (_, i) =>
       i % 2 === 0 ? "aprovado" : "ciencia",
     );
     expect(consolidarDecisoes(todosAprovados)).toBe("aprovado");
