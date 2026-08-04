@@ -533,6 +533,7 @@ export function AprovacaoLoteDialog({
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 placeholder="Senha do seu usuário"
+                className="bg-background text-foreground"
               />
               <p className="text-[11px] text-muted-foreground">
                 A senha é validada no servidor e autoriza apenas este lote.
