@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 import { useChinaKanbanFilters, type BucketFilter } from "@/hooks/useChinaKanbanFilters";
 import { MailboxKanbanFilters } from "@/components/china/inbox/MailboxKanbanFilters";
+import { bucketFluxo, type FluxoBucket } from "@/lib/china/docStatus";
 
 
 interface Props {
