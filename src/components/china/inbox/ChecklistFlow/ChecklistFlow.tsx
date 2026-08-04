@@ -15,12 +15,10 @@ import {
   type MergedChecklistCategory,
 } from "@/hooks/useMergedChinaChecklist";
 import {
-  BUCKET_LABEL,
-  FLOW_TONE,
   bucketForDoc,
-  bucketToTone,
   type FlowBucket,
 } from "@/lib/china/flowTones";
+
 import {
   ChinaStatusFilterChips,
   useChinaStatusFilter,
