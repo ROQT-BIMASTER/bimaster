@@ -261,10 +261,12 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         })()}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
+        <DocStatusTag status={item.doc_status} size="xs" idioma="bi" />
         <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
           <SbIcon className="h-2.5 w-2.5" />
           {sb.label}
         </Badge>
+
         {item.submissao_status === "aprovado" && item.checklist_total > 0 && (
           <Badge
             variant="outline"
