@@ -120,7 +120,7 @@ export function useChinaProjetoChecklist(submissaoId: string | undefined) {
           .from("projeto_tarefas" as any)
           .select("id, titulo, status, secao_id, ordem")
           .eq("projeto_id", projetoId)
-          .is("parent_id", null)
+          .is("parent_tarefa_id", null)
           .order("ordem"),
       ]);
 

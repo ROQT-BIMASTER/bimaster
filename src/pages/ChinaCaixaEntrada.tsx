@@ -98,11 +98,31 @@ export default function ChinaCaixaEntrada() {
     setSearchParams(sp, { replace: true });
   };
 
-  const { items: rawItems, progressItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  // Recorte por submissão (deep-link vindo da ficha / projeto-espelho).
+  const submissaoParam = searchParams.get("submissao");
+  const {
+    items: rawItems,
+    progressItems: rawProgressItems,
+    counts,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useChinaMailbox(folder);
   const items = useMemo(() => {
-    if (folder !== "approved" || approvalFilter === "all") return rawItems;
-    return rawItems.filter((i) => i.approval_completeness === approvalFilter);
-  }, [rawItems, folder, approvalFilter]);
+    let list = rawItems;
+    if (submissaoParam) list = list.filter((i) => i.submissao_id === submissaoParam);
+    if (folder === "approved" && approvalFilter !== "all") {
+      list = list.filter((i) => i.approval_completeness === approvalFilter);
+    }
+    return list;
+  }, [rawItems, folder, approvalFilter, submissaoParam]);
+  const progressItems = useMemo(
+    () =>
+      submissaoParam
+        ? (rawProgressItems ?? []).filter((i) => i.submissao_id === submissaoParam)
+        : rawProgressItems,
+    [rawProgressItems, submissaoParam],
+  );
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
   const trash = useTrashSubmissoes();
