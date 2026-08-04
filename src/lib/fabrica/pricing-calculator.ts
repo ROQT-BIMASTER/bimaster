@@ -473,6 +473,32 @@ export async function calcularPrecosProdutos(
   for (const produtoId of produtosIds) {
     let custoBase = 0;
 
+    // Determinar markup: override por produto > override por linha > markup da tabela
+    let markupConfig: MarkupConfig = {
+      tipo: tabela.tipo_markup as MarkupConfig['tipo'],
+      valor: tabela.valor_markup,
+    };
+    let overrideTipo: 'linha' | 'produto' | null = null;
+    let overrideBaseId: string | null = null;
+
+    if (overridesPorProduto[produtoId]) {
+      const ov = overridesPorProduto[produtoId];
+      markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
+      overrideTipo = 'produto';
+      overrideBaseId = (ov as any).tabela_base_id ?? null;
+    } else {
+      const linha = produtoLinhaMap[produtoId];
+      if (linha && overridesPorLinha[linha]) {
+        const ov = overridesPorLinha[linha];
+        markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
+        overrideTipo = 'linha';
+        overrideBaseId = (ov as any).tabela_base_id ?? null;
+      }
+    }
+
+    // Base efetiva da cascata: override tem prioridade sobre a base padrão da tabela
+    const baseEfetivaId = overrideBaseId || tabela.tabela_base_id;
+
     // Determinar custo base
     if (opcoes.fonteCusto === 'manual' && opcoes.custosManual?.[produtoId]) {
       custoBase = opcoes.custosManual[produtoId];
@@ -487,32 +513,13 @@ export async function calcularPrecosProdutos(
       custoBase = (await buscarCustoUltimaOP(produtoId)) || 0;
     } else if (opcoes.fonteCusto === 'custo_medio') {
       custoBase = (await buscarCustoMedioProduto(produtoId)) || 0;
-    } else if (opcoes.fonteCusto === 'tabela_anterior' && tabela.tabela_base_id) {
-      custoBase = (await buscarPrecoTabelaBase(produtoId, tabela.tabela_base_id, opcoes.origem)) || 0;
-    }
-
-    // Determinar markup: override por produto > override por linha > markup da tabela
-    let markupConfig: MarkupConfig = {
-      tipo: tabela.tipo_markup as MarkupConfig['tipo'],
-      valor: tabela.valor_markup,
-    };
-    let overrideTipo: 'linha' | 'produto' | null = null;
-
-    if (overridesPorProduto[produtoId]) {
-      const ov = overridesPorProduto[produtoId];
-      markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
-      overrideTipo = 'produto';
-    } else {
-      const linha = produtoLinhaMap[produtoId];
-      if (linha && overridesPorLinha[linha]) {
-        const ov = overridesPorLinha[linha];
-        markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
-        overrideTipo = 'linha';
-      }
+    } else if (opcoes.fonteCusto === 'tabela_anterior' && baseEfetivaId) {
+      custoBase = (await buscarPrecoTabelaBase(produtoId, baseEfetivaId, opcoes.origem)) || 0;
     }
 
     // Calcular preço com markup (override ou padrão)
     const precoCalculado = calcularPrecoComMarkup(custoBase, markupConfig);
+
 
     // Aplicar limites de preço se configurados
     const limites = limitesMap[produtoId] || null;
