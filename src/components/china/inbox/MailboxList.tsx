@@ -13,6 +13,8 @@ import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/aw
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
+import { DocStatusTag } from "@/components/china/DocStatusTag";
+
 
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 
