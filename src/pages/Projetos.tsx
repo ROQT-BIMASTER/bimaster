@@ -662,6 +662,22 @@ export default function Projetos() {
         isSaving={criarPasta.isPending}
       />
 
+      <ProjetoPastasAtribuirDialog
+        open={atribuirPastasOpen}
+        onOpenChange={setAtribuirPastasOpen}
+        projetos={projetos.map((p) => ({ id: p.id, nome: p.nome }))}
+        pastas={pastas}
+        pastaPorProjeto={pastaPorProjeto}
+        podeGerirCompartilhadas={podeGerirCompartilhadas}
+        pastaPreSelecionada={
+          pastaAtiva !== PASTA_TODAS && pastaAtiva !== PASTA_SEM_PASTA ? pastaAtiva : undefined
+        }
+        isSaving={moverProjetosEmLote.isPending}
+        onMoverEmLote={(input) => moverProjetosEmLote.mutate(input)}
+      />
+
+
+
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
 
       <AlertDialog
