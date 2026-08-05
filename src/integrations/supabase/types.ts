@@ -44147,6 +44147,7 @@ export type Database = {
           descricao: string | null
           icone: string | null
           id: string
+          imagem_url: string | null
           marca: string | null
           metadata: Json
           nome: string
@@ -44183,6 +44184,7 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          imagem_url?: string | null
           marca?: string | null
           metadata?: Json
           nome: string
@@ -44219,6 +44221,7 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          imagem_url?: string | null
           marca?: string | null
           metadata?: Json
           nome?: string
@@ -60106,6 +60109,7 @@ export type Database = {
           descricao: string | null
           icone: string | null
           id: string
+          imagem_url: string | null
           marca: string | null
           metadata: Json
           nome: string
@@ -62045,6 +62049,7 @@ export type Database = {
           descricao: string | null
           icone: string | null
           id: string
+          imagem_url: string | null
           marca: string | null
           metadata: Json
           nome: string

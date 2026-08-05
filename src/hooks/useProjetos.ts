@@ -18,6 +18,7 @@ export interface Projeto {
   created_at: string;
   updated_at: string;
   bg_cor?: string | null;
+  imagem_url?: string | null;
   tipo: string;
   departamento_id?: string | null;
   data_inicio?: string | null;
@@ -399,6 +400,7 @@ export function useProjetos(options: UseProjetosOptions = {}) {
         nome?: string;
         descricao?: string | null;
         cor?: string;
+        imagem_url?: string | null;
         marca?: string | null;
         categoria_linha?: string | null;
         origem_projeto?: string | null;

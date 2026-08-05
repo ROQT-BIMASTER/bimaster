@@ -29,6 +29,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays } from "lucide-react";
+import { ProjetoFotoUploader } from "@/components/projetos/ProjetoFotoUploader";
 
 const CORES = [
   "#6366f1",
@@ -97,6 +98,7 @@ export function EditarProjetoDialog({ projetoId, open, onOpenChange }: Props) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
+  const [imagemUrl, setImagemUrl] = useState<string | null>(null);
   const [departamentoIds, setDepartamentoIds] = useState<string[]>([]);
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
@@ -115,6 +117,7 @@ export function EditarProjetoDialog({ projetoId, open, onOpenChange }: Props) {
     setNome(projeto.nome ?? "");
     setDescricao(projeto.descricao ?? "");
     setCor(projeto.cor ?? CORES[0]);
+    setImagemUrl(((projeto as any).imagem_url as string | null) ?? null);
     setMarca((projeto as any).marca ?? "");
     setCategoriaLinha((projeto as any).categoria_linha ?? "");
     setOrigemProjeto((projeto as any).origem_projeto ?? "brasil");
@@ -141,6 +144,7 @@ export function EditarProjetoDialog({ projetoId, open, onOpenChange }: Props) {
       nome: nome.trim(),
       descricao: descricao.trim() ? descricao.trim() : null,
       cor,
+      imagem_url: imagemUrl,
     };
 
     if (isDevProduto) {
@@ -207,6 +211,17 @@ export function EditarProjetoDialog({ projetoId, open, onOpenChange }: Props) {
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Breve descrição do projeto"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Foto do projeto</Label>
+                <ProjetoFotoUploader
+                  projetoId={projeto.id}
+                  nome={nome || projeto.nome}
+                  cor={cor}
+                  imagemUrl={imagemUrl}
+                  onChange={setImagemUrl}
                 />
               </div>
 
