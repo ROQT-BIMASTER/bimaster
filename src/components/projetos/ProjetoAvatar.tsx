@@ -1,4 +1,4 @@
-import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
+import { useProjetoCapaUrl } from "@/hooks/useProjetoCapaUrl";
 import { cn } from "@/lib/utils";
 
 interface ProjetoAvatarProps {
@@ -20,7 +20,7 @@ export function ProjetoAvatar({
   className,
   textClassName,
 }: ProjetoAvatarProps) {
-  const resolved = useResolvedAvatarUrl(imagemUrl);
+  const resolved = useProjetoCapaUrl(imagemUrl);
   const inicial = (nome || "?").trim().charAt(0).toUpperCase();
 
   return (
