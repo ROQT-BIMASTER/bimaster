@@ -104,8 +104,24 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
       }
 
       const txt = await r.text().catch(() => "");
+
+      // 400 "model is not a chat model" / "model not found": modelo inválido para
+      // /v1/chat/completions. Cai para o próximo da cadeia em vez de falhar o copiloto.
+      const modeloInvalido =
+        r.status === 400 &&
+        /is not a chat model|model_not_found|not a valid model|unsupported model/i.test(txt);
+      if (modeloInvalido) {
+        const next = allowFallback ? FALLBACK_CHAIN[model] : null;
+        logger.warn(`[ai-gateway] 400 modelo inválido em ${model}, fallback -> ${next ?? "nenhum"}`);
+        if (next) {
+          model = next;
+          continue;
+        }
+      }
+
       logger.error(`[ai-gateway] ${r.status} em ${model}:`, txt.slice(0, 500));
       return { kind: "upstream", status: r.status, bodyText: txt, modelTried: model };
+
     } catch (e: any) {
       clearTimeout(timer);
       if (e?.name === "AbortError") {
