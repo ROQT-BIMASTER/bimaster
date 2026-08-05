@@ -19,6 +19,7 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onGerenciar: () => void;
+  onOrganizar?: () => void;
 }
 
 export function ProjetoPastasBar({
@@ -29,7 +30,9 @@ export function ProjetoPastasBar({
   value,
   onChange,
   onGerenciar,
+  onOrganizar,
 }: Props) {
+
   const compartilhadas = pastas.filter((p) => p.escopo === "compartilhada");
   const pessoais = pastas.filter((p) => p.escopo === "pessoal");
 
