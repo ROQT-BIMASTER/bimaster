@@ -510,12 +510,12 @@ export default function Projetos() {
                     >
                       {/* Name */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105"
-                          style={{ backgroundColor: projeto.cor }}
-                        >
-                          <span className="text-white font-bold text-xs">{projeto.nome.charAt(0)}</span>
-                        </div>
+                        <ProjetoAvatar
+                          nome={projeto.nome}
+                          cor={projeto.cor}
+                          imagemUrl={(projeto as any).imagem_url}
+                          className="w-9 h-9 rounded-lg shadow-sm transition-transform group-hover:scale-105"
+                        />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">{projeto.nome}</p>
