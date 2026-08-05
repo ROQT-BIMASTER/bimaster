@@ -11,20 +11,24 @@ import { logger } from "./logger.ts";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
+// Somente modelos servidos em /v1/chat/completions.
+// gpt-5.x-pro NÃO existe nesse canal (só na Responses API) — nunca incluir aqui.
 const FALLBACK_CHAIN: Record<string, string | null> = {
   "google/gemini-2.5-pro": "google/gemini-3-flash-preview",
   "google/gemini-3-flash-preview": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash-lite": null,
+  // Modelos "pro" são inválidos no chat: caem imediatamente para o equivalente válido.
   "openai/gpt-5.5-pro": "openai/gpt-5.5",
-  "openai/gpt-5.5": "openai/gpt-5.2",
   "openai/gpt-5.4-pro": "openai/gpt-5.4",
+  "openai/gpt-5.5": "openai/gpt-5.2",
   "openai/gpt-5.4": "openai/gpt-5.2",
   "openai/gpt-5": "openai/gpt-5-mini",
   "openai/gpt-5.2": "openai/gpt-5-mini",
   "openai/gpt-5-mini": "openai/gpt-5-nano",
   "openai/gpt-5-nano": "google/gemini-3-flash-preview",
 };
+
 
 export interface CallAIGatewayInput {
   messages: any[];
@@ -100,8 +104,24 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
       }
 
       const txt = await r.text().catch(() => "");
+
+      // 400 "model is not a chat model" / "model not found": modelo inválido para
+      // /v1/chat/completions. Cai para o próximo da cadeia em vez de falhar o copiloto.
+      const modeloInvalido =
+        r.status === 400 &&
+        /is not a chat model|model_not_found|not a valid model|unsupported model/i.test(txt);
+      if (modeloInvalido) {
+        const next = allowFallback ? FALLBACK_CHAIN[model] : null;
+        logger.warn(`[ai-gateway] 400 modelo inválido em ${model}, fallback -> ${next ?? "nenhum"}`);
+        if (next) {
+          model = next;
+          continue;
+        }
+      }
+
       logger.error(`[ai-gateway] ${r.status} em ${model}:`, txt.slice(0, 500));
       return { kind: "upstream", status: r.status, bodyText: txt, modelTried: model };
+
     } catch (e: any) {
       clearTimeout(timer);
       if (e?.name === "AbortError") {
@@ -172,5 +192,12 @@ export function aiGatewayErrorResponse(
   if (result.kind === "timeout") {
     return new Response(JSON.stringify({ error: ERR_MESSAGES.timeout[lang] }), { status: 504, headers });
   }
-  return new Response(JSON.stringify({ error: ERR_MESSAGES.upstream[lang] }), { status: 502, headers });
+  return new Response(
+    JSON.stringify({
+      error: ERR_MESSAGES.upstream[lang],
+      detail: `status=${result.status} model=${result.modelTried}`,
+    }),
+    { status: 502, headers },
+  );
+
 }

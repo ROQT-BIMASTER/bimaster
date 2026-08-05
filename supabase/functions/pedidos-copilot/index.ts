@@ -396,7 +396,7 @@ async function execTool(name: string, args: any, c: ToolCtx) {
 function escolherModelo(msg: string): string {
   const t = msg.toLowerCase();
   const heavy = ["relatório", "relatorio", "análise", "analise", "estratégia", "estrategia", "plano de ação", "recomenda", "projeta"];
-  if (heavy.some((k) => t.includes(k))) return "openai/gpt-5.5-pro";
+  if (heavy.some((k) => t.includes(k))) return "openai/gpt-5.5";
   return "openai/gpt-5.5";
 }
 
