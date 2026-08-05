@@ -42357,6 +42357,94 @@ export type Database = {
           },
         ]
       }
+      projeto_pasta_itens: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          pasta_id: string
+          projeto_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          pasta_id: string
+          projeto_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          pasta_id?: string
+          projeto_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_pasta_itens_pasta_id_fkey"
+            columns: ["pasta_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_pastas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_pasta_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_pasta_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
+      projeto_pastas: {
+        Row: {
+          cor: string
+          created_at: string
+          created_by: string
+          escopo: string
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          created_by: string
+          escopo: string
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          created_by?: string
+          escopo?: string
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projeto_planos_acao: {
         Row: {
           created_at: string
@@ -60957,6 +61045,10 @@ export type Database = {
       pode_avancar_etapa: {
         Args: { p_etapa_id: string; p_instancia_id: string }
         Returns: Json
+      }
+      pode_gerir_pastas_compartilhadas: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       process_payment_atomic: {
         Args: {
