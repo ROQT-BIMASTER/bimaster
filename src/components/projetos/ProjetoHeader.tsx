@@ -190,12 +190,13 @@ export function ProjetoHeader({
       >
         <div className="flex items-center gap-4">
           {/* Icon */}
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md"
-            style={{ backgroundColor: projeto.cor }}
-          >
-            <span className="text-white text-xl font-bold">{projeto.nome.charAt(0)}</span>
-          </div>
+          <ProjetoAvatar
+            nome={projeto.nome}
+            cor={projeto.cor}
+            imagemUrl={(projeto as any).imagem_url}
+            className="w-12 h-12 rounded-xl shadow-md"
+            textClassName="text-xl"
+          />
           {/* Title + description */}
           <div className="flex-1 min-w-0">
             <h1 className={cn("text-2xl font-bold tracking-tight", textColor || "text-foreground")}>{projeto.nome}</h1>
