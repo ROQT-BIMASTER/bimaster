@@ -192,5 +192,12 @@ export function aiGatewayErrorResponse(
   if (result.kind === "timeout") {
     return new Response(JSON.stringify({ error: ERR_MESSAGES.timeout[lang] }), { status: 504, headers });
   }
-  return new Response(JSON.stringify({ error: ERR_MESSAGES.upstream[lang] }), { status: 502, headers });
+  return new Response(
+    JSON.stringify({
+      error: ERR_MESSAGES.upstream[lang],
+      detail: `status=${result.status} model=${result.modelTried}`,
+    }),
+    { status: 502, headers },
+  );
+
 }
