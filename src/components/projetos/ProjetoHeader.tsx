@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
+import { ProjetoAvatar } from "@/components/projetos/ProjetoAvatar";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine, RefreshCw } from "lucide-react";
