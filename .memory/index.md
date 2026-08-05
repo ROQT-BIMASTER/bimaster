@@ -34,3 +34,4 @@ type: feature | preference | design | constraint | reference
 1. Crie o arquivo em `.memory/<tipo>/<slug>.md` com frontmatter.
 2. Adicione uma linha aqui sob a seção apropriada.
 3. Commit normalmente — Lovable sincroniza com GitHub.
+- [Chat Models Allowlist](mem://ai/chat-completions-model-allowlist) — Modelos `*-pro` proibidos em /v1/chat/completions; copilotos usam gpt-5.5/Gemini; fallback em 400 de modelo inválido
