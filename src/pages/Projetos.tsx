@@ -194,6 +194,8 @@ export default function Projetos() {
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
   const [pastasDialogOpen, setPastasDialogOpen] = useState(false);
+  const [atribuirPastasOpen, setAtribuirPastasOpen] = useState(false);
+
   const [pastaAtiva, setPastaAtiva] = useState<string>(() => {
     if (typeof window === "undefined") return PASTA_TODAS;
     return window.localStorage.getItem(PASTA_ATIVA_KEY) || PASTA_TODAS;
