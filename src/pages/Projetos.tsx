@@ -50,6 +50,7 @@ import {
   PASTA_SEM_PASTA,
 } from "@/components/projetos/ProjetoPastasBar";
 import { ProjetoPastasManagerDialog } from "@/components/projetos/ProjetoPastasManagerDialog";
+import { ProjetoPastasHelpCard } from "@/components/projetos/ProjetoPastasHelpCard";
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { FolderInput } from "lucide-react";
 
@@ -385,16 +386,20 @@ export default function Projetos() {
 
             {/* Pastas (workspaces) */}
             {!isLoading && (
-              <ProjetoPastasBar
-                pastas={pastas}
-                contagens={contagensPastas}
-                totalProjetos={projetos.length}
-                semPastaCount={semPastaCount}
-                value={pastaAtiva}
-                onChange={selecionarPasta}
-                onGerenciar={() => setPastasDialogOpen(true)}
-              />
+              <>
+                <ProjetoPastasHelpCard onGerenciar={() => setPastasDialogOpen(true)} />
+                <ProjetoPastasBar
+                  pastas={pastas}
+                  contagens={contagensPastas}
+                  totalProjetos={projetos.length}
+                  semPastaCount={semPastaCount}
+                  value={pastaAtiva}
+                  onChange={selecionarPasta}
+                  onGerenciar={() => setPastasDialogOpen(true)}
+                />
+              </>
             )}
+
 
             {/* Filters */}
 
