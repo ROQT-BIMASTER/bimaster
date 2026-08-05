@@ -208,6 +208,59 @@ export function useProjetoPastas() {
     onError: (e: Error) => toast.error(e.message || "Não foi possível mover o projeto."),
   });
 
+  /**
+   * Move vários projetos de uma vez. `pastaId = null` remove o vínculo.
+   * Usado para organizar projetos já em andamento em lote.
+   */
+  const moverProjetosEmLote = useMutation({
+    mutationFn: async (input: { projetoIds: string[]; pastaId: string | null }) => {
+      if (!user?.id) throw new Error("Sessão expirada.");
+      const ids = Array.from(new Set(input.projetoIds));
+      if (ids.length === 0) return { movidos: 0 };
+
+      const destino = input.pastaId ? pastas.find((p) => p.id === input.pastaId) : null;
+      if (input.pastaId && !destino) throw new Error("Pasta não encontrada.");
+      if (destino?.escopo === "compartilhada" && !podeGerirCompartilhadas) {
+        throw new Error("Sem permissão para organizar pastas compartilhadas.");
+      }
+
+      const removiveis = itens.filter(
+        (i) =>
+          ids.includes(i.projeto_id) &&
+          (i.user_id === user.id || (i.user_id === null && podeGerirCompartilhadas)),
+      );
+      if (removiveis.length > 0) {
+        const { error } = await supabase
+          .from("projeto_pasta_itens")
+          .delete()
+          .in(
+            "id",
+            removiveis.map((i) => i.id),
+          );
+        if (error) throw error;
+      }
+
+      if (!destino) return { movidos: ids.length };
+
+      const { error } = await supabase.from("projeto_pasta_itens").insert(
+        ids.map((projetoId) => ({
+          pasta_id: destino.id,
+          projeto_id: projetoId,
+          user_id: destino.escopo === "pessoal" ? user.id : null,
+          created_by: user.id,
+        })),
+      );
+      if (error) throw error;
+      return { movidos: ids.length };
+    },
+    onSuccess: (result) => {
+      invalidate();
+      const n = result?.movidos ?? 0;
+      toast.success(`${n} projeto${n === 1 ? "" : "s"} reorganizado${n === 1 ? "" : "s"}.`);
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível mover os projetos."),
+  });
+
   return {
     pastas,
     itens,
@@ -218,5 +271,7 @@ export function useProjetoPastas() {
     atualizarPasta,
     excluirPasta,
     moverProjeto,
+    moverProjetosEmLote,
   };
+
 }
