@@ -50,6 +50,7 @@ import {
   PASTA_SEM_PASTA,
 } from "@/components/projetos/ProjetoPastasBar";
 import { ProjetoPastasManagerDialog } from "@/components/projetos/ProjetoPastasManagerDialog";
+import { ProjetoPastasHelpCard } from "@/components/projetos/ProjetoPastasHelpCard";
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { FolderInput } from "lucide-react";
 
