@@ -4,7 +4,7 @@
  */
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox } from "lucide-react";
+import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox, FolderInput } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProjetoPasta } from "@/hooks/useProjetoPastas";
 
