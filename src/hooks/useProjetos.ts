@@ -18,6 +18,7 @@ export interface Projeto {
   created_at: string;
   updated_at: string;
   bg_cor?: string | null;
+  imagem_url?: string | null;
   tipo: string;
   departamento_id?: string | null;
   data_inicio?: string | null;
