@@ -385,16 +385,20 @@ export default function Projetos() {
 
             {/* Pastas (workspaces) */}
             {!isLoading && (
-              <ProjetoPastasBar
-                pastas={pastas}
-                contagens={contagensPastas}
-                totalProjetos={projetos.length}
-                semPastaCount={semPastaCount}
-                value={pastaAtiva}
-                onChange={selecionarPasta}
-                onGerenciar={() => setPastasDialogOpen(true)}
-              />
+              <>
+                <ProjetoPastasHelpCard onGerenciar={() => setPastasDialogOpen(true)} />
+                <ProjetoPastasBar
+                  pastas={pastas}
+                  contagens={contagensPastas}
+                  totalProjetos={projetos.length}
+                  semPastaCount={semPastaCount}
+                  value={pastaAtiva}
+                  onChange={selecionarPasta}
+                  onGerenciar={() => setPastasDialogOpen(true)}
+                />
+              </>
             )}
+
 
             {/* Filters */}
 
