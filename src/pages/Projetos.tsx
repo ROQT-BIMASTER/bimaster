@@ -215,6 +215,8 @@ export default function Projetos() {
     atualizarPasta,
     excluirPasta,
     moverProjeto,
+    moverProjetosEmLote,
+
   } = useProjetoPastas();
 
   const selecionarPasta = (value: string) => {
