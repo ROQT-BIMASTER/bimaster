@@ -6,6 +6,14 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 > Para o changelog operacional de SDK/OpenAPI consumido por integradores,
 > consulte `src/pages/admin/ApiDocumentation.tsx`.
 
+## [4.0.1]
+
+- Copilotos (Projeto, Central de Trabalho, Pedidos): corrigida a falha que impedia
+  respostas em perguntas de análise/planejamento. O roteamento usava um modelo
+  indisponível no canal de chat, retornando erro 400 sem nova tentativa.
+- Gateway de IA: fallback automático quando o provedor rejeita o modelo (400
+  "model is not a chat model") e limpeza da cadeia de modelos suportados.
+
 ## [3.6.9]
 
 - China / Fluxo do Checklist: documentos sem pré-visualização nativa (planilhas,
