@@ -399,6 +399,7 @@ export function useProjetos(options: UseProjetosOptions = {}) {
         nome?: string;
         descricao?: string | null;
         cor?: string;
+        imagem_url?: string | null;
         marca?: string | null;
         categoria_linha?: string | null;
         origem_projeto?: string | null;
