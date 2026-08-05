@@ -11,20 +11,24 @@ import { logger } from "./logger.ts";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
+// Somente modelos servidos em /v1/chat/completions.
+// gpt-5.x-pro NÃO existe nesse canal (só na Responses API) — nunca incluir aqui.
 const FALLBACK_CHAIN: Record<string, string | null> = {
   "google/gemini-2.5-pro": "google/gemini-3-flash-preview",
   "google/gemini-3-flash-preview": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash-lite": null,
+  // Modelos "pro" são inválidos no chat: caem imediatamente para o equivalente válido.
   "openai/gpt-5.5-pro": "openai/gpt-5.5",
-  "openai/gpt-5.5": "openai/gpt-5.2",
   "openai/gpt-5.4-pro": "openai/gpt-5.4",
+  "openai/gpt-5.5": "openai/gpt-5.2",
   "openai/gpt-5.4": "openai/gpt-5.2",
   "openai/gpt-5": "openai/gpt-5-mini",
   "openai/gpt-5.2": "openai/gpt-5-mini",
   "openai/gpt-5-mini": "openai/gpt-5-nano",
   "openai/gpt-5-nano": "google/gemini-3-flash-preview",
 };
+
 
 export interface CallAIGatewayInput {
   messages: any[];
