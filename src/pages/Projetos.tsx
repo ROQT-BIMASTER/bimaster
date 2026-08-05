@@ -51,6 +51,8 @@ import {
 } from "@/components/projetos/ProjetoPastasBar";
 import { ProjetoPastasManagerDialog } from "@/components/projetos/ProjetoPastasManagerDialog";
 import { ProjetoPastasHelpCard } from "@/components/projetos/ProjetoPastasHelpCard";
+import { ProjetoPastasAtribuirDialog } from "@/components/projetos/ProjetoPastasAtribuirDialog";
+
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { FolderInput } from "lucide-react";
 
@@ -192,6 +194,8 @@ export default function Projetos() {
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
   const [pastasDialogOpen, setPastasDialogOpen] = useState(false);
+  const [atribuirPastasOpen, setAtribuirPastasOpen] = useState(false);
+
   const [pastaAtiva, setPastaAtiva] = useState<string>(() => {
     if (typeof window === "undefined") return PASTA_TODAS;
     return window.localStorage.getItem(PASTA_ATIVA_KEY) || PASTA_TODAS;
@@ -211,6 +215,8 @@ export default function Projetos() {
     atualizarPasta,
     excluirPasta,
     moverProjeto,
+    moverProjetosEmLote,
+
   } = useProjetoPastas();
 
   const selecionarPasta = (value: string) => {
@@ -396,6 +402,8 @@ export default function Projetos() {
                   value={pastaAtiva}
                   onChange={selecionarPasta}
                   onGerenciar={() => setPastasDialogOpen(true)}
+                  onOrganizar={() => setAtribuirPastasOpen(true)}
+
                 />
               </>
             )}
@@ -653,6 +661,22 @@ export default function Projetos() {
         }}
         isSaving={criarPasta.isPending}
       />
+
+      <ProjetoPastasAtribuirDialog
+        open={atribuirPastasOpen}
+        onOpenChange={setAtribuirPastasOpen}
+        projetos={projetos.map((p) => ({ id: p.id, nome: p.nome }))}
+        pastas={pastas}
+        pastaPorProjeto={pastaPorProjeto}
+        podeGerirCompartilhadas={podeGerirCompartilhadas}
+        pastaPreSelecionada={
+          pastaAtiva !== PASTA_TODAS && pastaAtiva !== PASTA_SEM_PASTA ? pastaAtiva : undefined
+        }
+        isSaving={moverProjetosEmLote.isPending}
+        onMoverEmLote={(input) => moverProjetosEmLote.mutate(input)}
+      />
+
+
 
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
 

@@ -4,7 +4,7 @@
  */
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox } from "lucide-react";
+import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox, FolderInput } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProjetoPasta } from "@/hooks/useProjetoPastas";
 
@@ -19,6 +19,7 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onGerenciar: () => void;
+  onOrganizar?: () => void;
 }
 
 export function ProjetoPastasBar({
@@ -29,7 +30,9 @@ export function ProjetoPastasBar({
   value,
   onChange,
   onGerenciar,
+  onOrganizar,
 }: Props) {
+
   const compartilhadas = pastas.filter((p) => p.escopo === "compartilhada");
   const pessoais = pastas.filter((p) => p.escopo === "pessoal");
 
@@ -84,6 +87,17 @@ export function ProjetoPastasBar({
           <Inbox className="h-3.5 w-3.5" />
         ))}
 
+      {onOrganizar && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOrganizar}
+          className="h-8 gap-1.5 text-xs text-muted-foreground"
+        >
+          <FolderInput className="h-3.5 w-3.5" /> Organizar projetos
+        </Button>
+      )}
+
       <Button
         variant="ghost"
         size="sm"
@@ -103,5 +117,6 @@ export function ProjetoPastasBar({
     </div>
   );
 }
+
 
 export { FolderOpen };
