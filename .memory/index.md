@@ -20,6 +20,7 @@ type: feature | preference | design | constraint | reference
 
 ### `ai/`
 - [`copilot-v2-rollout-pattern.md`](./ai/copilot-v2-rollout-pattern.md) — Arquitetura final dos copilotos pós-Fase 6: front sempre invoca `<copilot>-v2`, contratos C1/C2 sempre aplicados, legados como backend interno via `proxy-legacy.ts`.
+- [`chat-completions-model-allowlist.md`](./ai/chat-completions-model-allowlist.md) — Modelos `*-pro` (gpt-5.5-pro/5.4-pro) proibidos em `/v1/chat/completions`; copilotos usam `openai/gpt-5.5` ou Gemini; fallback automático em 400 de modelo inválido.
 
 ### `features/`
 - [`china/upload-documentos-hardening.md`](./features/china/upload-documentos-hardening.md) — Invariantes do upload de documentos China: coluna `observacao`, validação local + magic bytes, path sanitizado, retry com backoff, rollback transacional, preview com sandbox.
@@ -28,7 +29,6 @@ type: feature | preference | design | constraint | reference
 
 ### `preferences/`
 - [`date-timezone-guard.md`](./preferences/date-timezone-guard.md) — Proibição de `new Date(string)` em colunas Postgres `DATE`; uso obrigatório de `parseLocalDate`. CI valida via `audit/date-tz-guard.sh`.
-- [Chat Models Allowlist](mem://ai/chat-completions-model-allowlist) — Modelos `*-pro` proibidos em /v1/chat/completions; copilotos usam gpt-5.5/Gemini; fallback em 400 de modelo inválido
 
 ## Como adicionar
 
