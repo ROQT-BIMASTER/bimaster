@@ -87,6 +87,17 @@ export function ProjetoPastasBar({
           <Inbox className="h-3.5 w-3.5" />
         ))}
 
+      {onOrganizar && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOrganizar}
+          className="h-8 gap-1.5 text-xs text-muted-foreground"
+        >
+          <FolderInput className="h-3.5 w-3.5" /> Organizar projetos
+        </Button>
+      )}
+
       <Button
         variant="ghost"
         size="sm"
@@ -106,5 +117,6 @@ export function ProjetoPastasBar({
     </div>
   );
 }
+
 
 export { FolderOpen };
