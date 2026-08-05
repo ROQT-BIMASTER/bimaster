@@ -400,6 +400,8 @@ export default function Projetos() {
                   value={pastaAtiva}
                   onChange={selecionarPasta}
                   onGerenciar={() => setPastasDialogOpen(true)}
+                  onOrganizar={() => setAtribuirPastasOpen(true)}
+
                 />
               </>
             )}
