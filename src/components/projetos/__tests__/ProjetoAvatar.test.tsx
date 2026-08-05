@@ -12,6 +12,12 @@ vi.mock("@/hooks/useProjetoCapaUrl", () => ({
 function makeFile(name: string, bytes: number[], type: string, size?: number) {
   const file = new File([new Uint8Array(bytes)], name, { type });
   if (size) Object.defineProperty(file, "size", { value: size });
+  // jsdom não implementa Blob.arrayBuffer de forma consistente
+  Object.defineProperty(file, "slice", {
+    value: () => ({
+      arrayBuffer: async () => new Uint8Array(bytes).buffer,
+    }),
+  });
   return file;
 }
 
