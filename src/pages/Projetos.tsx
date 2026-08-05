@@ -43,9 +43,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ProjetoKpiStrip } from "@/components/projetos/ProjetoKpiStrip";
 import { ProjetosLixeiraDialog } from "@/components/projetos/ProjetosLixeiraDialog";
 import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
+import { useProjetoPastas, type ProjetoPasta } from "@/hooks/useProjetoPastas";
+import {
+  ProjetoPastasBar,
+  PASTA_TODAS,
+  PASTA_SEM_PASTA,
+} from "@/components/projetos/ProjetoPastasBar";
+import { ProjetoPastasManagerDialog } from "@/components/projetos/ProjetoPastasManagerDialog";
+import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { FolderInput } from "lucide-react";
 
 
 const VER_TODOS_KEY = "projetos:ver-todos";
+const PASTA_ATIVA_KEY = "projetos:pasta-ativa";
+
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -72,7 +83,28 @@ function getProjetoStatus(projetoStatus: string, metrics: { total: number; concl
   return { label: "No Prazo", variant: "outline" as const };
 }
 
-function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { projeto: Projeto; isFinalizado: boolean; onFinalize: () => void; onDelete: () => void }) {
+function ProjectDropdown({
+  projeto,
+  isFinalizado,
+  onFinalize,
+  onDelete,
+  pastas,
+  pastaAtual,
+  podeGerirCompartilhadas,
+  onMover,
+}: {
+  projeto: Projeto;
+  isFinalizado: boolean;
+  onFinalize: () => void;
+  onDelete: () => void;
+  pastas: ProjetoPasta[];
+  pastaAtual: string | undefined;
+  podeGerirCompartilhadas: boolean;
+  onMover: (pastaId: string | null) => void;
+}) {
+  const disponiveis = pastas.filter(
+    (p) => p.escopo === "pessoal" || podeGerirCompartilhadas,
+  );
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
@@ -81,6 +113,44 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+        {disponiveis.length > 0 && (
+          <>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <FolderInput className="h-4 w-4 mr-2" /> Mover para pasta
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent onClick={e => e.stopPropagation()}>
+                  {disponiveis.map((p) => (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => onMover(p.id)}
+                      disabled={pastaAtual === p.id}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full mr-2 shrink-0"
+                        style={{ backgroundColor: p.cor }}
+                      />
+                      <span className="truncate">{p.nome}</span>
+                      <span className="ml-2 text-[10px] text-muted-foreground">
+                        {p.escopo === "pessoal" ? "pessoal" : "equipe"}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                  {pastaAtual && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onMover(null)}>
+                        Remover da pasta
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {!isFinalizado && (
           <>
             <DropdownMenuItem onClick={onFinalize}>
@@ -96,6 +166,7 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
     </DropdownMenu>
   );
 }
+
 
 export default function Projetos() {
   const { isAdmin } = useUserRole();
@@ -119,12 +190,35 @@ export default function Projetos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
+  const [pastasDialogOpen, setPastasDialogOpen] = useState(false);
+  const [pastaAtiva, setPastaAtiva] = useState<string>(() => {
+    if (typeof window === "undefined") return PASTA_TODAS;
+    return window.localStorage.getItem(PASTA_ATIVA_KEY) || PASTA_TODAS;
+  });
   const { bgColor, setBgColor } = usePageBgColor("projetos_lista");
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
   const { startTour } = useTour();
   const projetoIds = useMemo(() => projetos.map(p => p.id), [projetos]);
   const { data: processosPorProjeto } = useProjetosProcessosVinculados(projetoIds);
+
+  const {
+    pastas,
+    pastaPorProjeto,
+    podeGerirCompartilhadas,
+    criarPasta,
+    atualizarPasta,
+    excluirPasta,
+    moverProjeto,
+  } = useProjetoPastas();
+
+  const selecionarPasta = (value: string) => {
+    setPastaAtiva(value);
+    try {
+      window.localStorage.setItem(PASTA_ATIVA_KEY, value);
+    } catch { /* ignore */ }
+  };
+
 
   const toggleVerTodos = () => {
     setVerTodos((prev) => {
@@ -198,8 +292,29 @@ export default function Projetos() {
     if (selectedDept !== "all") {
       result = result.filter(p => p.departamento_id === selectedDept);
     }
+    if (pastaAtiva === PASTA_SEM_PASTA) {
+      result = result.filter(p => !pastaPorProjeto.get(p.id));
+    } else if (pastaAtiva !== PASTA_TODAS) {
+      result = result.filter(p => pastaPorProjeto.get(p.id) === pastaAtiva);
+    }
     return result;
-  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap]);
+  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap, pastaAtiva, pastaPorProjeto]);
+
+  // Contagens por pasta consideram os projetos visíveis ao usuário.
+  const contagensPastas = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of projetos) {
+      const pastaId = pastaPorProjeto.get(p.id);
+      if (pastaId) map.set(pastaId, (map.get(pastaId) ?? 0) + 1);
+    }
+    return map;
+  }, [projetos, pastaPorProjeto]);
+
+  const semPastaCount = useMemo(
+    () => projetos.filter(p => !pastaPorProjeto.get(p.id)).length,
+    [projetos, pastaPorProjeto],
+  );
+
 
   return (
     <SidebarProvider>
@@ -268,7 +383,21 @@ export default function Projetos() {
               <ProjetoKpiStrip projetos={projetos} metricsMap={metricsMap} />
             )}
 
+            {/* Pastas (workspaces) */}
+            {!isLoading && (
+              <ProjetoPastasBar
+                pastas={pastas}
+                contagens={contagensPastas}
+                totalProjetos={projetos.length}
+                semPastaCount={semPastaCount}
+                value={pastaAtiva}
+                onChange={selecionarPasta}
+                onGerenciar={() => setPastasDialogOpen(true)}
+              />
+            )}
+
             {/* Filters */}
+
             <div className="flex items-center gap-3">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -486,7 +615,14 @@ export default function Projetos() {
                         isFinalizado={isFinalizado}
                         onFinalize={() => finalizarProjeto.mutate(projeto.id)}
                         onDelete={() => setProjetoParaExcluir(projeto)}
+                        pastas={pastas}
+                        pastaAtual={pastaPorProjeto.get(projeto.id)}
+                        podeGerirCompartilhadas={podeGerirCompartilhadas}
+                        onMover={(pastaId) =>
+                          moverProjeto.mutate({ projetoId: projeto.id, pastaId })
+                        }
                       />
+
                     </div>
                   );
                 })}
@@ -498,6 +634,21 @@ export default function Projetos() {
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <ProjetosLixeiraDialog open={lixeiraOpen} onOpenChange={setLixeiraOpen} />
+      <ProjetoPastasManagerDialog
+        open={pastasDialogOpen}
+        onOpenChange={setPastasDialogOpen}
+        pastas={pastas}
+        contagens={contagensPastas}
+        podeGerirCompartilhadas={podeGerirCompartilhadas}
+        onCriar={(input) => criarPasta.mutate(input)}
+        onAtualizar={(input) => atualizarPasta.mutate(input)}
+        onExcluir={(id) => {
+          excluirPasta.mutate(id);
+          if (pastaAtiva === id) selecionarPasta(PASTA_TODAS);
+        }}
+        isSaving={criarPasta.isPending}
+      />
+
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
 
       <AlertDialog
