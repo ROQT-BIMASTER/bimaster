@@ -1252,6 +1252,43 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error) => toast.error(err.message),
   });
 
+  /**
+   * Reordena as seções do projeto (drag & drop no modo lista).
+   * Persiste `ordem` sequencial e aplica patch otimista para a lista não
+   * "pular" enquanto o backend responde.
+   */
+  const reorderSecoes = useMutation({
+    mutationFn: async ({ orderedIds }: { orderedIds: string[] }) => {
+      const results = await Promise.all(
+        orderedIds.map((id, idx) =>
+          supabase.from("projeto_secoes").update({ ordem: idx } as any).eq("id", id),
+        ),
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onMutate: async ({ orderedIds }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const orderMap = new Map(orderedIds.map((id, idx) => [id, idx]));
+      patchView((v) => ({
+        ...v,
+        secoes: [...v.secoes]
+          .map((s) => (orderMap.has(s.id) ? { ...s, ordem: orderMap.get(s.id)! } : s))
+          .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+      }));
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      toast.error("Não foi possível reordenar as seções: " + err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+    },
+  });
+
   const deleteSecao = useMutation({
     mutationFn: async (secaoId: string) => {
       const { error } = await supabase
