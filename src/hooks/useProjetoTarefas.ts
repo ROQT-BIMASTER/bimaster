@@ -557,7 +557,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const moveTarefaToSecao = useMutation({
     mutationFn: async ({ tarefaId, secaoOrigemId, secaoDestinoId }: { tarefaId: string; secaoOrigemId: string; secaoDestinoId: string }) => {
-      const { error: movError } = await supabase
+      // A movimentação efetiva vem primeiro: o registro de trilha é
+      // complementar e não pode impedir o usuário de mover a tarefa.
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
+        .eq("id", tarefaId);
+      if (error) throw error;
+
+      // Subtarefas diretas acompanham a tarefa pai
+      await supabase
+        .from("projeto_tarefas")
+        .update({ secao_id: secaoDestinoId })
+        .eq("parent_tarefa_id", tarefaId);
+
+      await supabase
         .from("projeto_tarefa_movimentacoes" as any)
         .insert({
           tarefa_id: tarefaId,
@@ -565,14 +579,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           secao_destino_id: secaoDestinoId,
           movido_por: user?.id,
         } as any);
-      if (movError) throw movError;
-
-      const { error } = await supabase
-        .from("projeto_tarefas")
-        .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
-        .eq("id", tarefaId);
-      if (error) throw error;
     },
+
     onMutate: async ({ tarefaId, secaoDestinoId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
