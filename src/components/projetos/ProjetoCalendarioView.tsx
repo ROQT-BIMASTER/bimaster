@@ -165,8 +165,37 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
           data_inicio_planejada: payload.dataInicio,
           data_prazo: payload.dataPrazo,
         } as any);
+
+        if (payload.recorrencia.frequencia !== "nenhuma") {
+          const { error } = await supabase.rpc("rpc_criar_evento_recorrente" as any, {
+            p_tarefa_id: novoId,
+            p_frequencia: payload.recorrencia.frequencia,
+            p_intervalo: payload.recorrencia.intervalo,
+            p_ate: payload.recorrencia.ate,
+          } as any);
+          if (error) throw error;
+        }
+
+        if (payload.lembrete.ativo) {
+          const { data: userRes } = await supabase.auth.getUser();
+          if (userRes?.user) {
+            const { error } = await (supabase as any).from("calendario_lembretes").insert({
+              tarefa_id: novoId,
+              projeto_id: projetoId,
+              user_id: userRes.user.id,
+              antecedencia_minutos: payload.lembrete.antecedenciaMinutos,
+              canal_email: payload.lembrete.email,
+              canal_notificacao: payload.lembrete.notificacao,
+            });
+            if (error) throw error;
+          }
+        }
       }
-      toast.success("Evento criado no calendário.");
+      toast.success(
+        payload.recorrencia.frequencia !== "nenhuma"
+          ? "Série de eventos criada no calendário."
+          : "Evento criado no calendário.",
+      );
       setNovoEventoData(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível criar o evento.");
@@ -174,6 +203,7 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
       setSalvandoEvento(false);
     }
   };
+
 
   return (
     <>
