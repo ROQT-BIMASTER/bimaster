@@ -342,6 +342,19 @@ export function ProjetoSecao({
               />
             );
 
+            // Reordenação manual (drag & drop) — apenas em seções de tamanho
+            // normal e quando o pai libera (sem filtros/ordenação custom).
+            if (onReorderTarefas && tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              return (
+                <SortableTarefasList
+                  tarefas={tarefas}
+                  darkBg={darkBg}
+                  onReorder={onReorderTarefas}
+                  renderRow={(t) => renderRow(t)}
+                />
+              );
+            }
+
             // Default render path (unchanged) for small/medium sections.
             if (tarefas.length <= VIRTUALIZE_THRESHOLD) {
               return tarefas.map((tarefa) => renderRow(tarefa));
