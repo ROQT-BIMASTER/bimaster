@@ -293,7 +293,15 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
         <h3 className={cn("font-semibold text-sm", darkBg ? "text-white" : "text-foreground")}>{tarefa.titulo}</h3>
         <Button variant="ghost" size="icon" className={cn("h-7 w-7", darkBg && "text-white hover:bg-white/10")} onClick={onClose}>✕</Button>
       </div>
+      {tarefa.recorrencia_id && (
+        <RecorrenciaActions
+          recorrenciaId={tarefa.recorrencia_id}
+          tarefaId={tarefa.id}
+          darkBg={darkBg}
+        />
+      )}
       <div className="space-y-3 text-sm">
+
         <div className="flex items-center gap-2">
           <StatusIcon className={cn("h-4 w-4", cfg2.className)} />
           <span className={darkBg ? "text-white/70" : "text-muted-foreground"}>
