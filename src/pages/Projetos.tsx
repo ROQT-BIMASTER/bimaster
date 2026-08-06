@@ -56,6 +56,13 @@ import { ProjetoPastasAtribuirDialog } from "@/components/projetos/ProjetoPastas
 
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { FolderInput } from "lucide-react";
+import {
+  ORDENACAO_PROJETOS_OPCOES,
+  lerOrdenacaoProjetos,
+  ordenarProjetos,
+  salvarOrdenacaoProjetos,
+  type ProjetosOrdenacao,
+} from "@/lib/projetos/ordenacaoProjetos";
 
 
 const VER_TODOS_KEY = "projetos:ver-todos";
