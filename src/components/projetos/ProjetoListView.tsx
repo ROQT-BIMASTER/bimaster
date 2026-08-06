@@ -17,6 +17,25 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useProjetoPapelAtual } from "@/hooks/useProjetoPapelAtual";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import { duplicarTarefa } from "@/lib/tarefas/duplicarTarefa";
 import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaComoModeloDialog";
 import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
