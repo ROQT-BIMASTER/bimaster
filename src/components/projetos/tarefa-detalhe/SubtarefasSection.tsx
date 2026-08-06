@@ -22,6 +22,7 @@ import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { flickerLog } from "@/lib/debug/flickerLog";
+import { formatPrazoCurto } from "@/lib/utils/formatPrazo";
 
 
 const MIN_TITLE_LEN = 2;
@@ -635,7 +636,7 @@ export function SubtarefasSection({
                   : "text-muted-foreground bg-muted/50",
               )}
             >
-              {format(parseLocalDateOrNow(st.data_prazo), "dd MMM", { locale: ptBR })}
+              {formatPrazoCurto(parseLocalDateOrNow(st.data_prazo))}
             </span>
           )}
         </div>

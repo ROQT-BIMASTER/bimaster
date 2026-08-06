@@ -5,6 +5,7 @@ import { CalendarClock } from "lucide-react";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
+import { formatPrazoNumerico } from "@/lib/utils/formatPrazo";
 
 export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const proximas = useMemo(() => {
@@ -65,7 +66,7 @@ export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
                 {label}
               </p>
               <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                {format(prazo, "dd/MM", { locale: ptBR })}
+                {formatPrazoNumerico(prazo)}
               </p>
             </div>
           </li>
