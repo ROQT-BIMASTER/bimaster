@@ -4295,6 +4295,56 @@ export type Database = {
           },
         ]
       }
+      calendario_lembretes: {
+        Row: {
+          antecedencia_minutos: number
+          ativo: boolean
+          canal_email: boolean
+          canal_notificacao: boolean
+          created_at: string
+          id: string
+          projeto_id: string | null
+          tarefa_id: string
+          ultimo_envio_para: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          antecedencia_minutos?: number
+          ativo?: boolean
+          canal_email?: boolean
+          canal_notificacao?: boolean
+          created_at?: string
+          id?: string
+          projeto_id?: string | null
+          tarefa_id: string
+          ultimo_envio_para?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          antecedencia_minutos?: number
+          ativo?: boolean
+          canal_email?: boolean
+          canal_notificacao?: boolean
+          created_at?: string
+          id?: string
+          projeto_id?: string | null
+          tarefa_id?: string
+          ultimo_envio_para?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendario_lembretes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_briefings: {
         Row: {
           agency_client_id: string
@@ -43627,6 +43677,67 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_recorrencias: {
+        Row: {
+          ate_data: string | null
+          ativa: boolean
+          created_at: string
+          criado_por: string | null
+          frequencia: string
+          id: string
+          intervalo: number
+          projeto_id: string
+          tarefa_base_id: string
+          updated_at: string
+        }
+        Insert: {
+          ate_data?: string | null
+          ativa?: boolean
+          created_at?: string
+          criado_por?: string | null
+          frequencia: string
+          id?: string
+          intervalo?: number
+          projeto_id: string
+          tarefa_base_id: string
+          updated_at?: string
+        }
+        Update: {
+          ate_data?: string | null
+          ativa?: boolean
+          created_at?: string
+          criado_por?: string | null
+          frequencia?: string
+          id?: string
+          intervalo?: number
+          projeto_id?: string
+          tarefa_base_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_recorrencias_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_recorrencias_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_recorrencias_tarefa_base_id_fkey"
+            columns: ["tarefa_base_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_responsaveis: {
         Row: {
           created_at: string
@@ -43796,6 +43907,7 @@ export type Database = {
           id: string
           is_subtask: boolean
           motivo_retrabalho: string | null
+          ocorrencia_data: string | null
           ordem: number | null
           origem: string | null
           origem_projeto: string | null
@@ -43803,6 +43915,7 @@ export type Database = {
           prioridade: string | null
           produto_id: string | null
           projeto_id: string
+          recorrencia_id: string | null
           responsavel_id: string | null
           rr_produto_notion_id: string | null
           rr_variante_notion_id: string | null
@@ -43844,6 +43957,7 @@ export type Database = {
           id?: string
           is_subtask?: boolean
           motivo_retrabalho?: string | null
+          ocorrencia_data?: string | null
           ordem?: number | null
           origem?: string | null
           origem_projeto?: string | null
@@ -43851,6 +43965,7 @@ export type Database = {
           prioridade?: string | null
           produto_id?: string | null
           projeto_id: string
+          recorrencia_id?: string | null
           responsavel_id?: string | null
           rr_produto_notion_id?: string | null
           rr_variante_notion_id?: string | null
@@ -43892,6 +44007,7 @@ export type Database = {
           id?: string
           is_subtask?: boolean
           motivo_retrabalho?: string | null
+          ocorrencia_data?: string | null
           ordem?: number | null
           origem?: string | null
           origem_projeto?: string | null
@@ -43899,6 +44015,7 @@ export type Database = {
           prioridade?: string | null
           produto_id?: string | null
           projeto_id?: string
+          recorrencia_id?: string | null
           responsavel_id?: string | null
           rr_produto_notion_id?: string | null
           rr_variante_notion_id?: string | null
@@ -43958,6 +44075,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_projeto_produtividade"
             referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefa_recorrencias"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "projeto_tarefas_rr_produto_notion_id_fkey"
@@ -61969,6 +62093,15 @@ export type Database = {
         Args: { p_itens: Json; p_payload: Json }
         Returns: string
       }
+      rpc_criar_evento_recorrente: {
+        Args: {
+          p_ate?: string
+          p_frequencia: string
+          p_intervalo?: number
+          p_tarefa_id: string
+        }
+        Returns: string
+      }
       rpc_criar_lote_aprovacao: {
         Args: {
           p_config_id: string
@@ -62131,6 +62264,10 @@ export type Database = {
         Args: { p_concorrente_id: string }
         Returns: undefined
       }
+      rpc_desvincular_ocorrencia: {
+        Args: { p_tarefa_id: string }
+        Returns: boolean
+      }
       rpc_desvincular_op_da_oc: {
         Args: { p_vinculo_id: string }
         Returns: undefined
@@ -62142,6 +62279,10 @@ export type Database = {
       rpc_duplicar_kanban_template: {
         Args: { _novo_nome?: string; _template_id: string }
         Returns: string
+      }
+      rpc_encerrar_recorrencia: {
+        Args: { p_a_partir?: string; p_recorrencia_id: string }
+        Returns: number
       }
       rpc_enviar_documento_aprovacao: {
         Args: {
