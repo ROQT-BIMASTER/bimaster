@@ -106,6 +106,8 @@ export function ProjetoSecao({
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   onDuplicarTarefa, onSalvarTarefaComoModelo, onAplicarModelo,
   onDeleteSecao,
+  onReorderTarefas,
+  dragHandle,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
