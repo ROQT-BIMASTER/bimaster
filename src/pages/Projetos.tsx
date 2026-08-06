@@ -50,6 +50,7 @@ import {
   PASTA_SEM_PASTA,
 } from "@/components/projetos/ProjetoPastasBar";
 import { ProjetoPastasManagerDialog } from "@/components/projetos/ProjetoPastasManagerDialog";
+import { CompartilharPastaDialog } from "@/components/projetos/CompartilharPastaDialog";
 import { ProjetoPastasHelpCard } from "@/components/projetos/ProjetoPastasHelpCard";
 import { ProjetoAvatar } from "@/components/projetos/ProjetoAvatar";
 import { ProjetoPastasAtribuirDialog } from "@/components/projetos/ProjetoPastasAtribuirDialog";
@@ -228,6 +229,18 @@ export default function Projetos() {
     moverProjetosEmLote,
 
   } = useProjetoPastas();
+
+  const [compartilharPastaOpen, setCompartilharPastaOpen] = useState(false);
+  const pastaSelecionada = pastas.find((p) => p.id === pastaAtiva) || null;
+  const projetosDaPasta = useMemo(
+    () =>
+      pastaSelecionada
+        ? projetos
+            .filter((p) => pastaPorProjeto.get(p.id) === pastaSelecionada.id)
+            .map((p) => ({ id: p.id, nome: p.nome }))
+        : [],
+    [pastaSelecionada, projetos, pastaPorProjeto],
+  );
 
   const selecionarPasta = (value: string) => {
     setPastaAtiva(value);
@@ -413,6 +426,7 @@ export default function Projetos() {
                   onChange={selecionarPasta}
                   onGerenciar={() => setPastasDialogOpen(true)}
                   onOrganizar={() => setAtribuirPastasOpen(true)}
+                  onCompartilhar={() => setCompartilharPastaOpen(true)}
 
                 />
               </>
@@ -687,6 +701,13 @@ export default function Projetos() {
           if (pastaAtiva === id) selecionarPasta(PASTA_TODAS);
         }}
         isSaving={criarPasta.isPending}
+      />
+
+      <CompartilharPastaDialog
+        open={compartilharPastaOpen && !!pastaSelecionada}
+        onOpenChange={setCompartilharPastaOpen}
+        pastaNome={pastaSelecionada?.nome ?? ""}
+        projetos={projetosDaPasta}
       />
 
       <ProjetoPastasAtribuirDialog
