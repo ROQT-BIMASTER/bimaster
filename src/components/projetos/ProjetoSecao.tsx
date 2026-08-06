@@ -23,6 +23,7 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
+import { SortableTarefasList } from "./SortableTarefasList";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 /**
