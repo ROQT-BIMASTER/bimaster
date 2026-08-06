@@ -43,6 +43,7 @@ import { SubmissaoPlanilhaTab } from "@/components/projetos/SubmissaoPlanilhaTab
 import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
 import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
+import { useProjetoAbaPreferida } from "@/hooks/useProjetoAbaPreferida";
 
 
 function isDarkColor(hex: string | null): boolean {
