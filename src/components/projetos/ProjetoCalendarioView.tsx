@@ -77,7 +77,22 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     return true;
   }), [tarefas, filterSecao, filterStatus]);
 
-  const events = useMemo(() => filteredTarefas.map((t) => tarefaToEvent(t)), [filteredTarefas]);
+  const [calFilters, setCalFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
+  const { data: equipes = [] } = useEquipesProjetos();
+
+  const responsaveisOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    tarefas.forEach((t) => {
+      if (t.responsavel_id && t.responsavel?.nome) map.set(t.responsavel_id, t.responsavel.nome);
+    });
+    return Array.from(map, ([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [tarefas]);
+
+  const events = useMemo(
+    () => applyCalendarFilters(filteredTarefas.map((t) => tarefaToEvent(t)), calFilters, equipes),
+    [filteredTarefas, calFilters, equipes],
+  );
+
 
   // Banner de prazos faltando
   const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
