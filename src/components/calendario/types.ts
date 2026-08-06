@@ -55,6 +55,7 @@ export function minaTarefaToEvent(t: MinaTarefa): CalendarEvent {
     responsavel: t.responsavel_nome
       ? { nome: t.responsavel_nome, avatar_url: t.responsavel_avatar_url }
       : null,
+    responsavel_id: t.responsavel_id ?? null,
     projeto: { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor },
     secao_nome: t.secao_nome,
     origem: "minhas-tarefas",
