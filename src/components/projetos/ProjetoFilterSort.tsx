@@ -247,6 +247,25 @@ export function SortButton({ sort, onSortChange, btnClassName }: SortButtonProps
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-3 space-y-3" align="end">
+        {/* Atalhos alfabéticos — pedido recorrente dos usuários */}
+        <div className="flex gap-1.5">
+          <Button
+            variant={sort.field === "titulo" && sort.direction === "asc" ? "secondary" : "outline"}
+            size="sm"
+            className="h-7 flex-1 text-[11px]"
+            onClick={() => onSortChange({ field: "titulo", direction: "asc" })}
+          >
+            A → Z
+          </Button>
+          <Button
+            variant={sort.field === "titulo" && sort.direction === "desc" ? "secondary" : "outline"}
+            size="sm"
+            className="h-7 flex-1 text-[11px]"
+            onClick={() => onSortChange({ field: "titulo", direction: "desc" })}
+          >
+            Z → A
+          </Button>
+        </div>
         <span className="text-xs font-semibold">Ordenar por</span>
         <div className="space-y-1">
           {SORT_OPTIONS.map(opt => (
