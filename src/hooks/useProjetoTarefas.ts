@@ -586,7 +586,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       patchView((v) => ({
         ...v,
-        tarefas: v.tarefas.map(t => t.id === tarefaId ? { ...t, secao_id: secaoDestinoId } : t),
+        tarefas: v.tarefas.map(t =>
+          t.id === tarefaId || t.parent_tarefa_id === tarefaId
+            ? { ...t, secao_id: secaoDestinoId }
+            : t
+        ),
       }));
       return { previous };
     },
@@ -599,8 +603,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       // (que causava re-mount/piscar das linhas). A view fica stale e é
       // refetada silenciosamente no próximo gatilho/foco.
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId], refetchType: "none" });
+      // A trilha (ghost) precisa refletir a movimentação imediatamente.
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
     },
+
     // Toast suprimido intencionalmente: drag-and-drop precisa ser silencioso
     // (benchmark Asana). Erros continuam sendo notificados via onError.
   });
