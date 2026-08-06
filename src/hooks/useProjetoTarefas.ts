@@ -536,15 +536,24 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   };
 
   const ghostsPorSecao = (secaoId: string) => {
-    return movimentacoes
+    // Apenas a última movimentação de cada tarefa e somente se ela realmente
+    // não estiver mais nesta seção (evita rastro duplicado / tarefa "presa").
+    const ultimaPorTarefa = new Map<string, any>();
+    for (const m of movimentacoes) {
+      // lista já vem ordenada desc por created_at
+      if (!ultimaPorTarefa.has(m.tarefa_id)) ultimaPorTarefa.set(m.tarefa_id, m);
+    }
+    return Array.from(ultimaPorTarefa.values())
       .filter(m => m.secao_origem_id === secaoId)
       .map(m => {
         const tarefa = tarefas.find(t => t.id === m.tarefa_id);
+        if (!tarefa || tarefa.secao_id === secaoId) return null;
         const destSecao = secoes.find(s => s.id === m.secao_destino_id);
-        return tarefa ? { ...m, tarefa, destSecaoNome: destSecao?.nome || "Outra seção" } : null;
+        return { ...m, tarefa, destSecaoNome: destSecao?.nome || "Outra seção" };
       })
       .filter(Boolean);
   };
+
 
   const moveTarefaToSecao = useMutation({
     mutationFn: async ({ tarefaId, secaoOrigemId, secaoDestinoId }: { tarefaId: string; secaoOrigemId: string; secaoDestinoId: string }) => {
