@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
+import { NovoEventoCalendarioDialog, type NovoEventoPayload } from "./NovoEventoCalendarioDialog";
+import { toast } from "sonner";
 import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { tarefaToEvent } from "@/components/calendario/types";
 import { CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
@@ -28,7 +30,7 @@ interface Props {
 }
 
 export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
-  const { tarefas: rawTarefas, secoes } = useProjetoTarefas(projetoId);
+  const { tarefas: rawTarefas, secoes, createTarefa, updateTarefa } = useProjetoTarefas(projetoId);
 
   const tarefas = useMemo(() => {
     let t: typeof rawTarefas = rawTarefas;
@@ -40,6 +42,8 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
+  const [novoEventoData, setNovoEventoData] = useState<string | null>(null);
+  const [salvandoEvento, setSalvandoEvento] = useState(false);
   const { isCompact } = useTarefaDensity();
 
   // Período visível (sincronizado com o UnifiedCalendar via onPeriodChange).
@@ -147,6 +151,30 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     );
   }
 
+  const handleCriarEvento = async (payload: NovoEventoPayload) => {
+    setSalvandoEvento(true);
+    try {
+      const created = await createTarefa.mutateAsync({
+        titulo: payload.titulo,
+        secao_id: payload.secaoId,
+      });
+      const novoId = (created as { data?: { id?: string } })?.data?.id;
+      if (novoId) {
+        await updateTarefa.mutateAsync({
+          id: novoId,
+          data_inicio_planejada: payload.dataInicio,
+          data_prazo: payload.dataPrazo,
+        } as any);
+      }
+      toast.success("Evento criado no calendário.");
+      setNovoEventoData(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível criar o evento.");
+    } finally {
+      setSalvandoEvento(false);
+    }
+  };
+
   return (
     <>
       <UnifiedCalendar
@@ -159,6 +187,15 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
         leftToolbarExtra={leftToolbarExtra}
         rightToolbarExtra={rightToolbarExtra}
         onPeriodChange={setPeriodoInfo}
+        onCreateAt={secoes.length > 0 ? (dateKey) => setNovoEventoData(dateKey) : undefined}
+      />
+      <NovoEventoCalendarioDialog
+        open={!!novoEventoData}
+        onOpenChange={(o) => { if (!o) setNovoEventoData(null); }}
+        secoes={secoes.map((s) => ({ id: s.id, nome: s.nome }))}
+        dataPadrao={novoEventoData}
+        saving={salvandoEvento}
+        onSubmit={handleCriarEvento}
       />
       {selectedTarefaId && (
         <TaskDetailPanel
