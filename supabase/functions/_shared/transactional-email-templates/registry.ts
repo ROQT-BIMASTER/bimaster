@@ -12,9 +12,12 @@ export interface TemplateEntry {
 import { template as syncAlert } from './sync-alert.tsx'
 import { template as mencoesDigestDiario } from './mencoes-digest-diario.tsx'
 import { template as b2cTarefaCriada } from './b2c-tarefa-criada.tsx'
+import { template as calendarioLembrete } from './calendario-lembrete.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'sync-alert': syncAlert,
   'mencoes-digest-diario': mencoesDigestDiario,
   'b2c-tarefa-criada': b2cTarefaCriada,
+  'calendario-lembrete': calendarioLembrete,
 }
+
