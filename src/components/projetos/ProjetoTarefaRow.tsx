@@ -546,14 +546,15 @@ function InlineDatePicker({ value, isOverdue, isDueToday, onChange }: {
       <PopoverTrigger asChild>
         <button
           onClick={e => e.stopPropagation()}
-          aria-label={value ? `Prazo: ${format(new Date(value), "dd/MM/yyyy")}. Clique para alterar` : "Definir prazo"}
+          aria-label={value ? `Prazo: ${formatPrazoCompleto(value)}. Clique para alterar` : "Definir prazo"}
+          title={value ? formatPrazoCompleto(value) : undefined}
           className={cn(
             "flex items-center gap-1 hover:text-foreground transition-colors text-xs rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
           )}
         >
           {value
-            ? format(new Date(value), "dd MMM", { locale: ptBR })
+            ? formatPrazoCurto(value)
             : <span className="text-muted-foreground/50 hover:text-muted-foreground">—</span>
           }
         </button>
