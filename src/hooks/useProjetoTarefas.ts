@@ -1647,7 +1647,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
               scope: batchScope,
               onFlush: applyPatchesFromEvents,
               onOverflow: () => {
-                queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+                queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
+
               },
             },
             ev,
