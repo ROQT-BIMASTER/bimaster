@@ -499,22 +499,28 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   }, [projetoId, queryClient]);
 
 
-  // Movement history for ghost rows (kept separate — small payload)
+  // Movement history for ghost rows (kept separate — small payload).
+  // Só movimentações recentes (7 dias): rastros antigos faziam a tarefa
+  // parecer que "não saiu" da seção de origem.
+  const GHOST_TTL_DIAS = 7;
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["tarefa-movimentacoes", projetoId],
     queryFn: async () => {
       const secaoIds = secoes.map(s => s.id);
       if (secaoIds.length === 0) return [];
+      const desde = new Date(Date.now() - GHOST_TTL_DIAS * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("projeto_tarefa_movimentacoes" as any)
         .select("*")
         .in("secao_origem_id", secaoIds)
+        .gte("created_at", desde)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
     enabled: !!projetoId && !!user && !mutationsOnly && secoes.length > 0,
   });
+
 
   const tarefasPorSecao = (secaoId: string) => {
     // Recursive tree: each task gets its direct children populated, and so on (N levels).
@@ -530,19 +536,42 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   };
 
   const ghostsPorSecao = (secaoId: string) => {
-    return movimentacoes
+    // Apenas a última movimentação de cada tarefa e somente se ela realmente
+    // não estiver mais nesta seção (evita rastro duplicado / tarefa "presa").
+    const ultimaPorTarefa = new Map<string, any>();
+    for (const m of movimentacoes) {
+      // lista já vem ordenada desc por created_at
+      if (!ultimaPorTarefa.has(m.tarefa_id)) ultimaPorTarefa.set(m.tarefa_id, m);
+    }
+    return Array.from(ultimaPorTarefa.values())
       .filter(m => m.secao_origem_id === secaoId)
       .map(m => {
         const tarefa = tarefas.find(t => t.id === m.tarefa_id);
+        if (!tarefa || tarefa.secao_id === secaoId) return null;
         const destSecao = secoes.find(s => s.id === m.secao_destino_id);
-        return tarefa ? { ...m, tarefa, destSecaoNome: destSecao?.nome || "Outra seção" } : null;
+        return { ...m, tarefa, destSecaoNome: destSecao?.nome || "Outra seção" };
       })
       .filter(Boolean);
   };
 
+
   const moveTarefaToSecao = useMutation({
     mutationFn: async ({ tarefaId, secaoOrigemId, secaoDestinoId }: { tarefaId: string; secaoOrigemId: string; secaoDestinoId: string }) => {
-      const { error: movError } = await supabase
+      // A movimentação efetiva vem primeiro: o registro de trilha é
+      // complementar e não pode impedir o usuário de mover a tarefa.
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
+        .eq("id", tarefaId);
+      if (error) throw error;
+
+      // Subtarefas diretas acompanham a tarefa pai
+      await supabase
+        .from("projeto_tarefas")
+        .update({ secao_id: secaoDestinoId })
+        .eq("parent_tarefa_id", tarefaId);
+
+      await supabase
         .from("projeto_tarefa_movimentacoes" as any)
         .insert({
           tarefa_id: tarefaId,
@@ -550,20 +579,18 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           secao_destino_id: secaoDestinoId,
           movido_por: user?.id,
         } as any);
-      if (movError) throw movError;
-
-      const { error } = await supabase
-        .from("projeto_tarefas")
-        .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
-        .eq("id", tarefaId);
-      if (error) throw error;
     },
+
     onMutate: async ({ tarefaId, secaoDestinoId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       patchView((v) => ({
         ...v,
-        tarefas: v.tarefas.map(t => t.id === tarefaId ? { ...t, secao_id: secaoDestinoId } : t),
+        tarefas: v.tarefas.map(t =>
+          t.id === tarefaId || t.parent_tarefa_id === tarefaId
+            ? { ...t, secao_id: secaoDestinoId }
+            : t
+        ),
       }));
       return { previous };
     },
@@ -576,8 +603,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       // (que causava re-mount/piscar das linhas). A view fica stale e é
       // refetada silenciosamente no próximo gatilho/foco.
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId], refetchType: "none" });
+      // A trilha (ghost) precisa refletir a movimentação imediatamente.
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
     },
+
     // Toast suprimido intencionalmente: drag-and-drop precisa ser silencioso
     // (benchmark Asana). Erros continuam sendo notificados via onError.
   });
@@ -1618,7 +1647,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
               scope: batchScope,
               onFlush: applyPatchesFromEvents,
               onOverflow: () => {
-                queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+                queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
+
               },
             },
             ev,
@@ -1636,7 +1666,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         const newRow = payload?.new as { excluida_em?: string | null } | undefined;
         const oldRow = payload?.old as { excluida_em?: string | null } | undefined;
         flickerLog("invalidate-fired", { key: "projeto-tarefas-v2", event: eventType });
-        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+        // Evento remoto (o eco local já foi suprimido acima): refetch ativo para
+        // que a alteração de outro usuário apareça sem recarregar a página.
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
+
         if (eventType === "DELETE" || (eventType === "UPDATE" && newRow?.excluida_em !== oldRow?.excluida_em)) {
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
         }
