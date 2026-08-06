@@ -34169,6 +34169,80 @@ export type Database = {
         }
         Relationships: []
       }
+      novidades: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          link_destino: string | null
+          midia_tipo: string | null
+          midia_url: string | null
+          ordem: number
+          publicado: boolean
+          publicado_em: string | null
+          titulo: string
+          updated_at: string
+          versao: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          link_destino?: string | null
+          midia_tipo?: string | null
+          midia_url?: string | null
+          ordem?: number
+          publicado?: boolean
+          publicado_em?: string | null
+          titulo: string
+          updated_at?: string
+          versao?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          link_destino?: string | null
+          midia_tipo?: string | null
+          midia_url?: string | null
+          ordem?: number
+          publicado?: boolean
+          publicado_em?: string | null
+          titulo?: string
+          updated_at?: string
+          versao?: string | null
+        }
+        Relationships: []
+      }
+      novidades_visualizacoes: {
+        Row: {
+          novidade_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          novidade_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          novidade_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "novidades_visualizacoes_novidade_id_fkey"
+            columns: ["novidade_id"]
+            isOneToOne: false
+            referencedRelation: "novidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oms_condicoes_pagamento: {
         Row: {
           ativo: boolean | null
