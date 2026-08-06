@@ -1711,6 +1711,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     tarefasExcluidasLoading,
     tarefasExcluidasCount,
     reorderTarefasSecao,
+    reorderSecoes,
     // New visibility metadata
     isPartialView,
     restrictToOwn,
