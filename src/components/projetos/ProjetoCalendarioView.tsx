@@ -14,6 +14,12 @@ import { NovoEventoCalendarioDialog, type NovoEventoPayload } from "./NovoEvento
 import { toast } from "sonner";
 import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { tarefaToEvent } from "@/components/calendario/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useEquipesProjetos } from "@/hooks/useEquipesProjetos";
+import {
+  CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
+  type CalendarFiltersState,
+} from "@/components/calendario/CalendarFiltersBar";
 import { CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
