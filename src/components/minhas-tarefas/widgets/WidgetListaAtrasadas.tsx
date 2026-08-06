@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
+import { formatPrazoNumerico } from "@/lib/utils/formatPrazo";
 
 export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const atrasadas = useMemo(() => {
@@ -62,7 +63,7 @@ export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
                 {diasAtraso}d
               </p>
               <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                {format(prazo, "dd/MM", { locale: ptBR })}
+                {formatPrazoNumerico(prazo)}
               </p>
             </div>
           </li>

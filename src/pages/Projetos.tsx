@@ -56,6 +56,13 @@ import { ProjetoPastasAtribuirDialog } from "@/components/projetos/ProjetoPastas
 
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { FolderInput } from "lucide-react";
+import {
+  ORDENACAO_PROJETOS_OPCOES,
+  lerOrdenacaoProjetos,
+  ordenarProjetos,
+  salvarOrdenacaoProjetos,
+  type ProjetosOrdenacao,
+} from "@/lib/projetos/ordenacaoProjetos";
 
 
 const VER_TODOS_KEY = "projetos:ver-todos";
@@ -194,6 +201,8 @@ export default function Projetos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
+  // Ordenação da lista de projetos (pedido dos usuários: ordem alfabética).
+  const [ordenacao, setOrdenacao] = useState<ProjetosOrdenacao>(() => lerOrdenacaoProjetos());
   const [pastasDialogOpen, setPastasDialogOpen] = useState(false);
   const [atribuirPastasOpen, setAtribuirPastasOpen] = useState(false);
 
@@ -305,8 +314,8 @@ export default function Projetos() {
     } else if (pastaAtiva !== PASTA_TODAS) {
       result = result.filter(p => pastaPorProjeto.get(p.id) === pastaAtiva);
     }
-    return result;
-  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap, pastaAtiva, pastaPorProjeto]);
+    return ordenarProjetos(result, ordenacao);
+  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap, pastaAtiva, pastaPorProjeto, ordenacao]);
 
   // Contagens por pasta consideram os projetos visíveis ao usuário.
   const contagensPastas = useMemo(() => {
@@ -441,6 +450,23 @@ export default function Projetos() {
                   <SelectItem value="all">Todos os departamentos</SelectItem>
                   {allDepartments.map((d: any) => (
                     <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={ordenacao}
+                onValueChange={(v) => {
+                  const next = v as ProjetosOrdenacao;
+                  setOrdenacao(next);
+                  salvarOrdenacaoProjetos(next);
+                }}
+              >
+                <SelectTrigger className="w-[190px] h-9 bg-card/70 backdrop-blur-sm border-border/60" aria-label="Ordenar projetos">
+                  <SelectValue placeholder="Ordenar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDENACAO_PROJETOS_OPCOES.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

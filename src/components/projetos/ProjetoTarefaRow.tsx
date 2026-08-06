@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { addDays, parseISO } from "date-fns";
 import { MetasProgress } from "@/hooks/useMetasProgress";
 import { cn } from "@/lib/utils";
+import { formatPrazoCurto, formatPrazoCompleto } from "@/lib/utils/formatPrazo";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { format, isPast, isToday } from "date-fns";
@@ -546,14 +547,15 @@ function InlineDatePicker({ value, isOverdue, isDueToday, onChange }: {
       <PopoverTrigger asChild>
         <button
           onClick={e => e.stopPropagation()}
-          aria-label={value ? `Prazo: ${format(new Date(value), "dd/MM/yyyy")}. Clique para alterar` : "Definir prazo"}
+          aria-label={value ? `Prazo: ${formatPrazoCompleto(value)}. Clique para alterar` : "Definir prazo"}
+          title={value ? formatPrazoCompleto(value) : undefined}
           className={cn(
             "flex items-center gap-1 hover:text-foreground transition-colors text-xs rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
           )}
         >
           {value
-            ? format(new Date(value), "dd MMM", { locale: ptBR })
+            ? formatPrazoCurto(value)
             : <span className="text-muted-foreground/50 hover:text-muted-foreground">—</span>
           }
         </button>
@@ -792,8 +794,8 @@ function TimelineBar({ dataInicio, dataPrazo, isCompleted, onChangeInicio, onCha
   const progressPct = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
   const isOverdue = !isCompleted && now > end;
 
-  const startLabel = dataInicio ? format(new Date(dataInicio), "dd MMM", { locale: ptBR }) : "";
-  const endLabel = dataPrazo ? format(new Date(dataPrazo), "dd MMM", { locale: ptBR }) : "";
+  const startLabel = dataInicio ? formatPrazoCurto(dataInicio) : "";
+  const endLabel = dataPrazo ? formatPrazoCurto(dataPrazo) : "";
 
   return (
     <div className="w-full flex flex-col gap-0.5" title={`${startLabel} → ${endLabel}`}>

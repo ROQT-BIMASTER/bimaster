@@ -42,6 +42,7 @@ const TIPO_LABELS: Record<string, string> = {
   max_simultaneas_andamento: "Máx. Simultâneas em Andamento",
 };
 
+import { formatPrazoNumerico } from "@/lib/utils/formatPrazo";
 import {
   STATUS_LABELS, STATUS_BADGE_VARIANT, ESTAGIO_LABELS,
   ESTAGIO_COLORS_ANALISE_DARK as ESTAGIO_COLORS, ESTAGIO_COLORS_ANALISE_LIGHT as ESTAGIO_COLORS_LIGHT,
@@ -514,7 +515,7 @@ function SectionTable({ secao, tarefas, concluidas, percentual, regras, secaoKpi
                         </Badge>
                       </TableCell>
                       <TableCell className={cn("text-xs py-2", isOverdue ? "text-red-500 font-medium" : txtMuted)}>
-                        {t.data_prazo ? format(parseISO(t.data_prazo), "dd/MM") : "—"}
+                        {formatPrazoNumerico(t.data_prazo)}
                       </TableCell>
                       <TableCell className="py-2">
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full border", estagioColors)}>
