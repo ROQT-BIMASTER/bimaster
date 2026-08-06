@@ -86,6 +86,10 @@ interface ProjetoSecaoProps {
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   onDeleteSecao?: (secaoId: string) => void;
+  /** Habilita reordenação manual das tarefas desta seção (drag & drop). */
+  onReorderTarefas?: (orderedIds: string[]) => void;
+  /** Alça de arraste da própria seção, renderizada no início do cabeçalho. */
+  dragHandle?: React.ReactNode;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
