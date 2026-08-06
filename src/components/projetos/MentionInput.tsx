@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Users } from "lucide-react";
 
 interface MentionUser {
   id: string;
@@ -11,11 +11,19 @@ interface MentionUser {
   avatar_url: string | null;
 }
 
+/** Grupo mencionável (ex.: @Equipe, @TI) — expande para vários usuários. */
+export interface MentionGroup {
+  nome: string;
+  memberIds: string[];
+}
+
 interface MentionInputProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (text: string, mentionIds: string[]) => void;
   users: MentionUser[];
+  /** Grupos extras. Um grupo "Equipe" com todos os usuários é incluído por padrão. */
+  groups?: MentionGroup[];
   placeholder?: string;
   showSendButton?: boolean;
   className?: string;
@@ -27,6 +35,7 @@ export function MentionInput({
   onChange,
   onSubmit,
   users,
+  groups,
   placeholder = "Escreva um comentário...",
   showSendButton = true,
   className,
@@ -34,18 +43,38 @@ export function MentionInput({
 }: MentionInputProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState<MentionUser[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<MentionGroup[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   // Mapa de menções escolhidas explicitamente via dropdown — fonte de verdade.
   // Evita o falso positivo de prefixo (ex.: "Isabella" matchando "Isabella Moraes")
   // e o falso negativo de acento/case do String.includes.
   const selectedMentionsRef = useRef<Map<string, string>>(new Map());
+  // Grupos escolhidos via dropdown: label -> ids expandidos.
+  const selectedGroupsRef = useRef<Map<string, string[]>>(new Map());
+
+  const allGroups: MentionGroup[] = useMemo(() => {
+    const base: MentionGroup[] = users.length > 1
+      ? [{ nome: "Equipe", memberIds: users.map((u) => u.id) }]
+      : [];
+    const extras = (groups || []).filter((g) => g.memberIds.length > 0);
+    const seen = new Set<string>();
+    return [...base, ...extras].filter((g) => {
+      const k = g.nome.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [users, groups]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const buildMentionIds = useCallback((text: string): string[] => {
     const ids: string[] = [];
     selectedMentionsRef.current.forEach((nome, id) => {
       if (text.includes(`@${nome}`)) ids.push(id);
+    });
+    selectedGroupsRef.current.forEach((memberIds, nome) => {
+      if (text.includes(`@${nome}`)) ids.push(...memberIds);
     });
     return [...new Set(ids)];
   }, []);
@@ -66,8 +95,12 @@ export function MentionInput({
         const filtered = users
           .filter(u => u.nome?.toLowerCase().includes(q))
           .slice(0, 5);
+        const filteredGrp = allGroups
+          .filter(g => g.nome.toLowerCase().includes(q))
+          .slice(0, 3);
         setFilteredUsers(filtered);
-        setShowSuggestions(filtered.length > 0);
+        setFilteredGroups(filteredGrp);
+        setShowSuggestions(filtered.length + filteredGrp.length > 0);
         setSelectedIndex(0);
         return;
       }
@@ -87,17 +120,34 @@ export function MentionInput({
     textareaRef.current?.focus();
   };
 
+  const insertGroupMention = (group: MentionGroup) => {
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+    const before = value.substring(0, atIndex);
+    const after = value.substring(cursorPosition);
+    selectedGroupsRef.current.set(group.nome, group.memberIds);
+    onChange(`${before}@${group.nome} ${after}`);
+    setShowSuggestions(false);
+    textareaRef.current?.focus();
+  };
+
+  const totalSuggestions = filteredGroups.length + filteredUsers.length;
+  const pickSuggestion = (index: number) => {
+    if (index < filteredGroups.length) insertGroupMention(filteredGroups[index]);
+    else insertMention(filteredUsers[index - filteredGroups.length]);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSuggestions) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, filteredUsers.length - 1));
+        setSelectedIndex(i => Math.min(i + 1, totalSuggestions - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex(i => Math.max(i - 1, 0));
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        if (filteredUsers[selectedIndex]) insertMention(filteredUsers[selectedIndex]);
+        if (selectedIndex < totalSuggestions) pickSuggestion(selectedIndex);
       } else if (e.key === "Escape") {
         setShowSuggestions(false);
       }
@@ -112,6 +162,7 @@ export function MentionInput({
     const ids = buildMentionIds(value);
     onSubmit(value.trim(), ids);
     selectedMentionsRef.current.clear();
+    selectedGroupsRef.current.clear();
     onChange("");
   };
 
@@ -119,13 +170,31 @@ export function MentionInput({
     <div className={cn("relative", className)}>
       {showSuggestions && (
         <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+          {filteredGroups.map((group, i) => (
+            <button
+              key={`grp-${group.nome}`}
+              onClick={() => insertGroupMention(group)}
+              className={cn(
+                "flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
+                i === selectedIndex && "bg-muted/50"
+              )}
+            >
+              <span className="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                <Users className="h-3.5 w-3.5" />
+              </span>
+              <span className="font-medium">@{group.nome}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {group.memberIds.length} pessoas
+              </span>
+            </button>
+          ))}
           {filteredUsers.map((user, i) => (
             <button
               key={user.id}
               onClick={() => insertMention(user)}
               className={cn(
                 "flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
-                i === selectedIndex && "bg-muted/50"
+                i + filteredGroups.length === selectedIndex && "bg-muted/50"
               )}
             >
               <Avatar className="h-6 w-6">
@@ -162,7 +231,7 @@ export function MentionInput({
         )}
       </div>
       <p className="text-[10px] text-muted-foreground mt-1">
-        Use <span className="font-mono bg-muted px-1 rounded">@</span> para mencionar colegas
+        Use <span className="font-mono bg-muted px-1 rounded">@</span> para mencionar colegas ou grupos (ex.: @Equipe)
       </p>
     </div>
   );

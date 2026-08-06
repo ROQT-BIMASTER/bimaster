@@ -4,7 +4,7 @@
  */
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox, FolderInput } from "lucide-react";
+import { Folder, FolderOpen, LayoutGrid, Settings2, Inbox, FolderInput, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProjetoPasta } from "@/hooks/useProjetoPastas";
 
@@ -20,6 +20,8 @@ interface Props {
   onChange: (value: string) => void;
   onGerenciar: () => void;
   onOrganizar?: () => void;
+  /** Compartilha a pasta selecionada (adiciona membros a todos os projetos dela). */
+  onCompartilhar?: () => void;
 }
 
 export function ProjetoPastasBar({
@@ -31,7 +33,9 @@ export function ProjetoPastasBar({
   onChange,
   onGerenciar,
   onOrganizar,
+  onCompartilhar,
 }: Props) {
+  const pastaSelecionada = pastas.find((p) => p.id === value);
 
   const compartilhadas = pastas.filter((p) => p.escopo === "compartilhada");
   const pessoais = pastas.filter((p) => p.escopo === "pessoal");
@@ -86,6 +90,17 @@ export function ProjetoPastasBar({
         chip(PASTA_SEM_PASTA, "Sem pasta", semPastaCount, undefined, (
           <Inbox className="h-3.5 w-3.5" />
         ))}
+
+      {onCompartilhar && pastaSelecionada && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onCompartilhar}
+          className="h-8 gap-1.5 text-xs text-muted-foreground"
+        >
+          <Users className="h-3.5 w-3.5" /> Compartilhar pasta
+        </Button>
+      )}
 
       {onOrganizar && (
         <Button

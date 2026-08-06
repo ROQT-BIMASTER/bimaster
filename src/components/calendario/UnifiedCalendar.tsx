@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
@@ -37,6 +37,8 @@ interface Props {
   banner?: ReactNode;
   /** Chamado quando o período visível muda (para análises externas). */
   onPeriodChange?: (info: { inicio: Date; fim: Date; viewMode: ViewMode; label: string }) => void;
+  /** Habilita criação de evento no dia clicado (recebe a data em formato Y-M-D). */
+  onCreateAt?: (dateKey: string) => void;
 }
 
 export function UnifiedCalendar({
@@ -50,6 +52,7 @@ export function UnifiedCalendar({
   showEstagioLegend,
   banner,
   onPeriodChange,
+  onCreateAt,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(() => getToday());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
@@ -266,7 +269,7 @@ export function UnifiedCalendar({
                     key={ci}
                     style={{ minHeight: cellMinH }}
                     className={cn(
-                      "border-b border-r p-1.5 transition-colors relative",
+                      "border-b border-r p-1.5 transition-colors relative group/day",
                       border,
                       today
                         ? cellBgToday
@@ -277,7 +280,21 @@ export function UnifiedCalendar({
                             : cellBg,
                     )}
                   >
-                    <div className="flex items-start justify-end mb-1">
+                    <div className="flex items-start justify-between mb-1">
+                      {onCreateAt && key ? (
+                        <button
+                          type="button"
+                          aria-label={`Novo evento em ${format(day, "dd/MM/yyyy")}`}
+                          onClick={(e) => { e.stopPropagation(); onCreateAt(key); }}
+                          className={cn(
+                            "opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/day:opacity-100 transition-opacity",
+                            "inline-flex items-center justify-center w-5 h-5 rounded-md",
+                            darkBg ? "text-white/70 hover:bg-white/15" : "text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      ) : <span />}
                       <span
                         className={cn(
                           "inline-flex items-center justify-center text-[11px] font-semibold w-6 h-6 rounded-full transition-all",
