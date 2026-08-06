@@ -36,6 +36,7 @@ import { useChatSoundNotifications } from "@/hooks/chat/useChatSoundNotification
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { UrgentMessageBanner } from "@/components/chat/v2/UrgentMessageBanner";
 import { GlobalBackButton } from "@/components/layout/GlobalBackButton";
+import { NovidadesCenter } from "@/components/novidades/NovidadesCenter";
 
 function ChatGlobalNotifiers() {
   useChatSoundNotifications();
@@ -192,6 +193,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <EmpresaSelector compact />
                 <span className="hidden sm:inline-flex"><LanguageSelector /></span>
                 <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+                <NovidadesCenter />
                 <MencoesBell />
                 <NotificationBell />
               </>
