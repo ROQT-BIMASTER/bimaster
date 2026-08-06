@@ -194,6 +194,8 @@ export default function Projetos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
+  // Ordenação da lista de projetos (pedido dos usuários: ordem alfabética).
+  const [ordenacao, setOrdenacao] = useState<ProjetosOrdenacao>(() => lerOrdenacaoProjetos());
   const [pastasDialogOpen, setPastasDialogOpen] = useState(false);
   const [atribuirPastasOpen, setAtribuirPastasOpen] = useState(false);
 
