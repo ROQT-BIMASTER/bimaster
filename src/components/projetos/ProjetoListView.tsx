@@ -344,46 +344,63 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <ColumnConfigPopover columns={columns} onChange={setColumns} darkBg={darkBg} className="ml-1 flex-shrink-0" />
         </div>
 
-        {secoes.map((secao, index) => (
-          <ProjetoSecao
-            key={secao.id}
-            nome={secao.nome}
-            secaoId={secao.id}
-            projetoId={projetoId}
-            secaoIndex={index}
-            secaoDataInicio={(secao as any).data_inicio ?? null}
-            secaoDataPrazo={(secao as any).data_prazo ?? null}
-            secaoDiasAlertaAntes={(secao as any).dias_alerta_antes ?? 2}
-            projetoDataInicio={projeto?.data_inicio ?? null}
-            projetoDataFimAlvo={projeto?.data_fim_alvo ?? null}
-            projetoRegime={projeto?.regime_calendario ?? "dias_uteis"}
-            onUpdateSecao={async (secaoId, updates) => {
-              await updateSecao.mutateAsync({ secaoId, updates });
-            }}
-            tarefas={filteredTarefasPorSecao[secao.id] || []}
-            ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
-            temBriefing={(secao as any).tem_briefing || false}
-            allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
-            selectedTarefaId={selectedTarefaId ?? undefined}
-            onToggleTarefa={handleToggle}
-            onSelectTarefa={handleSelectTarefa}
-            onAddTarefa={handleAddTarefa}
-            onUpdateTarefa={handleUpdateTarefa}
-            onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
-            onDuplicarTarefa={handleDuplicarTarefa}
-            onSalvarTarefaComoModelo={handleSalvarModelo}
-            onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
-            onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
-            onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
-            onCreateBriefingTasks={handleCreateBriefingTasks}
-            teamMembers={teamMembers}
-            onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
-            onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
-            darkBg={darkBg}
-            columns={columns}
-            metasProgress={metasProgress}
-          />
-        ))}
+        <DndContext
+          sensors={secaoSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleSecaoDragEnd}
+        >
+          <SortableContext items={secaoIds} strategy={verticalListSortingStrategy}>
+            {secoes.map((secao, index) => (
+              <SortableSecaoWrapper key={secao.id} secaoId={secao.id} enabled={reorderEnabled}>
+                {(dragHandle) => (
+                  <ProjetoSecao
+                    nome={secao.nome}
+                    secaoId={secao.id}
+                    projetoId={projetoId}
+                    secaoIndex={index}
+                    secaoDataInicio={(secao as any).data_inicio ?? null}
+                    secaoDataPrazo={(secao as any).data_prazo ?? null}
+                    secaoDiasAlertaAntes={(secao as any).dias_alerta_antes ?? 2}
+                    projetoDataInicio={projeto?.data_inicio ?? null}
+                    projetoDataFimAlvo={projeto?.data_fim_alvo ?? null}
+                    projetoRegime={projeto?.regime_calendario ?? "dias_uteis"}
+                    onUpdateSecao={async (secaoId, updates) => {
+                      await updateSecao.mutateAsync({ secaoId, updates });
+                    }}
+                    tarefas={filteredTarefasPorSecao[secao.id] || []}
+                    ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
+                    temBriefing={(secao as any).tem_briefing || false}
+                    allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+                    selectedTarefaId={selectedTarefaId ?? undefined}
+                    onToggleTarefa={handleToggle}
+                    onSelectTarefa={handleSelectTarefa}
+                    onAddTarefa={handleAddTarefa}
+                    onUpdateTarefa={handleUpdateTarefa}
+                    onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
+                    onDuplicarTarefa={handleDuplicarTarefa}
+                    onSalvarTarefaComoModelo={handleSalvarModelo}
+                    onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
+                    onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
+                    onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
+                    onReorderTarefas={
+                      reorderEnabled
+                        ? (orderedIds) => reorderTarefasSecao.mutate({ secaoId: secao.id, orderedIds })
+                        : undefined
+                    }
+                    dragHandle={dragHandle}
+                    onCreateBriefingTasks={handleCreateBriefingTasks}
+                    teamMembers={teamMembers}
+                    onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
+                    onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
+                    darkBg={darkBg}
+                    columns={columns}
+                    metasProgress={metasProgress}
+                  />
+                )}
+              </SortableSecaoWrapper>
+            ))}
+          </SortableContext>
+        </DndContext>
 
         {tarefasCanceladas.length > 0 && (
           <CanceladasSection
