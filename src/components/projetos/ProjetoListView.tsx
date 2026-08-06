@@ -44,14 +44,17 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     createTarefa, updateTarefa, confirmAndToggleTarefa, createSecao,
     updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
-    softDeleteTarefa,
+    softDeleteTarefa, reorderTarefasSecao, reorderSecoes,
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isCoordenador } = useProjetoPapelAtual(projetoId);
   const currentUserId = user?.id ?? null;
-  const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
+  // Coordenadores do projeto também podem excluir seções/tarefas — antes só
+  // o criador do projeto (ou admin) conseguia, o que travava as equipes.
+  const canDeleteSecao = !!projeto && (isAdmin || isCoordenador || projeto.criador_id === currentUserId);
   const queryClient = useQueryClient();
   const [modeloTarefaId, setModeloTarefaId] = useState<string | null>(null);
   const [modeloTarefaTitulo, setModeloTarefaTitulo] = useState<string>("");
