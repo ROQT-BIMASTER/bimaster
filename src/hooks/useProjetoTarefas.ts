@@ -1665,7 +1665,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         const newRow = payload?.new as { excluida_em?: string | null } | undefined;
         const oldRow = payload?.old as { excluida_em?: string | null } | undefined;
         flickerLog("invalidate-fired", { key: "projeto-tarefas-v2", event: eventType });
-        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+        // Evento remoto (o eco local já foi suprimido acima): refetch ativo para
+        // que a alteração de outro usuário apareça sem recarregar a página.
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
+
         if (eventType === "DELETE" || (eventType === "UPDATE" && newRow?.excluida_em !== oldRow?.excluida_em)) {
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
         }
