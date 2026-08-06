@@ -178,6 +178,23 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
   const isFiltering = hasActiveFilters(filters);
+  // Reordenar manualmente só faz sentido quando a lista exibida reflete a
+  // ordem persistida — com filtro ou ordenação custom, arrastar enganaria.
+  const reorderEnabled =
+    !isFiltering && sort.field === "created_at" && sort.direction === "asc";
+  const secaoIds = useMemo(() => secoes.map((s) => s.id), [secoes]);
+  const secaoSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const handleSecaoDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = secaoIds.indexOf(String(active.id));
+    const newIndex = secaoIds.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    reorderSecoes.mutate({ orderedIds: arrayMove(secaoIds, oldIndex, newIndex) });
+  };
 
   // Memoize filtered tarefas per section (excluding canceled top-level tasks)
   const filteredTarefasPorSecao = useMemo(() => {
