@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock, Trash2, CopyPlus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,6 +87,8 @@ interface ProjetoSecaoProps {
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   onDeleteSecao?: (secaoId: string) => void;
+  /** Duplica a seção inteira (tarefas, subtarefas, tags e atribuições). */
+  onDuplicarSecao?: (secaoId: string) => void;
   /** Habilita reordenação manual das tarefas desta seção (drag & drop). */
   onReorderTarefas?: (orderedIds: string[]) => void;
   /** Alça de arraste da própria seção, renderizada no início do cabeçalho. */
@@ -107,6 +109,7 @@ export function ProjetoSecao({
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   onDuplicarTarefa, onSalvarTarefaComoModelo, onAplicarModelo,
   onDeleteSecao,
+  onDuplicarSecao,
   onReorderTarefas,
   dragHandle,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
@@ -258,6 +261,31 @@ export function ProjetoSecao({
             </Tooltip>
           )}
         </TooltipProvider>
+        {onDuplicarSecao && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicarSecao(secaoId);
+                  }}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    darkBg
+                      ? "text-white/30 hover:text-white/70 hover:bg-white/5"
+                      : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/30",
+                  )}
+                >
+                  <CopyPlus className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Duplicar seção (tarefas e atribuições)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {onDeleteSecao && (
           <AlertDialog>
             <TooltipProvider>

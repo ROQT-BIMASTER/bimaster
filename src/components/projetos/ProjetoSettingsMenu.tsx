@@ -13,11 +13,17 @@ import {
   Rows3,
   Rows4,
   Pencil,
+  CopyPlus,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoBgColorPicker } from "./ProjetoBgColorPicker";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { EditarProjetoDialog } from "./EditarProjetoDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { duplicarProjeto } from "@/lib/projetos/duplicarEstrutura";
+import { toast } from "sonner";
 
 interface Props {
   projetoId: string;
@@ -51,6 +57,25 @@ export function ProjetoSettingsMenu({
   const [open, setOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
   const { isCompact, toggle: toggleDensity } = useTarefaDensity();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [duplicando, setDuplicando] = useState(false);
+
+  const handleDuplicarProjeto = async () => {
+    if (!user?.id || duplicando) return;
+    setDuplicando(true);
+    try {
+      const { projetoId: novoId } = await duplicarProjeto({ projetoId, criadorId: user.id });
+      await queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      toast.success("Projeto duplicado com seções, tarefas e atribuições.");
+      setOpen(false);
+      navigate(`/dashboard/projetos/${novoId}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao duplicar projeto");
+    } finally {
+      setDuplicando(false);
+    }
+  };
   const DensityIcon = isCompact ? Rows4 : Rows3;
 
   const handle = (fn: () => void) => () => {
@@ -89,6 +114,20 @@ export function ProjetoSettingsMenu({
         >
           <Pencil className="h-4 w-4 text-muted-foreground" />
           <span>Editar projeto</span>
+        </button>
+
+        <button
+          type="button"
+          disabled={duplicando}
+          onClick={handleDuplicarProjeto}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors disabled:opacity-60"
+        >
+          {duplicando ? (
+            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+          ) : (
+            <CopyPlus className="h-4 w-4 text-muted-foreground" />
+          )}
+          <span>{duplicando ? "Duplicando…" : "Duplicar projeto"}</span>
         </button>
 
         <button

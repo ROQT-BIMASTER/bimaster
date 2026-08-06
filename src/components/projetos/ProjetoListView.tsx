@@ -37,6 +37,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { duplicarTarefa } from "@/lib/tarefas/duplicarTarefa";
+import { duplicarSecao } from "@/lib/projetos/duplicarEstrutura";
 import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaComoModeloDialog";
 import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
 import { toast } from "sonner";
@@ -106,6 +107,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
   };
 
+
+  const handleDuplicarSecao = async (secaoId: string) => {
+    if (!user?.id) return;
+    try {
+      await duplicarSecao({ secaoId, projetoId, criadorId: user.id });
+      toast.success("Seção duplicada com tarefas e atribuições.");
+      await queryClient.refetchQueries({ queryKey: ["projeto-secoes", projetoId] });
+      await queryClient.refetchQueries({ queryKey: ["projeto-tarefas-v2", projetoId], exact: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao duplicar seção");
+    }
+  };
 
   const handleSalvarModelo = (tarefaId: string) => {
     const t = tarefas.find((x) => x.id === tarefaId);
@@ -399,6 +412,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
                     onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
                     onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
                     onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
+                    onDuplicarSecao={handleDuplicarSecao}
                     onReorderTarefas={
                       reorderEnabled
                         ? (orderedIds) => reorderTarefasSecao.mutate({ secaoId: secao.id, orderedIds })
