@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { addDays, parseISO } from "date-fns";
 import { MetasProgress } from "@/hooks/useMetasProgress";
 import { cn } from "@/lib/utils";
+import { formatPrazoCurto, formatPrazoCompleto } from "@/lib/utils/formatPrazo";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { format, isPast, isToday } from "date-fns";
