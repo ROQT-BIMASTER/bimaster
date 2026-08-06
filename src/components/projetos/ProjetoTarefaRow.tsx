@@ -794,8 +794,8 @@ function TimelineBar({ dataInicio, dataPrazo, isCompleted, onChangeInicio, onCha
   const progressPct = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
   const isOverdue = !isCompleted && now > end;
 
-  const startLabel = dataInicio ? format(new Date(dataInicio), "dd MMM", { locale: ptBR }) : "";
-  const endLabel = dataPrazo ? format(new Date(dataPrazo), "dd MMM", { locale: ptBR }) : "";
+  const startLabel = dataInicio ? formatPrazoCurto(dataInicio) : "";
+  const endLabel = dataPrazo ? formatPrazoCurto(dataPrazo) : "";
 
   return (
     <div className="w-full flex flex-col gap-0.5" title={`${startLabel} → ${endLabel}`}>
