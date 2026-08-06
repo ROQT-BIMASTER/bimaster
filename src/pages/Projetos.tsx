@@ -314,8 +314,8 @@ export default function Projetos() {
     } else if (pastaAtiva !== PASTA_TODAS) {
       result = result.filter(p => pastaPorProjeto.get(p.id) === pastaAtiva);
     }
-    return result;
-  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap, pastaAtiva, pastaPorProjeto]);
+    return ordenarProjetos(result, ordenacao);
+  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap, pastaAtiva, pastaPorProjeto, ordenacao]);
 
   // Contagens por pasta consideram os projetos visíveis ao usuário.
   const contagensPastas = useMemo(() => {
