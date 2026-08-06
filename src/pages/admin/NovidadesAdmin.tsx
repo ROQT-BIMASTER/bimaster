@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNovidadesAdmin, type Novidade } from "@/hooks/useNovidades";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +39,8 @@ export default function NovidadesAdmin() {
   const [salvando, setSalvando] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  if (loading) return <DashboardLayout><div className="p-6 text-muted-foreground">Carregando…</div></DashboardLayout>;
-  if (!isAdmin) return <DashboardLayout><AccessDenied /></DashboardLayout>;
+  if (loading) return <div className="p-6 text-muted-foreground">Carregando…</div>;
+  if (!isAdmin) return <AccessDenied />;
 
   const invalidar = () => qc.invalidateQueries({ queryKey: ["novidades"] });
 
@@ -128,8 +127,7 @@ export default function NovidadesAdmin() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Novidades</h1>
@@ -301,7 +299,6 @@ export default function NovidadesAdmin() {
             ))}
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
