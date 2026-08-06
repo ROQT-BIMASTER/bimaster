@@ -14,6 +14,9 @@ export interface CalendarEvent {
   data_inicio?: string | null;          // ISO date (Y-M-D)
   data_prazo?: string | null;           // ISO date (Y-M-D)
   responsavel?: { nome: string; avatar_url?: string | null } | null;
+  responsavel_id?: string | null;
+  /** Série recorrente à qual o evento pertence (quando aplicável). */
+  recorrencia_id?: string | null;
   projeto?: { id: string; nome: string; cor: string } | null;
   secao_nome?: string | null;
   /** Origem para roteamento de seleção. */
