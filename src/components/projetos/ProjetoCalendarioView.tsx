@@ -117,10 +117,23 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     </Button>
   );
 
+  const filtrosCalendario = (
+    <CalendarFiltersBar
+      filters={calFilters}
+      onChange={setCalFilters}
+      equipes={equipes}
+      responsaveis={responsaveisOptions}
+      darkBg={darkBg}
+    />
+  );
+
   const rightToolbarExtra = hasActiveFilters(filters) ? (
-    <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
-      <CalendarDays className="h-3 w-3" /> Filtros ativos via toolbar
-    </Badge>
+    <>
+      <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
+        <CalendarDays className="h-3 w-3" /> Filtros ativos via toolbar
+      </Badge>
+      {filtrosCalendario}
+    </>
   ) : (
     <>
       <Select value={filterSecao} onValueChange={setFilterSecao}>
@@ -144,8 +157,10 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
           <SelectItem value="bloqueada">Bloqueada</SelectItem>
         </SelectContent>
       </Select>
+      {filtrosCalendario}
     </>
   );
+
 
   if (showAnalisePanel) {
     return (
