@@ -145,6 +145,7 @@ export function ProjetoSecao({
     <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
+          {dragHandle}
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
