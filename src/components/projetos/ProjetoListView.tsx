@@ -535,3 +535,47 @@ function CanceladasSection({
     </div>
   );
 }
+
+// ─── Seção arrastável (reordenação manual da lista) ───
+function SortableSecaoWrapper({
+  secaoId,
+  enabled,
+  children,
+}: {
+  secaoId: string;
+  enabled: boolean;
+  children: (dragHandle: React.ReactNode) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: secaoId,
+    disabled: !enabled,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 30 : undefined,
+    position: "relative",
+  };
+
+  const dragHandle = enabled ? (
+    <button
+      type="button"
+      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+      aria-label="Reordenar seção"
+      title="Arrastar para reordenar a seção"
+      onClick={(e) => e.stopPropagation()}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="h-4 w-4" />
+    </button>
+  ) : null;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children(dragHandle)}
+    </div>
+  );
+}
