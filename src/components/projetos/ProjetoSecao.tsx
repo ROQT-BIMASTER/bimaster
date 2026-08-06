@@ -23,6 +23,7 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
+import { SortableTarefasList } from "./SortableTarefasList";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 /**
@@ -86,6 +87,10 @@ interface ProjetoSecaoProps {
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   onDeleteSecao?: (secaoId: string) => void;
+  /** Habilita reordenação manual das tarefas desta seção (drag & drop). */
+  onReorderTarefas?: (orderedIds: string[]) => void;
+  /** Alça de arraste da própria seção, renderizada no início do cabeçalho. */
+  dragHandle?: React.ReactNode;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -102,6 +107,8 @@ export function ProjetoSecao({
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   onDuplicarTarefa, onSalvarTarefaComoModelo, onAplicarModelo,
   onDeleteSecao,
+  onReorderTarefas,
+  dragHandle,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -138,6 +145,7 @@ export function ProjetoSecao({
     <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
+          {dragHandle}
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
@@ -335,6 +343,19 @@ export function ProjetoSecao({
                 metasProgress={metasProgress?.[tarefa.id]}
               />
             );
+
+            // Reordenação manual (drag & drop) — apenas em seções de tamanho
+            // normal e quando o pai libera (sem filtros/ordenação custom).
+            if (onReorderTarefas && tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              return (
+                <SortableTarefasList
+                  tarefas={tarefas}
+                  darkBg={darkBg}
+                  onReorder={onReorderTarefas}
+                  renderRow={(t) => renderRow(t)}
+                />
+              );
+            }
 
             // Default render path (unchanged) for small/medium sections.
             if (tarefas.length <= VIRTUALIZE_THRESHOLD) {

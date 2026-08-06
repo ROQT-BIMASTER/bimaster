@@ -17,6 +17,25 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useProjetoPapelAtual } from "@/hooks/useProjetoPapelAtual";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import { duplicarTarefa } from "@/lib/tarefas/duplicarTarefa";
 import { SalvarTarefaComoModeloDialog } from "@/components/tarefas/SalvarTarefaComoModeloDialog";
 import { AplicarTarefaModeloDialog } from "@/components/tarefas/AplicarTarefaModeloDialog";
@@ -44,14 +63,17 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     createTarefa, updateTarefa, confirmAndToggleTarefa, createSecao,
     updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
-    softDeleteTarefa,
+    softDeleteTarefa, reorderTarefasSecao, reorderSecoes,
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isCoordenador } = useProjetoPapelAtual(projetoId);
   const currentUserId = user?.id ?? null;
-  const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
+  // Coordenadores do projeto também podem excluir seções/tarefas — antes só
+  // o criador do projeto (ou admin) conseguia, o que travava as equipes.
+  const canDeleteSecao = !!projeto && (isAdmin || isCoordenador || projeto.criador_id === currentUserId);
   const queryClient = useQueryClient();
   const [modeloTarefaId, setModeloTarefaId] = useState<string | null>(null);
   const [modeloTarefaTitulo, setModeloTarefaTitulo] = useState<string>("");
@@ -156,6 +178,23 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
   const isFiltering = hasActiveFilters(filters);
+  // Reordenar manualmente só faz sentido quando a lista exibida reflete a
+  // ordem persistida — com filtro ou ordenação custom, arrastar enganaria.
+  const reorderEnabled =
+    !isFiltering && sort.field === "created_at" && sort.direction === "asc";
+  const secaoIds = useMemo(() => secoes.map((s) => s.id), [secoes]);
+  const secaoSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const handleSecaoDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = secaoIds.indexOf(String(active.id));
+    const newIndex = secaoIds.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    reorderSecoes.mutate({ orderedIds: arrayMove(secaoIds, oldIndex, newIndex) });
+  };
 
   // Memoize filtered tarefas per section (excluding canceled top-level tasks)
   const filteredTarefasPorSecao = useMemo(() => {
@@ -322,46 +361,63 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <ColumnConfigPopover columns={columns} onChange={setColumns} darkBg={darkBg} className="ml-1 flex-shrink-0" />
         </div>
 
-        {secoes.map((secao, index) => (
-          <ProjetoSecao
-            key={secao.id}
-            nome={secao.nome}
-            secaoId={secao.id}
-            projetoId={projetoId}
-            secaoIndex={index}
-            secaoDataInicio={(secao as any).data_inicio ?? null}
-            secaoDataPrazo={(secao as any).data_prazo ?? null}
-            secaoDiasAlertaAntes={(secao as any).dias_alerta_antes ?? 2}
-            projetoDataInicio={projeto?.data_inicio ?? null}
-            projetoDataFimAlvo={projeto?.data_fim_alvo ?? null}
-            projetoRegime={projeto?.regime_calendario ?? "dias_uteis"}
-            onUpdateSecao={async (secaoId, updates) => {
-              await updateSecao.mutateAsync({ secaoId, updates });
-            }}
-            tarefas={filteredTarefasPorSecao[secao.id] || []}
-            ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
-            temBriefing={(secao as any).tem_briefing || false}
-            allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
-            selectedTarefaId={selectedTarefaId ?? undefined}
-            onToggleTarefa={handleToggle}
-            onSelectTarefa={handleSelectTarefa}
-            onAddTarefa={handleAddTarefa}
-            onUpdateTarefa={handleUpdateTarefa}
-            onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
-            onDuplicarTarefa={handleDuplicarTarefa}
-            onSalvarTarefaComoModelo={handleSalvarModelo}
-            onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
-            onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
-            onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
-            onCreateBriefingTasks={handleCreateBriefingTasks}
-            teamMembers={teamMembers}
-            onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
-            onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
-            darkBg={darkBg}
-            columns={columns}
-            metasProgress={metasProgress}
-          />
-        ))}
+        <DndContext
+          sensors={secaoSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleSecaoDragEnd}
+        >
+          <SortableContext items={secaoIds} strategy={verticalListSortingStrategy}>
+            {secoes.map((secao, index) => (
+              <SortableSecaoWrapper key={secao.id} secaoId={secao.id} enabled={reorderEnabled}>
+                {(dragHandle) => (
+                  <ProjetoSecao
+                    nome={secao.nome}
+                    secaoId={secao.id}
+                    projetoId={projetoId}
+                    secaoIndex={index}
+                    secaoDataInicio={(secao as any).data_inicio ?? null}
+                    secaoDataPrazo={(secao as any).data_prazo ?? null}
+                    secaoDiasAlertaAntes={(secao as any).dias_alerta_antes ?? 2}
+                    projetoDataInicio={projeto?.data_inicio ?? null}
+                    projetoDataFimAlvo={projeto?.data_fim_alvo ?? null}
+                    projetoRegime={projeto?.regime_calendario ?? "dias_uteis"}
+                    onUpdateSecao={async (secaoId, updates) => {
+                      await updateSecao.mutateAsync({ secaoId, updates });
+                    }}
+                    tarefas={filteredTarefasPorSecao[secao.id] || []}
+                    ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
+                    temBriefing={(secao as any).tem_briefing || false}
+                    allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+                    selectedTarefaId={selectedTarefaId ?? undefined}
+                    onToggleTarefa={handleToggle}
+                    onSelectTarefa={handleSelectTarefa}
+                    onAddTarefa={handleAddTarefa}
+                    onUpdateTarefa={handleUpdateTarefa}
+                    onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
+                    onDuplicarTarefa={handleDuplicarTarefa}
+                    onSalvarTarefaComoModelo={handleSalvarModelo}
+                    onAplicarModelo={(secaoId) => setAplicarSecaoId(secaoId)}
+                    onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
+                    onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
+                    onReorderTarefas={
+                      reorderEnabled
+                        ? (orderedIds) => reorderTarefasSecao.mutate({ secaoId: secao.id, orderedIds })
+                        : undefined
+                    }
+                    dragHandle={dragHandle}
+                    onCreateBriefingTasks={handleCreateBriefingTasks}
+                    teamMembers={teamMembers}
+                    onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
+                    onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
+                    darkBg={darkBg}
+                    columns={columns}
+                    metasProgress={metasProgress}
+                  />
+                )}
+              </SortableSecaoWrapper>
+            ))}
+          </SortableContext>
+        </DndContext>
 
         {tarefasCanceladas.length > 0 && (
           <CanceladasSection
@@ -476,6 +532,50 @@ function CanceladasSection({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Seção arrastável (reordenação manual da lista) ───
+function SortableSecaoWrapper({
+  secaoId,
+  enabled,
+  children,
+}: {
+  secaoId: string;
+  enabled: boolean;
+  children: (dragHandle: React.ReactNode) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: secaoId,
+    disabled: !enabled,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 30 : undefined,
+    position: "relative",
+  };
+
+  const dragHandle = enabled ? (
+    <button
+      type="button"
+      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+      aria-label="Reordenar seção"
+      title="Arrastar para reordenar a seção"
+      onClick={(e) => e.stopPropagation()}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="h-4 w-4" />
+    </button>
+  ) : null;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children(dragHandle)}
     </div>
   );
 }
