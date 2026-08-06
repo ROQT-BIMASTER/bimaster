@@ -52,6 +52,9 @@ export interface ProjetoTarefa {
   created_at: string;
   updated_at: string;
   produto_id: string | null;
+  /** Série recorrente do calendário à qual a tarefa pertence. */
+  recorrencia_id?: string | null;
+  ocorrencia_data?: string | null;
   subtarefas?: ProjetoTarefa[];
   responsavel?: { id: string; nome: string; avatar_url: string | null } | null;
   /** Multi-responsáveis (junction projeto_tarefa_responsaveis). `responsavel`/`responsavel_id` continuam refletindo o "principal". */

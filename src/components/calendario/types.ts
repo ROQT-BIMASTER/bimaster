@@ -14,6 +14,9 @@ export interface CalendarEvent {
   data_inicio?: string | null;          // ISO date (Y-M-D)
   data_prazo?: string | null;           // ISO date (Y-M-D)
   responsavel?: { nome: string; avatar_url?: string | null } | null;
+  responsavel_id?: string | null;
+  /** Série recorrente à qual o evento pertence (quando aplicável). */
+  recorrencia_id?: string | null;
   projeto?: { id: string; nome: string; cor: string } | null;
   secao_nome?: string | null;
   /** Origem para roteamento de seleção. */
@@ -33,6 +36,8 @@ export function tarefaToEvent(t: ProjetoTarefa, projeto?: { id: string; nome: st
     data_inicio: t.data_inicio_planejada ?? null,
     data_prazo: t.data_prazo,
     responsavel: t.responsavel ? { nome: t.responsavel.nome, avatar_url: t.responsavel.avatar_url } : null,
+    responsavel_id: t.responsavel_id ?? null,
+    recorrencia_id: (t as unknown as { recorrencia_id?: string | null }).recorrencia_id ?? null,
     projeto: projeto ?? null,
     origem: "projeto",
   };
@@ -50,6 +55,7 @@ export function minaTarefaToEvent(t: MinaTarefa): CalendarEvent {
     responsavel: t.responsavel_nome
       ? { nome: t.responsavel_nome, avatar_url: t.responsavel_avatar_url }
       : null,
+    responsavel_id: t.responsavel_id ?? null,
     projeto: { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor },
     secao_nome: t.secao_nome,
     origem: "minhas-tarefas",
