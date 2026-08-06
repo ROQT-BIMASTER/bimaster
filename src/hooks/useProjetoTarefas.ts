@@ -499,22 +499,28 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   }, [projetoId, queryClient]);
 
 
-  // Movement history for ghost rows (kept separate — small payload)
+  // Movement history for ghost rows (kept separate — small payload).
+  // Só movimentações recentes (7 dias): rastros antigos faziam a tarefa
+  // parecer que "não saiu" da seção de origem.
+  const GHOST_TTL_DIAS = 7;
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["tarefa-movimentacoes", projetoId],
     queryFn: async () => {
       const secaoIds = secoes.map(s => s.id);
       if (secaoIds.length === 0) return [];
+      const desde = new Date(Date.now() - GHOST_TTL_DIAS * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("projeto_tarefa_movimentacoes" as any)
         .select("*")
         .in("secao_origem_id", secaoIds)
+        .gte("created_at", desde)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
     enabled: !!projetoId && !!user && !mutationsOnly && secoes.length > 0,
   });
+
 
   const tarefasPorSecao = (secaoId: string) => {
     // Recursive tree: each task gets its direct children populated, and so on (N levels).
