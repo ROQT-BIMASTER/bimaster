@@ -42,8 +42,8 @@ const TIPO_LABELS: Record<string, string> = {
   max_simultaneas_andamento: "Máx. Simultâneas em Andamento",
 };
 
-import {
 import { formatPrazoNumerico } from "@/lib/utils/formatPrazo";
+import {
   STATUS_LABELS, STATUS_BADGE_VARIANT, ESTAGIO_LABELS,
   ESTAGIO_COLORS_ANALISE_DARK as ESTAGIO_COLORS, ESTAGIO_COLORS_ANALISE_LIGHT as ESTAGIO_COLORS_LIGHT,
 } from "@/lib/projetoConstants";
