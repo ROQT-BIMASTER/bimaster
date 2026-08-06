@@ -76,7 +76,7 @@ async function fetchDescendantsRecursive(rootId: string): Promise<Map<string, an
     const parentId = queue.shift()!;
     const { data, error } = await supabase
       .from("projeto_tarefas")
-      .select("id, titulo, descricao, prioridade, tipo_tarefa, estagio, visibilidade, data_prazo, ordem, secao_id, projeto_id")
+      .select("id, titulo, descricao, prioridade, tipo_tarefa, estagio, visibilidade, data_prazo, responsavel_id, ordem, secao_id, projeto_id")
       .eq("parent_tarefa_id", parentId)
       .is("deleted_at", null)
       .is("excluida_em", null)
@@ -92,7 +92,36 @@ async function fetchDescendantsRecursive(rootId: string): Promise<Map<string, an
 }
 
 /**
- * Duplica uma tarefa (com subtarefas + tags) dentro do mesmo projeto/seção.
+ * Copia as atribuições (`projeto_tarefa_responsaveis`) das tarefas originais
+ * para as cópias, usando o mapa origem→cópia.
+ */
+export async function copiarResponsaveis(
+  idMap: Map<string, string>,
+  criadorId: string,
+): Promise<void> {
+  const origens = Array.from(idMap.keys());
+  if (!origens.length) return;
+  const { data } = await supabase
+    .from("projeto_tarefa_responsaveis")
+    .select("tarefa_id, user_id, papel")
+    .in("tarefa_id", origens);
+  const rows = (data || [])
+    .map((r: any) => {
+      const novo = idMap.get(r.tarefa_id);
+      if (!novo) return null;
+      return { tarefa_id: novo, user_id: r.user_id, papel: r.papel, criado_por: criadorId };
+    })
+    .filter(Boolean) as any[];
+  if (rows.length) {
+    await supabase.from("projeto_tarefa_responsaveis").upsert(rows, {
+      onConflict: "tarefa_id,user_id",
+      ignoreDuplicates: true,
+    });
+  }
+}
+
+/**
+ * Duplica uma tarefa (com subtarefas + tags + responsáveis) dentro do mesmo projeto/seção.
  *
  * Retorna também as linhas criadas (`rows`) para que a UI faça o patch
  * otimista no cache e a cópia apareça IMEDIATAMENTE, sem depender de
@@ -110,7 +139,7 @@ export async function duplicarTarefa(params: {
 
   const { data: source, error: srcErr } = await supabase
     .from("projeto_tarefas")
-    .select("id, titulo, descricao, prioridade, tipo_tarefa, estagio, visibilidade, data_prazo, secao_id, projeto_id")
+    .select("id, titulo, descricao, prioridade, tipo_tarefa, estagio, visibilidade, data_prazo, responsavel_id, secao_id, projeto_id")
     .eq("id", tarefaId)
     .single();
   if (srcErr || !source) throw srcErr || new Error("Tarefa não encontrada");
@@ -136,6 +165,7 @@ export async function duplicarTarefa(params: {
     estagio: source.estagio,
     visibilidade: source.visibilidade || "publica",
     data_prazo: source.data_prazo,
+    responsavel_id: (source as any).responsavel_id ?? null,
     ordem: baseOrdem,
     status: "pendente",
     criador_id: criadorId,
@@ -178,6 +208,7 @@ export async function duplicarTarefa(params: {
       estagio: c.estagio,
       visibilidade: c.visibilidade || "publica",
       data_prazo: c.data_prazo,
+      responsavel_id: c.responsavel_id ?? null,
       ordem: idx,
       status: "pendente",
       criador_id: criadorId,
@@ -210,6 +241,9 @@ export async function duplicarTarefa(params: {
     for (const c of children) await process(c.id);
   };
   await process(tarefaId);
+
+  // Replica as atribuições (multi-responsáveis) de toda a árvore copiada.
+  await copiarResponsaveis(idMap, criadorId);
 
   return { rootId: rootNew.id, rows: criadas };
 
