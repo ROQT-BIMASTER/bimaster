@@ -453,6 +453,23 @@ export default function Projetos() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select
+                value={ordenacao}
+                onValueChange={(v) => {
+                  const next = v as ProjetosOrdenacao;
+                  setOrdenacao(next);
+                  salvarOrdenacaoProjetos(next);
+                }}
+              >
+                <SelectTrigger className="w-[190px] h-9 bg-card/70 backdrop-blur-sm border-border/60" aria-label="Ordenar projetos">
+                  <SelectValue placeholder="Ordenar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDENACAO_PROJETOS_OPCOES.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Onboarding banner (dismissible) + global shortcuts dialog */}
