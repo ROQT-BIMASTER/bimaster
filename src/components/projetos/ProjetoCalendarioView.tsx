@@ -20,7 +20,8 @@ import {
   CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
-import { CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
+import { CalendarDays, Circle, CheckCircle2, BarChart3, Repeat } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -330,6 +331,61 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
         {tarefa.descricao && (
           <p className={cn("text-xs mt-2 whitespace-pre-wrap", darkBg ? "text-white/60" : "text-muted-foreground")}>{tarefa.descricao}</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Ações de série recorrente ───
+function RecorrenciaActions({ recorrenciaId, tarefaId, darkBg }: { recorrenciaId: string; tarefaId: string; darkBg: boolean }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<"encerrar" | "desvincular" | null>(null);
+
+  const refresh = () => qc.invalidateQueries({ queryKey: ["projeto-tarefas"], refetchType: "active" });
+
+  const encerrar = async () => {
+    setBusy("encerrar");
+    try {
+      const { data, error } = await supabase.rpc("rpc_encerrar_recorrencia" as any, {
+        p_recorrencia_id: recorrenciaId,
+      } as any);
+      if (error) throw error;
+      toast.success(`Série encerrada. ${Number(data) || 0} ocorrência(s) futura(s) removida(s).`);
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível encerrar a série.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const desvincular = async () => {
+    setBusy("desvincular");
+    try {
+      const { error } = await supabase.rpc("rpc_desvincular_ocorrencia" as any, { p_tarefa_id: tarefaId } as any);
+      if (error) throw error;
+      toast.success("Ocorrência desvinculada da série. Alterações afetam apenas este evento.");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível desvincular a ocorrência.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className={cn("rounded-lg border p-3 mb-4 space-y-2", darkBg && "border-white/10")}>
+      <div className="flex items-center gap-2">
+        <Repeat className={cn("h-3.5 w-3.5", darkBg ? "text-white/70" : "text-muted-foreground")} />
+        <span className={cn("text-xs font-medium", darkBg ? "text-white/80" : "text-foreground")}>Evento recorrente</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" className="h-7 text-[11px]" disabled={busy !== null} onClick={desvincular}>
+          {busy === "desvincular" ? "Desvinculando..." : "Editar só esta ocorrência"}
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-[11px]" disabled={busy !== null} onClick={encerrar}>
+          {busy === "encerrar" ? "Encerrando..." : "Encerrar série"}
+        </Button>
       </div>
     </div>
   );
