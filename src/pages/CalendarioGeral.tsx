@@ -509,6 +509,10 @@ export default function CalendarioGeral() {
                         Excluir série
                       </Button>
                     )}
+                    <Button variant="ghost" size="sm" onClick={() => setHistoricoOpen(true)}>
+                      <History className="h-4 w-4 mr-1.5" />
+                      Histórico
+                    </Button>
                   </>
                 ) : (
                   <Button
