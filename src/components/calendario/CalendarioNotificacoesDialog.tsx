@@ -11,6 +11,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIA_LABELS } from "./CalendarFiltersBar";
+import { CalendarioLembretesPreviewDialog } from "./CalendarioLembretesPreviewDialog";
+import type { CalendarEvent } from "./types";
 import {
   useCalendarioPreferencias, useCalendarioPreferenciasMutations,
   DEFAULT_LEMBRETES, type CalendarioLembretesPrefs, type LembretePorTipo,
@@ -19,6 +21,8 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Eventos visíveis usados na prévia (dry-run) dos lembretes. */
+  eventos?: CalendarEvent[];
 }
 
 const ANTECEDENCIAS = [
@@ -36,10 +40,11 @@ const TIPO_PADRAO: LembretePorTipo = {
 };
 
 /** Configurações de lembretes e notificações do Calendário Geral. */
-export function CalendarioNotificacoesDialog({ open, onOpenChange }: Props) {
+export function CalendarioNotificacoesDialog({ open, onOpenChange, eventos = [] }: Props) {
   const { data: prefs } = useCalendarioPreferencias();
   const { salvar } = useCalendarioPreferenciasMutations();
   const [form, setForm] = useState<CalendarioLembretesPrefs>(DEFAULT_LEMBRETES);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (open && prefs?.lembretes) setForm(prefs.lembretes);
@@ -153,13 +158,25 @@ export function CalendarioNotificacoesDialog({ open, onOpenChange }: Props) {
           </div>
         </ScrollArea>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submeter} disabled={salvar.isPending}>
-            {salvar.isPending ? "Salvando..." : "Salvar preferências"}
+        <DialogFooter className="sm:justify-between">
+          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            Prévia / teste
           </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={submeter} disabled={salvar.isPending}>
+              {salvar.isPending ? "Salvando..." : "Salvar preferências"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      <CalendarioLembretesPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        prefs={form}
+        eventos={eventos}
+      />
     </Dialog>
   );
 }
