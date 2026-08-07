@@ -17,7 +17,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
@@ -35,7 +36,7 @@ import {
 } from "@/components/calendario/CalendarVisibilityScope";
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
-  CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
+  CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters, applyCalendarBusca,
   normalizeCalendarFilters, countCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
@@ -79,12 +80,14 @@ export default function CalendarioGeral() {
   const { salvar: salvarPrefs } = useCalendarioPreferenciasMutations();
 
   const [filters, setFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
+  const [busca, setBusca] = useState("");
   const [filtrosRestaurados, setFiltrosRestaurados] = useState(false);
   const [camadas, setCamadas] = useState<Camada[]>(["tarefas", "eventos"]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickData, setQuickData] = useState<string | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoTodos, setHistoricoTodos] = useState(false);
   const [notificacoesOpen, setNotificacoesOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [dataInicial, setDataInicial] = useState<string | null>(null);
@@ -136,12 +139,14 @@ export default function CalendarioGeral() {
           equipes,
         )
       : [];
-    return applyVisibilityScope([...deTarefas, ...deEventos], {
+    const visiveis = applyVisibilityScope([...deTarefas, ...deEventos], {
       scope: escopo,
       userId: user?.id,
       equipes,
     });
-  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id]);
+    // Busca aplicada depois da visibilidade: nunca revela itens fora do escopo.
+    return applyCalendarBusca(visiveis, busca);
+  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id, busca]);
 
   const responsaveis = useMemo(() => {
     const map = new Map<string, string>();
@@ -295,6 +300,10 @@ export default function CalendarioGeral() {
                   <Bell className="h-4 w-4 mr-1.5" />
                   Lembretes
                 </Button>
+                <Button variant="outline" onClick={() => { setHistoricoTodos(true); setHistoricoOpen(true); }}>
+                  <History className="h-4 w-4 mr-1.5" />
+                  Histórico
+                </Button>
                 <Button variant="outline" onClick={() => setExportOpen(true)}>
                   <Share2 className="h-4 w-4 mr-1.5" />
                   Exportar / assinar
@@ -319,10 +328,35 @@ export default function CalendarioGeral() {
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
                 <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar por título, descrição ou local"
+                    aria-label="Buscar eventos"
+                    className="h-8 pl-8 pr-8 text-xs"
+                  />
+                  {busca && (
+                    <button
+                      type="button"
+                      aria-label="Limpar busca"
+                      onClick={() => setBusca("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 {countCalendarFilters(filters) > 0 && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Tag className="h-3.5 w-3.5" />
                     {countCalendarFilters(filters)} filtro(s) ativo(s)
+                  </span>
+                )}
+                {busca && (
+                  <span className="text-xs text-muted-foreground">
+                    {events.length} resultado(s)
                   </span>
                 )}
               </div>
@@ -376,14 +410,19 @@ export default function CalendarioGeral() {
         onMaisOpcoes={(d) => { setEditando(null); setDataInicial(d); setDialogOpen(true); }}
       />
 
-      <CalendarioNotificacoesDialog open={notificacoesOpen} onOpenChange={setNotificacoesOpen} />
+      <CalendarioNotificacoesDialog
+        open={notificacoesOpen}
+        onOpenChange={setNotificacoesOpen}
+        eventos={events}
+      />
 
       <CalendarioHistoricoDialog
         open={historicoOpen}
-        onOpenChange={setHistoricoOpen}
-        eventoId={eventoSelecionado?.id}
-        recorrenciaId={eventoSelecionado?.recorrencia_id}
-        titulo={eventoSelecionado?.titulo}
+        onOpenChange={(v) => { setHistoricoOpen(v); if (!v) setHistoricoTodos(false); }}
+        eventoId={historicoTodos ? null : eventoSelecionado?.id}
+        recorrenciaId={historicoTodos ? null : eventoSelecionado?.recorrencia_id}
+        titulo={historicoTodos ? undefined : eventoSelecionado?.titulo}
+        todos={historicoTodos}
       />
 
       <CalendarioExportDialog
@@ -509,7 +548,7 @@ export default function CalendarioGeral() {
                         Excluir série
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => setHistoricoOpen(true)}>
+                    <Button variant="ghost" size="sm" onClick={() => { setHistoricoTodos(false); setHistoricoOpen(true); }}>
                       <History className="h-4 w-4 mr-1.5" />
                       Histórico
                     </Button>

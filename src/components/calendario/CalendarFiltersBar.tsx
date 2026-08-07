@@ -97,6 +97,23 @@ export function applyCalendarFilters(
   });
 }
 
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/**
+ * Busca textual por título, descrição e local. Deve ser aplicada depois das
+ * regras de visibilidade — nunca revela eventos fora do escopo do usuário.
+ */
+export function applyCalendarBusca(events: CalendarEvent[], termo: string): CalendarEvent[] {
+  const q = semAcento(termo.trim());
+  if (!q) return events;
+  return events.filter((ev) =>
+    [ev.titulo, ev.descricao, ev.local, ev.projeto?.nome, ...(ev.tags ?? [])]
+      .filter(Boolean)
+      .some((campo) => semAcento(String(campo)).includes(q)),
+  );
+}
+
 interface Option {
   id: string;
   nome: string;

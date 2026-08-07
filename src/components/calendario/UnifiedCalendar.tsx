@@ -5,7 +5,7 @@ import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
+  eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
   format, isSameMonth,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,7 @@ import { ESTAGIO_LABELS, ESTAGIO_PILL_COLORS } from "@/lib/projetoConstants";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 type ViewMode = "month" | "week" | "agenda";
+type AgendaRange = "dia" | "semana";
 
 interface Props {
   events: CalendarEvent[];
@@ -62,6 +63,7 @@ export function UnifiedCalendar({
 }: Props) {
   const [currentDate, setCurrentDate] = useState(() => getToday());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [agendaRange, setAgendaRange] = useState<AgendaRange>("semana");
   const [arrastando, setArrastando] = useState<CalendarEvent | null>(null);
   const [alvoDrop, setAlvoDrop] = useState<string | null>(null);
 
@@ -91,16 +93,20 @@ export function UnifiedCalendar({
   };
 
 
-  // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
+  // Notifica mudanças de período (mês/semana/agenda visível) para wrappers.
   useEffect(() => {
     if (!onPeriodChange) return;
-    const inicio = viewMode === "week" ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
-    const fim = viewMode === "week" ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
-    const label = viewMode !== "week"
-      ? format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR })
-      : `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`;
+    const diario = viewMode === "agenda" && agendaRange === "dia";
+    const semanal = viewMode === "week" || (viewMode === "agenda" && agendaRange === "semana");
+    const inicio = diario ? currentDate : semanal ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
+    const fim = diario ? currentDate : semanal ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
+    const label = diario
+      ? format(currentDate, "dd 'de' MMMM yyyy", { locale: ptBR })
+      : semanal
+        ? `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`
+        : format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR });
     onPeriodChange({ inicio, fim, viewMode, label });
-  }, [currentDate, viewMode, onPeriodChange]);
+  }, [currentDate, viewMode, agendaRange, onPeriodChange]);
 
   // Single-day vs multi-day
   const singleDayByDate = useMemo(() => {
@@ -130,6 +136,13 @@ export function UnifiedCalendar({
   [events]);
 
   const days = useMemo(() => {
+    if (viewMode === "agenda") {
+      if (agendaRange === "dia") return [currentDate];
+      return eachDayOfInterval({
+        start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+        end: endOfWeek(currentDate, { weekStartsOn: 1 }),
+      });
+    }
     if (viewMode !== "week") {
       const monthStart = startOfMonth(currentDate);
       const monthEnd = endOfMonth(currentDate);
@@ -140,7 +153,8 @@ export function UnifiedCalendar({
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: weekStart, end: weekEnd });
-  }, [currentDate, viewMode]);
+  }, [currentDate, viewMode, agendaRange]);
+
 
   const weekRows = useMemo(() => {
     const rows: Date[][] = [];
@@ -175,12 +189,31 @@ export function UnifiedCalendar({
   const todayKey = useMemo(() => getDateKey(getToday()), []);
 
   const navigate = (dir: "prev" | "next") => {
+    const back = dir === "prev";
+    if (viewMode === "agenda") {
+      setCurrentDate(
+        agendaRange === "dia"
+          ? (back ? subDays(currentDate, 1) : addDays(currentDate, 1))
+          : (back ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1)),
+      );
+      return;
+    }
     if (viewMode !== "week") {
-      setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
+      setCurrentDate(back ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
     } else {
-      setCurrentDate(dir === "prev" ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
+      setCurrentDate(back ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
     }
   };
+
+  const periodoLabel =
+    viewMode === "agenda"
+      ? (agendaRange === "dia"
+          ? format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })
+          : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[days.length - 1], "dd MMM", { locale: ptBR })}`)
+      : viewMode === "week"
+        ? `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`
+        : format(currentDate, "MMMM yyyy", { locale: ptBR });
+
 
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
@@ -210,9 +243,7 @@ export function UnifiedCalendar({
           <Popover>
             <PopoverTrigger asChild>
               <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
-                {viewMode !== "week"
-                  ? format(currentDate, "MMMM yyyy", { locale: ptBR })
-                  : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
+                {periodoLabel}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="center">
@@ -278,6 +309,24 @@ export function UnifiedCalendar({
               Agenda
             </button>
           </div>
+          {viewMode === "agenda" && (
+            <div className={cn("flex rounded-md border overflow-hidden", border)}>
+              {(["dia", "semana"] as AgendaRange[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setAgendaRange(r)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium capitalize transition-colors",
+                    agendaRange === r
+                      ? (darkBg ? "bg-white/20 text-white" : "bg-secondary text-secondary-foreground")
+                      : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"),
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
           {rightToolbarExtra}
         </div>
       </div>

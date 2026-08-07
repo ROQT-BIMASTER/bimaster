@@ -33,25 +33,46 @@ const LABELS: Record<string, string> = {
 
 export const rotuloCampo = (campo: string) => LABELS[campo] ?? campo;
 
+export interface HistoricoFiltros {
+  /** Data inicial (Y-M-D) do período consultado. */
+  desde?: string | null;
+  /** Data final (Y-M-D) do período consultado. */
+  ate?: string | null;
+  /** Consulta o histórico de todos os eventos visíveis (ignora evento/série). */
+  todos?: boolean;
+}
+
 /**
  * Histórico de alterações de um evento (ou de toda a série, quando
- * `recorrenciaId` é informado).
+ * `recorrenciaId` é informado). Com `filtros.todos`, retorna o histórico
+ * de todos os eventos visíveis ao usuário (RLS aplica a visibilidade).
  */
-export function useCalendarioHistorico(eventoId?: string | null, recorrenciaId?: string | null) {
+export function useCalendarioHistorico(
+  eventoId?: string | null,
+  recorrenciaId?: string | null,
+  filtros: HistoricoFiltros = {},
+) {
+  const { desde = null, ate = null, todos = false } = filtros;
+
   return useQuery({
-    queryKey: ["calendario-historico", eventoId, recorrenciaId],
-    enabled: !!eventoId,
+    queryKey: ["calendario-historico", eventoId, recorrenciaId, desde, ate, todos],
+    enabled: todos || !!eventoId,
     staleTime: 15_000,
     queryFn: async (): Promise<CalendarioHistoricoEntry[]> => {
       let q = (supabase as any)
         .from("calendario_evento_historico")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(todos ? 2000 : 100);
 
-      q = recorrenciaId
-        ? q.or(`evento_id.eq.${eventoId},recorrencia_id.eq.${recorrenciaId}`)
-        : q.eq("evento_id", eventoId);
+      if (!todos) {
+        q = recorrenciaId
+          ? q.or(`evento_id.eq.${eventoId},recorrencia_id.eq.${recorrenciaId}`)
+          : q.eq("evento_id", eventoId);
+      }
+
+      if (desde) q = q.gte("created_at", `${desde}T00:00:00`);
+      if (ate) q = q.lte("created_at", `${ate}T23:59:59`);
 
       const { data, error } = await q;
       if (error) throw error;
@@ -82,3 +103,4 @@ export function useCalendarioHistorico(eventoId?: string | null, recorrenciaId?:
     },
   });
 }
+
