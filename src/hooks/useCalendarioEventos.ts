@@ -141,6 +141,15 @@ export function useCalendarioEventosMutations() {
     }
 
     if (input.lembrete?.ativo) {
+      // Índice único é parcial (evento_id IS NOT NULL), então não é inferível
+      // por ON CONFLICT: limpamos e reinserimos.
+      const { error: delErr } = await (supabase as any)
+        .from("calendario_lembretes")
+        .delete()
+        .in("evento_id", eventoIds)
+        .eq("user_id", userId);
+      if (delErr) throw delErr;
+
       const rows = eventoIds.map((eventoId) => ({
         evento_id: eventoId,
         user_id: userId,
@@ -149,9 +158,7 @@ export function useCalendarioEventosMutations() {
         canal_notificacao: input.lembrete!.notificacao,
         ativo: true,
       }));
-      const { error } = await (supabase as any)
-        .from("calendario_lembretes")
-        .upsert(rows, { onConflict: "evento_id,user_id" });
+      const { error } = await (supabase as any).from("calendario_lembretes").insert(rows);
       if (error) throw error;
     }
   };
