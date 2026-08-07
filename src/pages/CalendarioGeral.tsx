@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
@@ -17,28 +17,42 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { EventoCalendarioDialog } from "@/components/calendario/EventoCalendarioDialog";
+import { CalendarioBoasVindasDialog } from "@/components/calendario/CalendarioBoasVindasDialog";
+import { CalendarioExportDialog } from "@/components/calendario/CalendarioExportDialog";
+import {
+  CalendarVisibilityScope, applyVisibilityScope,
+  CALENDAR_SCOPE_STORAGE_KEY, type CalendarScope,
+} from "@/components/calendario/CalendarVisibilityScope";
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
   CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEquipesProjetos } from "@/hooks/useEquipesProjetos";
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import {
   useCalendarioEventos, useCalendarioEventosMutations, type CalendarioEvento,
 } from "@/hooks/useCalendarioEventos";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type Camada = "tarefas" | "eventos";
+
+interface Reagendamento {
+  evento: CalendarioEvento;
+  novaData: string;
+  deltaDias: number;
+}
+
 
 /**
  * Calendário Geral: consolida as tarefas de todos os projetos do usuário
@@ -47,19 +61,38 @@ type Camada = "tarefas" | "eventos";
 export default function CalendarioGeral() {
   const { bgColor } = usePageBgColor("calendario-geral");
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: tarefas = [], isLoading: loadingTarefas } = useMinhasTarefas();
   const { data: eventos = [], isLoading: loadingEventos } = useCalendarioEventos();
   const { data: equipes = [] } = useEquipesProjetos();
-  const { excluir } = useCalendarioEventosMutations();
+  const { excluir, reagendar } = useCalendarioEventosMutations();
 
   const [filters, setFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
   const [camadas, setCamadas] = useState<Camada[]>(["tarefas", "eventos"]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [dataInicial, setDataInicial] = useState<string | null>(null);
   const [editando, setEditando] = useState<CalendarioEvento | null>(null);
   const [selecionado, setSelecionado] = useState<CalendarEvent | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState<"unico" | "serie" | null>(null);
+  const [reagendamento, setReagendamento] = useState<Reagendamento | null>(null);
+  const [escopo, setEscopo] = useState<CalendarScope>(() => {
+    try {
+      const salvo = localStorage.getItem(CALENDAR_SCOPE_STORAGE_KEY) as CalendarScope | null;
+      return salvo === "meus" || salvo === "equipe" || salvo === "todos" ? salvo : "todos";
+    } catch {
+      return "todos";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_SCOPE_STORAGE_KEY, escopo);
+    } catch {
+      /* ignore */
+    }
+  }, [escopo]);
 
   const eventosPorId = useMemo(() => new Map(eventos.map((e) => [e.id, e])), [eventos]);
   const tarefasPorId = useMemo(() => new Map(tarefas.map((t) => [t.id, t])), [tarefas]);
@@ -69,8 +102,12 @@ export default function CalendarioGeral() {
       ? applyCalendarFilters(tarefas.map(minaTarefaToEvent), filters, equipes)
       : [];
     const deEventos = camadas.includes("eventos") ? eventos.map(eventoToCalendarEvent) : [];
-    return [...deTarefas, ...deEventos];
-  }, [tarefas, eventos, camadas, filters, equipes]);
+    return applyVisibilityScope([...deTarefas, ...deEventos], {
+      scope: escopo,
+      userId: user?.id,
+      equipes,
+    });
+  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id]);
 
   const responsaveis = useMemo(() => {
     const map = new Map<string, string>();
@@ -91,6 +128,41 @@ export default function CalendarioGeral() {
 
   const eventoSelecionado = selecionado?.tipo === "evento" ? eventosPorId.get(selecionado.id) ?? null : null;
 
+  /** Só o autor pode arrastar o próprio evento avulso. */
+  const podeArrastar = (ev: CalendarEvent) => {
+    if (ev.tipo !== "evento") return false;
+    const original = eventosPorId.get(ev.id);
+    return !!original && original.criado_por === user?.id;
+  };
+
+  const iniciarReagendamento = (ev: CalendarEvent, novaData: string) => {
+    const original = eventosPorId.get(ev.id);
+    if (!original) return;
+    const de = parseLocalDate(original.data_inicio);
+    const para = parseLocalDate(novaData);
+    if (!de || !para) return;
+    const deltaDias = differenceInCalendarDays(para, de);
+    if (!deltaDias) return;
+    setReagendamento({ evento: original, novaData, deltaDias });
+  };
+
+  const confirmarReagendamento = async (serie: boolean) => {
+    if (!reagendamento) return;
+    const { evento, deltaDias } = reagendamento;
+    try {
+      await reagendar.mutateAsync({
+        id: evento.id,
+        deltaDias,
+        serie: serie ? evento.recorrencia_id : null,
+      });
+      toast.success(serie ? "Série reagendada." : "Evento reagendado.");
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível reagendar o evento.");
+    } finally {
+      setReagendamento(null);
+    }
+  };
+
   const handleExcluir = async () => {
     if (!eventoSelecionado) return;
     try {
@@ -106,6 +178,7 @@ export default function CalendarioGeral() {
       setConfirmandoExclusao(null);
     }
   };
+
 
   const formatarPeriodo = (ev: CalendarEvent) => {
     const ini = ev.data_inicio ? parseLocalDate(ev.data_inicio) : null;
@@ -157,10 +230,16 @@ export default function CalendarioGeral() {
                   Visão consolidada das tarefas de todos os projetos e dos seus compromissos.
                 </p>
               </div>
-              <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Novo evento
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setExportOpen(true)}>
+                  <Share2 className="h-4 w-4 mr-1.5" />
+                  Exportar / assinar
+                </Button>
+                <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Novo evento
+                </Button>
+              </div>
             </header>
 
             <div className="rounded-lg border border-border bg-card/70 backdrop-blur-sm p-3 sm:p-4 space-y-3">
@@ -175,6 +254,7 @@ export default function CalendarioGeral() {
                   Eventos
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
+                <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
               </div>
 
               <UnifiedCalendar
@@ -182,6 +262,8 @@ export default function CalendarioGeral() {
                 onSelectEvent={setSelecionado}
                 colorStrategy="projeto"
                 onCreateAt={(dateKey) => { setEditando(null); setDataInicial(dateKey); setDialogOpen(true); }}
+                onMoveEvent={iniciarReagendamento}
+                canDragEvent={podeArrastar}
                 rightToolbarExtra={
                   <CalendarFiltersBar
                     filters={filters}
@@ -200,6 +282,46 @@ export default function CalendarioGeral() {
           </div>
         </main>
       </div>
+
+      <CalendarioBoasVindasDialog />
+
+      <CalendarioExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        events={events}
+        equipes={equipes}
+        responsaveis={responsaveis}
+      />
+
+      <AlertDialog open={!!reagendamento} onOpenChange={(v) => !v && setReagendamento(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reagendar evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              {reagendamento && (
+                <>
+                  Mover <strong>{reagendamento.evento.titulo}</strong> para{" "}
+                  {format(parseLocalDate(reagendamento.novaData)!, "dd/MM/yyyy", { locale: ptBR })}
+                  {reagendamento.evento.recorrencia_id
+                    ? ". Este evento faz parte de uma série recorrente."
+                    : "."}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {reagendamento?.evento.recorrencia_id && (
+              <Button variant="outline" onClick={() => confirmarReagendamento(true)}>
+                Mover a série
+              </Button>
+            )}
+            <AlertDialogAction onClick={() => confirmarReagendamento(false)}>
+              Mover só esta ocorrência
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EventoCalendarioDialog
         open={dialogOpen}

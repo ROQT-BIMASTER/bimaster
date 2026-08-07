@@ -32,3 +32,6 @@ verify_jwt = false
 [functions.erp-sync-engine]
 verify_jwt = false
 
+
+[functions.calendario-ics]
+verify_jwt = false

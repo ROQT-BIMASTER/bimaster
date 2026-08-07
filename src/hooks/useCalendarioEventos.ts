@@ -250,5 +250,45 @@ export function useCalendarioEventosMutations() {
     onSuccess: invalidate,
   });
 
-  return { criar, atualizar, excluir };
+  /**
+   * Reagenda um evento deslocando início e fim pelo mesmo número de dias.
+   * Quando `serie` é informado, todas as ocorrências recebem o mesmo deslocamento.
+   */
+  const reagendar = useMutation({
+    mutationFn: async ({
+      id, deltaDias, serie,
+    }: { id: string; deltaDias: number; serie?: string | null }) => {
+      if (!deltaDias) return;
+
+      const query = (supabase as any)
+        .from("calendario_eventos")
+        .select("id, data_inicio, data_fim, recorrencia_id");
+      const { data, error } = serie
+        ? await query.eq("recorrencia_id", serie)
+        : await query.eq("id", id);
+      if (error) throw error;
+
+      const shift = (iso: string) => {
+        const [y, m, d] = iso.split("-").map(Number);
+        return fmt(new Date(y, m - 1, d + deltaDias));
+      };
+
+      for (const row of (data || []) as Array<{ id: string; data_inicio: string; data_fim: string }>) {
+        const novoInicio = shift(row.data_inicio);
+        const novoFim = shift(row.data_fim || row.data_inicio);
+        const { error: upErr } = await (supabase as any)
+          .from("calendario_eventos")
+          .update({
+            data_inicio: novoInicio,
+            data_fim: novoFim,
+            ...(serie ? { ocorrencia_data: novoInicio } : {}),
+          })
+          .eq("id", row.id);
+        if (upErr) throw upErr;
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  return { criar, atualizar, excluir, reagendar };
 }
