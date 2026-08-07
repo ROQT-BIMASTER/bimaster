@@ -18,6 +18,7 @@ const base: CalendarioEvento = {
   criado_por: "user-1",
   recorrencia_id: null,
   participantes: ["user-2"],
+  tags: [],
 };
 
 describe("eventoToCalendarEvent", () => {

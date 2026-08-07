@@ -19,6 +19,7 @@ export interface CalendarioEvento {
   criado_por: string;
   recorrencia_id: string | null;
   participantes: string[];
+  tags: string[];
 }
 
 export interface EventoInput {
@@ -33,6 +34,7 @@ export interface EventoInput {
   cor: string;
   categoria: string;
   participantes: string[];
+  tags?: string[];
   lembrete?: {
     ativo: boolean;
     antecedenciaMinutos: number;
@@ -114,16 +116,37 @@ export function useCalendarioEventos() {
         criado_por: e.criado_por,
         recorrencia_id: e.recorrencia_id ?? null,
         participantes: (e.calendario_evento_participantes || []).map((p: any) => p.user_id),
+        tags: Array.isArray(e.tags) ? e.tags : [],
       }));
     },
   });
+}
+
+/** Registra uma entrada no histórico de alterações (best-effort). */
+async function registrarHistorico(entradas: Array<{
+  evento_id: string;
+  recorrencia_id?: string | null;
+  user_id: string;
+  acao: "criado" | "editado" | "reagendado";
+  escopo: "unico" | "serie";
+  alteracoes: Array<{ campo: string; de: string | null; para: string | null }>;
+}>) {
+  if (!entradas.length) return;
+  try {
+    await (supabase as any).from("calendario_evento_historico").insert(entradas);
+  } catch {
+    /* histórico nunca bloqueia a operação principal */
+  }
 }
 
 /** Criação, edição e exclusão de eventos avulsos. */
 export function useCalendarioEventosMutations() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const invalidate = () => qc.invalidateQueries({ queryKey: QUERY_KEY });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: QUERY_KEY });
+    qc.invalidateQueries({ queryKey: ["calendario-historico"] });
+  };
 
   const salvarParticipantesELembrete = async (
     eventoIds: string[],
@@ -177,6 +200,7 @@ export function useCalendarioEventosMutations() {
         cor: input.cor,
         categoria: input.categoria,
         visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
+        tags: input.tags ?? [],
         criado_por: user.id,
       };
 
@@ -202,8 +226,19 @@ export function useCalendarioEventosMutations() {
         .select("id");
       if (error) throw error;
 
-      await salvarParticipantesELembrete((data || []).map((r: any) => r.id), input, user.id);
-      return (data || []).length;
+      const ids = (data || []).map((r: any) => r.id);
+      await salvarParticipantesELembrete(ids, input, user.id);
+      await registrarHistorico(
+        ids.map((eventoId: string) => ({
+          evento_id: eventoId,
+          recorrencia_id: recorrenciaId,
+          user_id: user.id,
+          acao: "criado" as const,
+          escopo: (recorrenciaId ? "serie" : "unico") as "serie" | "unico",
+          alteracoes: [],
+        })),
+      );
+      return ids.length;
     },
     onSuccess: invalidate,
   });
@@ -212,21 +247,30 @@ export function useCalendarioEventosMutations() {
     mutationFn: async ({ id, input }: { id: string; input: EventoInput }) => {
       if (!user?.id) throw new Error("Sessão expirada.");
 
+      const { data: antes } = await (supabase as any)
+        .from("calendario_eventos")
+        .select("titulo, data_inicio, data_fim, hora_inicio, hora_fim, local, categoria, recorrencia_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      const novos = {
+        titulo: input.titulo.trim(),
+        descricao: input.descricao?.trim() || null,
+        data_inicio: input.data_inicio,
+        data_fim: input.data_fim,
+        dia_inteiro: input.dia_inteiro,
+        hora_inicio: input.dia_inteiro ? null : input.hora_inicio || null,
+        hora_fim: input.dia_inteiro ? null : input.hora_fim || null,
+        local: input.local?.trim() || null,
+        cor: input.cor,
+        categoria: input.categoria,
+        tags: input.tags ?? [],
+        visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
+      };
+
       const { error } = await (supabase as any)
         .from("calendario_eventos")
-        .update({
-          titulo: input.titulo.trim(),
-          descricao: input.descricao?.trim() || null,
-          data_inicio: input.data_inicio,
-          data_fim: input.data_fim,
-          dia_inteiro: input.dia_inteiro,
-          hora_inicio: input.dia_inteiro ? null : input.hora_inicio || null,
-          hora_fim: input.dia_inteiro ? null : input.hora_fim || null,
-          local: input.local?.trim() || null,
-          cor: input.cor,
-          categoria: input.categoria,
-          visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
-        })
+        .update(novos)
         .eq("id", id);
       if (error) throw error;
 
@@ -237,6 +281,28 @@ export function useCalendarioEventosMutations() {
       if (delErr) throw delErr;
 
       await salvarParticipantesELembrete([id], input, user.id);
+
+      if (antes) {
+        const campos = ["titulo", "data_inicio", "data_fim", "hora_inicio", "hora_fim", "local", "categoria"] as const;
+        const alteracoes = campos
+          .map((campo) => ({
+            campo,
+            de: antes[campo] == null ? null : String(antes[campo]),
+            para: (novos as any)[campo] == null ? null : String((novos as any)[campo]),
+          }))
+          .filter((a) => a.de !== a.para);
+
+        if (alteracoes.length) {
+          await registrarHistorico([{
+            evento_id: id,
+            recorrencia_id: antes.recorrencia_id ?? null,
+            user_id: user.id,
+            acao: "editado",
+            escopo: "unico",
+            alteracoes,
+          }]);
+        }
+      }
     },
     onSuccess: invalidate,
   });
@@ -273,7 +339,9 @@ export function useCalendarioEventosMutations() {
         return fmt(new Date(y, m - 1, d + deltaDias));
       };
 
-      for (const row of (data || []) as Array<{ id: string; data_inicio: string; data_fim: string }>) {
+      const entradas: Parameters<typeof registrarHistorico>[0] = [];
+
+      for (const row of (data || []) as Array<{ id: string; data_inicio: string; data_fim: string; recorrencia_id: string | null }>) {
         const novoInicio = shift(row.data_inicio);
         const novoFim = shift(row.data_fim || row.data_inicio);
         const { error: upErr } = await (supabase as any)
@@ -285,7 +353,23 @@ export function useCalendarioEventosMutations() {
           })
           .eq("id", row.id);
         if (upErr) throw upErr;
+
+        if (user?.id) {
+          entradas.push({
+            evento_id: row.id,
+            recorrencia_id: row.recorrencia_id ?? null,
+            user_id: user.id,
+            acao: "reagendado",
+            escopo: serie ? "serie" : "unico",
+            alteracoes: [
+              { campo: "data_inicio", de: row.data_inicio, para: novoInicio },
+              { campo: "data_fim", de: row.data_fim || row.data_inicio, para: novoFim },
+            ],
+          });
+        }
       }
+
+      await registrarHistorico(entradas);
     },
     onSuccess: invalidate,
   });

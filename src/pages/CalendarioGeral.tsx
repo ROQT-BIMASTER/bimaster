@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2 } from "lucide-react";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
@@ -26,6 +26,9 @@ import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { EventoCalendarioDialog } from "@/components/calendario/EventoCalendarioDialog";
 import { CalendarioBoasVindasDialog } from "@/components/calendario/CalendarioBoasVindasDialog";
 import { CalendarioExportDialog } from "@/components/calendario/CalendarioExportDialog";
+import { QuickAddEventDialog } from "@/components/calendario/QuickAddEventDialog";
+import { CalendarioHistoricoDialog } from "@/components/calendario/CalendarioHistoricoDialog";
+import { CalendarioNotificacoesDialog } from "@/components/calendario/CalendarioNotificacoesDialog";
 import {
   CalendarVisibilityScope, applyVisibilityScope,
   CALENDAR_SCOPE_STORAGE_KEY, type CalendarScope,
@@ -33,6 +36,7 @@ import {
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
   CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
+  normalizeCalendarFilters, countCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +45,9 @@ import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import {
   useCalendarioEventos, useCalendarioEventosMutations, type CalendarioEvento,
 } from "@/hooks/useCalendarioEventos";
+import {
+  useCalendarioPreferencias, useCalendarioPreferenciasMutations,
+} from "@/hooks/useCalendarioPreferencias";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,9 +75,17 @@ export default function CalendarioGeral() {
   const { data: equipes = [] } = useEquipesProjetos();
   const { excluir, reagendar } = useCalendarioEventosMutations();
 
+  const { data: prefs } = useCalendarioPreferencias();
+  const { salvar: salvarPrefs } = useCalendarioPreferenciasMutations();
+
   const [filters, setFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
+  const [filtrosRestaurados, setFiltrosRestaurados] = useState(false);
   const [camadas, setCamadas] = useState<Camada[]>(["tarefas", "eventos"]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickData, setQuickData] = useState<string | null>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [notificacoesOpen, setNotificacoesOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [dataInicial, setDataInicial] = useState<string | null>(null);
   const [editando, setEditando] = useState<CalendarioEvento | null>(null);
@@ -94,6 +109,13 @@ export default function CalendarioGeral() {
     }
   }, [escopo]);
 
+  // Restaura os filtros salvos do usuário na primeira carga.
+  useEffect(() => {
+    if (filtrosRestaurados || !prefs) return;
+    setFilters(normalizeCalendarFilters(prefs.filtros));
+    setFiltrosRestaurados(true);
+  }, [prefs, filtrosRestaurados]);
+
   const eventosPorId = useMemo(() => new Map(eventos.map((e) => [e.id, e])), [eventos]);
   const tarefasPorId = useMemo(() => new Map(tarefas.map((t) => [t.id, t])), [tarefas]);
 
@@ -101,7 +123,19 @@ export default function CalendarioGeral() {
     const deTarefas = camadas.includes("tarefas")
       ? applyCalendarFilters(tarefas.map(minaTarefaToEvent), filters, equipes)
       : [];
-    const deEventos = camadas.includes("eventos") ? eventos.map(eventoToCalendarEvent) : [];
+    // Eventos avulsos não têm projeto/responsável: só os filtros aplicáveis a eles.
+    const deEventos = camadas.includes("eventos")
+      ? applyCalendarFilters(
+          eventos.map(eventoToCalendarEvent),
+          {
+            ...EMPTY_CALENDAR_FILTERS,
+            status: filters.status,
+            categorias: filters.categorias,
+            tags: filters.tags,
+          },
+          equipes,
+        )
+      : [];
     return applyVisibilityScope([...deTarefas, ...deEventos], {
       scope: escopo,
       userId: user?.id,
@@ -122,6 +156,32 @@ export default function CalendarioGeral() {
     tarefas.forEach((t) => { if (t.projeto_id) map.set(t.projeto_id, t.projeto_nome); });
     return Array.from(map, ([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas]);
+
+  const statusDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    tarefas.forEach((t) => t.status && s.add(t.status));
+    if (eventos.length) s.add("evento");
+    return Array.from(s).sort();
+  }, [tarefas, eventos]);
+
+  const categoriasDisponiveis = useMemo(
+    () => Array.from(new Set(eventos.map((e) => e.categoria).filter(Boolean))).sort(),
+    [eventos],
+  );
+
+  const tagsDisponiveis = useMemo(
+    () => Array.from(new Set(eventos.flatMap((e) => e.tags ?? []))).sort(),
+    [eventos],
+  );
+
+  const salvarFiltros = async () => {
+    try {
+      await salvarPrefs.mutateAsync({ filtros: filters as unknown as Record<string, unknown> });
+      toast.success("Filtros salvos para as próximas visitas.");
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível salvar os filtros.");
+    }
+  };
 
   const toggleCamada = (c: Camada) =>
     setCamadas((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -230,12 +290,16 @@ export default function CalendarioGeral() {
                   Visão consolidada das tarefas de todos os projetos e dos seus compromissos.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => setNotificacoesOpen(true)}>
+                  <Bell className="h-4 w-4 mr-1.5" />
+                  Lembretes
+                </Button>
                 <Button variant="outline" onClick={() => setExportOpen(true)}>
                   <Share2 className="h-4 w-4 mr-1.5" />
                   Exportar / assinar
                 </Button>
-                <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
+                <Button onClick={() => { setQuickData(null); setQuickOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1.5" />
                   Novo evento
                 </Button>
@@ -255,13 +319,19 @@ export default function CalendarioGeral() {
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
                 <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
+                {countCalendarFilters(filters) > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Tag className="h-3.5 w-3.5" />
+                    {countCalendarFilters(filters)} filtro(s) ativo(s)
+                  </span>
+                )}
               </div>
 
               <UnifiedCalendar
                 events={events}
                 onSelectEvent={setSelecionado}
                 colorStrategy="projeto"
-                onCreateAt={(dateKey) => { setEditando(null); setDataInicial(dateKey); setDialogOpen(true); }}
+                onCreateAt={(dateKey) => { setQuickData(dateKey); setQuickOpen(true); }}
                 onMoveEvent={iniciarReagendamento}
                 canDragEvent={podeArrastar}
                 rightToolbarExtra={
@@ -271,6 +341,20 @@ export default function CalendarioGeral() {
                     equipes={equipes}
                     responsaveis={responsaveis}
                     projetos={projetos}
+                    statusDisponiveis={statusDisponiveis}
+                    categorias={categoriasDisponiveis}
+                    tags={tagsDisponiveis}
+                    footer={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full h-7 text-xs"
+                        onClick={salvarFiltros}
+                        disabled={salvarPrefs.isPending}
+                      >
+                        {salvarPrefs.isPending ? "Salvando..." : "Salvar filtros como padrão"}
+                      </Button>
+                    }
                   />
                 }
               />
@@ -284,6 +368,23 @@ export default function CalendarioGeral() {
       </div>
 
       <CalendarioBoasVindasDialog />
+
+      <QuickAddEventDialog
+        open={quickOpen}
+        onOpenChange={setQuickOpen}
+        data={quickData}
+        onMaisOpcoes={(d) => { setEditando(null); setDataInicial(d); setDialogOpen(true); }}
+      />
+
+      <CalendarioNotificacoesDialog open={notificacoesOpen} onOpenChange={setNotificacoesOpen} />
+
+      <CalendarioHistoricoDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        eventoId={eventoSelecionado?.id}
+        recorrenciaId={eventoSelecionado?.recorrencia_id}
+        titulo={eventoSelecionado?.titulo}
+      />
 
       <CalendarioExportDialog
         open={exportOpen}
@@ -408,6 +509,10 @@ export default function CalendarioGeral() {
                         Excluir série
                       </Button>
                     )}
+                    <Button variant="ghost" size="sm" onClick={() => setHistoricoOpen(true)}>
+                      <History className="h-4 w-4 mr-1.5" />
+                      Histórico
+                    </Button>
                   </>
                 ) : (
                   <Button

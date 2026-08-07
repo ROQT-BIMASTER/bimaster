@@ -4295,6 +4295,47 @@ export type Database = {
           },
         ]
       }
+      calendario_evento_historico: {
+        Row: {
+          acao: string
+          alteracoes: Json
+          created_at: string
+          escopo: string
+          evento_id: string
+          id: string
+          recorrencia_id: string | null
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          alteracoes?: Json
+          created_at?: string
+          escopo?: string
+          evento_id: string
+          id?: string
+          recorrencia_id?: string | null
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          alteracoes?: Json
+          created_at?: string
+          escopo?: string
+          evento_id?: string
+          id?: string
+          recorrencia_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendario_evento_historico_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "calendario_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendario_evento_participantes: {
         Row: {
           created_at: string
@@ -4343,6 +4384,7 @@ export type Database = {
           local: string | null
           ocorrencia_data: string | null
           recorrencia_id: string | null
+          tags: string[]
           titulo: string
           updated_at: string
           visibilidade: string
@@ -4362,6 +4404,7 @@ export type Database = {
           local?: string | null
           ocorrencia_data?: string | null
           recorrencia_id?: string | null
+          tags?: string[]
           titulo: string
           updated_at?: string
           visibilidade?: string
@@ -4381,6 +4424,7 @@ export type Database = {
           local?: string | null
           ocorrencia_data?: string | null
           recorrencia_id?: string | null
+          tags?: string[]
           titulo?: string
           updated_at?: string
           visibilidade?: string
@@ -4476,6 +4520,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      calendario_preferencias: {
+        Row: {
+          created_at: string
+          filtros: Json
+          lembretes: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filtros?: Json
+          lembretes?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filtros?: Json
+          lembretes?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       campaign_briefings: {
         Row: {

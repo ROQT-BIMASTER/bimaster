@@ -65,6 +65,20 @@ Deno.serve(secureHandler(
 
       if (error) throw error;
 
+      // Preferências de lembrete por usuário (cache por execução).
+      const prefsCache = new Map<string, any>();
+      const carregarPrefs = async (userId: string) => {
+        if (prefsCache.has(userId)) return prefsCache.get(userId);
+        const { data } = await supabase
+          .from("calendario_preferencias")
+          .select("lembretes")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const p = (data?.lembretes ?? {}) as Record<string, any>;
+        prefsCache.set(userId, p);
+        return p;
+      };
+
       for (const lem of lembretes ?? []) {
         try {
           // Origem do lembrete: tarefa de projeto ou evento avulso do Calendário Geral.
@@ -73,11 +87,12 @@ Deno.serve(secureHandler(
           let dataPrazo: string | null;
           let actionUrl: string;
           let contextoNome: string | undefined;
+          let categoriaEvento: string | null = null;
 
           if (lem.evento_id) {
             const { data: evento } = await supabase
               .from("calendario_eventos")
-              .select("id, titulo, data_inicio, data_fim, local")
+              .select("id, titulo, data_inicio, data_fim, local, categoria")
               .eq("id", lem.evento_id)
               .maybeSingle();
 
@@ -87,6 +102,7 @@ Deno.serve(secureHandler(
             dataPrazo = evento.data_fim;
             actionUrl = "/dashboard/calendario";
             contextoNome = evento.local ?? undefined;
+            categoriaEvento = evento.categoria ?? "geral";
           } else {
             const { data: tarefa } = await supabase
               .from("projeto_tarefas")
@@ -120,13 +136,27 @@ Deno.serve(secureHandler(
           // Não reenviar eventos muito antigos (janela de 2 dias).
           if (agora.getTime() - alvo.getTime() > 2 * 24 * 60 * 60_000) continue;
 
+          // Preferências do usuário: chave geral + sobrescrita por tipo de evento.
+          const prefs = await carregarPrefs(lem.user_id);
+          if (prefs?.ativo === false) continue;
+          const porTipo = categoriaEvento ? prefs?.porTipo?.[categoriaEvento] : null;
+          if (porTipo && porTipo.ativo === false) continue;
+
+          const enviarEmail = lem.canal_email
+            && prefs?.email !== false
+            && (!porTipo || porTipo.email !== false);
+          const enviarNotificacao = lem.canal_notificacao
+            && prefs?.notificacao !== false
+            && (!porTipo || porTipo.notificacao !== false);
+          if (!enviarEmail && !enviarNotificacao) continue;
+
           const { data: perfil } = await supabase
             .from("profiles")
             .select("nome, email")
             .eq("id", lem.user_id)
             .maybeSingle();
 
-          if (lem.canal_notificacao) {
+          if (enviarNotificacao) {
             await supabase.from("notifications").insert({
               user_id: lem.user_id,
               type: "calendario_lembrete",
@@ -136,7 +166,7 @@ Deno.serve(secureHandler(
             });
           }
 
-          if (lem.canal_email && perfil?.email) {
+          if (enviarEmail && perfil?.email) {
             await supabase.functions.invoke("send-transactional-email", {
               body: {
                 templateName: "calendario-lembrete",

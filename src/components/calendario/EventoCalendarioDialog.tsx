@@ -75,6 +75,7 @@ export function EventoCalendarioDialog({ open, onOpenChange, dataInicial, evento
   const [categoria, setCategoria] = useState("geral");
   const [participantes, setParticipantes] = useState<string[]>([]);
   const [buscaPessoa, setBuscaPessoa] = useState("");
+  const [tags, setTags] = useState("");
 
   const [lembreteAtivo, setLembreteAtivo] = useState(false);
   const [antecedencia, setAntecedencia] = useState(60);
@@ -99,6 +100,7 @@ export function EventoCalendarioDialog({ open, onOpenChange, dataInicial, evento
       setCor(evento.cor);
       setCategoria(evento.categoria);
       setParticipantes(evento.participantes);
+      setTags((evento.tags ?? []).join(", "));
     } else {
       const base = dataInicial || new Date().toISOString().slice(0, 10);
       setTitulo("");
@@ -112,6 +114,7 @@ export function EventoCalendarioDialog({ open, onOpenChange, dataInicial, evento
       setCor(CORES[0].valor);
       setCategoria("geral");
       setParticipantes([]);
+      setTags("");
     }
     setBuscaPessoa("");
     setLembreteAtivo(false);
@@ -161,6 +164,7 @@ export function EventoCalendarioDialog({ open, onOpenChange, dataInicial, evento
       cor,
       categoria,
       participantes,
+      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       lembrete: lembreteAtivo
         ? { ativo: true, antecedenciaMinutos: antecedencia, email: canalEmail, notificacao: canalNotificacao }
         : undefined,
@@ -192,6 +196,16 @@ export function EventoCalendarioDialog({ open, onOpenChange, dataInicial, evento
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="evento-tags">Marcadores</Label>
+            <Input
+              id="evento-tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Separe por vírgula. Ex.: diretoria, trimestral"
+            />
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="evento-titulo">Título</Label>
             <Input

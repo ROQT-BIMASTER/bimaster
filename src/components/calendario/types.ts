@@ -30,6 +30,8 @@ export interface CalendarEvent {
   /** Cor explícita (eventos avulsos). Prevalece sobre a cor do projeto. */
   cor?: string | null;
   categoria?: string | null;
+  /** Marcadores livres (eventos avulsos). */
+  tags?: string[];
 }
 
 import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
@@ -88,6 +90,7 @@ export function eventoToCalendarEvent(e: CalendarioEvento): CalendarEvent {
     local: e.local,
     cor: e.cor,
     categoria: e.categoria,
+    tags: e.tags ?? [],
     recorrencia_id: e.recorrencia_id,
     origem: "calendario",
     tipo: "evento",
