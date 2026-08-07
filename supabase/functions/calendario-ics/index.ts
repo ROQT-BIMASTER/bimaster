@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
 
   await admin
     .from("calendario_ics_tokens")
-    .update({ ultimo_acesso_em: new Date().toISOString() })
+    .update({ last_used_at: new Date().toISOString() })
     .eq("token", token);
 
   return new Response(buildIcs(rows), {
