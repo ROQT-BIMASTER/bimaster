@@ -93,16 +93,20 @@ export function UnifiedCalendar({
   };
 
 
-  // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
+  // Notifica mudanças de período (mês/semana/agenda visível) para wrappers.
   useEffect(() => {
     if (!onPeriodChange) return;
-    const inicio = viewMode === "week" ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
-    const fim = viewMode === "week" ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
-    const label = viewMode !== "week"
-      ? format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR })
-      : `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`;
+    const diario = viewMode === "agenda" && agendaRange === "dia";
+    const semanal = viewMode === "week" || (viewMode === "agenda" && agendaRange === "semana");
+    const inicio = diario ? currentDate : semanal ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
+    const fim = diario ? currentDate : semanal ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
+    const label = diario
+      ? format(currentDate, "dd 'de' MMMM yyyy", { locale: ptBR })
+      : semanal
+        ? `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`
+        : format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR });
     onPeriodChange({ inicio, fim, viewMode, label });
-  }, [currentDate, viewMode, onPeriodChange]);
+  }, [currentDate, viewMode, agendaRange, onPeriodChange]);
 
   // Single-day vs multi-day
   const singleDayByDate = useMemo(() => {
