@@ -17,7 +17,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
