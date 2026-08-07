@@ -226,8 +226,19 @@ export function useCalendarioEventosMutations() {
         .select("id");
       if (error) throw error;
 
-      await salvarParticipantesELembrete((data || []).map((r: any) => r.id), input, user.id);
-      return (data || []).length;
+      const ids = (data || []).map((r: any) => r.id);
+      await salvarParticipantesELembrete(ids, input, user.id);
+      await registrarHistorico(
+        ids.map((eventoId: string) => ({
+          evento_id: eventoId,
+          recorrencia_id: recorrenciaId,
+          user_id: user.id,
+          acao: "criado" as const,
+          escopo: (recorrenciaId ? "serie" : "unico") as "serie" | "unico",
+          alteracoes: [],
+        })),
+      );
+      return ids.length;
     },
     onSuccess: invalidate,
   });
