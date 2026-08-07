@@ -18,7 +18,7 @@ import type { CalendarEvent, ColorStrategy } from "./types";
 import { ESTAGIO_LABELS, ESTAGIO_PILL_COLORS } from "@/lib/projetoConstants";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-type ViewMode = "month" | "week";
+type ViewMode = "month" | "week" | "agenda";
 
 interface Props {
   events: CalendarEvent[];
@@ -60,9 +60,9 @@ export function UnifiedCalendar({
   // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
   useEffect(() => {
     if (!onPeriodChange) return;
-    const inicio = viewMode === "month" ? startOfMonth(currentDate) : startOfWeek(currentDate, { weekStartsOn: 1 });
-    const fim = viewMode === "month" ? endOfMonth(currentDate) : endOfWeek(currentDate, { weekStartsOn: 1 });
-    const label = viewMode === "month"
+    const inicio = viewMode === "week" ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
+    const fim = viewMode === "week" ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
+    const label = viewMode !== "week"
       ? format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR })
       : `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`;
     onPeriodChange({ inicio, fim, viewMode, label });
@@ -96,7 +96,7 @@ export function UnifiedCalendar({
   [events]);
 
   const days = useMemo(() => {
-    if (viewMode === "month") {
+    if (viewMode !== "week") {
       const monthStart = startOfMonth(currentDate);
       const monthEnd = endOfMonth(currentDate);
       const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -141,7 +141,7 @@ export function UnifiedCalendar({
   const todayKey = useMemo(() => getDateKey(getToday()), []);
 
   const navigate = (dir: "prev" | "next") => {
-    if (viewMode === "month") {
+    if (viewMode !== "week") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
     } else {
       setCurrentDate(dir === "prev" ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
@@ -176,7 +176,7 @@ export function UnifiedCalendar({
           <Popover>
             <PopoverTrigger asChild>
               <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
-                {viewMode === "month"
+                {viewMode !== "week"
                   ? format(currentDate, "MMMM yyyy", { locale: ptBR })
                   : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
               </button>
@@ -232,12 +232,35 @@ export function UnifiedCalendar({
             >
               Semana
             </button>
+            <button
+              onClick={() => setViewMode("agenda")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "agenda"
+                  ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground")
+                  : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"),
+              )}
+            >
+              Agenda
+            </button>
           </div>
           {rightToolbarExtra}
         </div>
       </div>
 
+      {/* Agenda */}
+      {viewMode === "agenda" && (
+        <AgendaList
+          events={events}
+          days={days}
+          darkBg={darkBg}
+          colorStrategy={colorStrategy}
+          onSelectEvent={onSelectEvent}
+        />
+      )}
+
       {/* Grid */}
+      {viewMode !== "agenda" && (
       <div className={cn("border rounded-lg overflow-hidden", border)}>
         <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
