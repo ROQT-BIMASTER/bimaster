@@ -405,7 +405,11 @@ export default function CalendarioGeral() {
         onMaisOpcoes={(d) => { setEditando(null); setDataInicial(d); setDialogOpen(true); }}
       />
 
-      <CalendarioNotificacoesDialog open={notificacoesOpen} onOpenChange={setNotificacoesOpen} />
+      <CalendarioNotificacoesDialog
+        open={notificacoesOpen}
+        onOpenChange={setNotificacoesOpen}
+        events={events}
+      />
 
       <CalendarioHistoricoDialog
         open={historicoOpen}
