@@ -122,11 +122,31 @@ export function useCalendarioEventos() {
   });
 }
 
+/** Registra uma entrada no histórico de alterações (best-effort). */
+async function registrarHistorico(entradas: Array<{
+  evento_id: string;
+  recorrencia_id?: string | null;
+  user_id: string;
+  acao: "criado" | "editado" | "reagendado";
+  escopo: "unico" | "serie";
+  alteracoes: Array<{ campo: string; de: string | null; para: string | null }>;
+}>) {
+  if (!entradas.length) return;
+  try {
+    await (supabase as any).from("calendario_evento_historico").insert(entradas);
+  } catch {
+    /* histórico nunca bloqueia a operação principal */
+  }
+}
+
 /** Criação, edição e exclusão de eventos avulsos. */
 export function useCalendarioEventosMutations() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const invalidate = () => qc.invalidateQueries({ queryKey: QUERY_KEY });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: QUERY_KEY });
+    qc.invalidateQueries({ queryKey: ["calendario-historico"] });
+  };
 
   const salvarParticipantesELembrete = async (
     eventoIds: string[],
