@@ -61,19 +61,38 @@ interface Reagendamento {
 export default function CalendarioGeral() {
   const { bgColor } = usePageBgColor("calendario-geral");
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: tarefas = [], isLoading: loadingTarefas } = useMinhasTarefas();
   const { data: eventos = [], isLoading: loadingEventos } = useCalendarioEventos();
   const { data: equipes = [] } = useEquipesProjetos();
-  const { excluir } = useCalendarioEventosMutations();
+  const { excluir, reagendar } = useCalendarioEventosMutations();
 
   const [filters, setFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
   const [camadas, setCamadas] = useState<Camada[]>(["tarefas", "eventos"]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [dataInicial, setDataInicial] = useState<string | null>(null);
   const [editando, setEditando] = useState<CalendarioEvento | null>(null);
   const [selecionado, setSelecionado] = useState<CalendarEvent | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState<"unico" | "serie" | null>(null);
+  const [reagendamento, setReagendamento] = useState<Reagendamento | null>(null);
+  const [escopo, setEscopo] = useState<CalendarScope>(() => {
+    try {
+      const salvo = localStorage.getItem(CALENDAR_SCOPE_STORAGE_KEY) as CalendarScope | null;
+      return salvo === "meus" || salvo === "equipe" || salvo === "todos" ? salvo : "todos";
+    } catch {
+      return "todos";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_SCOPE_STORAGE_KEY, escopo);
+    } catch {
+      /* ignore */
+    }
+  }, [escopo]);
 
   const eventosPorId = useMemo(() => new Map(eventos.map((e) => [e.id, e])), [eventos]);
   const tarefasPorId = useMemo(() => new Map(tarefas.map((t) => [t.id, t])), [tarefas]);
@@ -83,8 +102,12 @@ export default function CalendarioGeral() {
       ? applyCalendarFilters(tarefas.map(minaTarefaToEvent), filters, equipes)
       : [];
     const deEventos = camadas.includes("eventos") ? eventos.map(eventoToCalendarEvent) : [];
-    return [...deTarefas, ...deEventos];
-  }, [tarefas, eventos, camadas, filters, equipes]);
+    return applyVisibilityScope([...deTarefas, ...deEventos], {
+      scope: escopo,
+      userId: user?.id,
+      equipes,
+    });
+  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id]);
 
   const responsaveis = useMemo(() => {
     const map = new Map<string, string>();
@@ -105,6 +128,41 @@ export default function CalendarioGeral() {
 
   const eventoSelecionado = selecionado?.tipo === "evento" ? eventosPorId.get(selecionado.id) ?? null : null;
 
+  /** Só o autor pode arrastar o próprio evento avulso. */
+  const podeArrastar = (ev: CalendarEvent) => {
+    if (ev.tipo !== "evento") return false;
+    const original = eventosPorId.get(ev.id);
+    return !!original && original.criado_por === user?.id;
+  };
+
+  const iniciarReagendamento = (ev: CalendarEvent, novaData: string) => {
+    const original = eventosPorId.get(ev.id);
+    if (!original) return;
+    const de = parseLocalDate(original.data_inicio);
+    const para = parseLocalDate(novaData);
+    if (!de || !para) return;
+    const deltaDias = differenceInCalendarDays(para, de);
+    if (!deltaDias) return;
+    setReagendamento({ evento: original, novaData, deltaDias });
+  };
+
+  const confirmarReagendamento = async (serie: boolean) => {
+    if (!reagendamento) return;
+    const { evento, deltaDias } = reagendamento;
+    try {
+      await reagendar.mutateAsync({
+        id: evento.id,
+        deltaDias,
+        serie: serie ? evento.recorrencia_id : null,
+      });
+      toast.success(serie ? "Série reagendada." : "Evento reagendado.");
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível reagendar o evento.");
+    } finally {
+      setReagendamento(null);
+    }
+  };
+
   const handleExcluir = async () => {
     if (!eventoSelecionado) return;
     try {
@@ -120,6 +178,7 @@ export default function CalendarioGeral() {
       setConfirmandoExclusao(null);
     }
   };
+
 
   const formatarPeriodo = (ev: CalendarEvent) => {
     const ini = ev.data_inicio ? parseLocalDate(ev.data_inicio) : null;
