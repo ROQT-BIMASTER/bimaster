@@ -20,11 +20,22 @@ export interface CalendarEvent {
   projeto?: { id: string; nome: string; cor: string } | null;
   secao_nome?: string | null;
   /** Origem para roteamento de seleção. */
-  origem?: "projeto" | "minhas-tarefas";
+  origem?: "projeto" | "minhas-tarefas" | "calendario";
+  /** Camada do Calendário Geral: tarefa de projeto ou evento avulso. */
+  tipo?: "tarefa" | "evento";
+  descricao?: string | null;
+  hora_inicio?: string | null;          // HH:mm
+  hora_fim?: string | null;             // HH:mm
+  local?: string | null;
+  /** Cor explícita (eventos avulsos). Prevalece sobre a cor do projeto. */
+  cor?: string | null;
+  categoria?: string | null;
 }
 
 import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import type { CalendarioEvento } from "@/hooks/useCalendarioEventos";
+
 
 export function tarefaToEvent(t: ProjetoTarefa, projeto?: { id: string; nome: string; cor: string } | null): CalendarEvent {
   return {
