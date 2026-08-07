@@ -299,6 +299,10 @@ export default function CalendarioGeral() {
                   <Bell className="h-4 w-4 mr-1.5" />
                   Lembretes
                 </Button>
+                <Button variant="outline" onClick={() => { setHistoricoTodos(true); setHistoricoOpen(true); }}>
+                  <History className="h-4 w-4 mr-1.5" />
+                  Histórico
+                </Button>
                 <Button variant="outline" onClick={() => setExportOpen(true)}>
                   <Share2 className="h-4 w-4 mr-1.5" />
                   Exportar / assinar
