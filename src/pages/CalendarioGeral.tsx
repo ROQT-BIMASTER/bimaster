@@ -136,12 +136,14 @@ export default function CalendarioGeral() {
           equipes,
         )
       : [];
-    return applyVisibilityScope([...deTarefas, ...deEventos], {
+    const visiveis = applyVisibilityScope([...deTarefas, ...deEventos], {
       scope: escopo,
       userId: user?.id,
       equipes,
     });
-  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id]);
+    // Busca aplicada depois da visibilidade: nunca revela itens fora do escopo.
+    return applyCalendarBusca(visiveis, busca);
+  }, [tarefas, eventos, camadas, filters, equipes, escopo, user?.id, busca]);
 
   const responsaveis = useMemo(() => {
     const map = new Map<string, string>();
