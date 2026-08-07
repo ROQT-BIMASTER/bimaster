@@ -247,21 +247,30 @@ export function useCalendarioEventosMutations() {
     mutationFn: async ({ id, input }: { id: string; input: EventoInput }) => {
       if (!user?.id) throw new Error("Sessão expirada.");
 
+      const { data: antes } = await (supabase as any)
+        .from("calendario_eventos")
+        .select("titulo, data_inicio, data_fim, hora_inicio, hora_fim, local, categoria, recorrencia_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      const novos = {
+        titulo: input.titulo.trim(),
+        descricao: input.descricao?.trim() || null,
+        data_inicio: input.data_inicio,
+        data_fim: input.data_fim,
+        dia_inteiro: input.dia_inteiro,
+        hora_inicio: input.dia_inteiro ? null : input.hora_inicio || null,
+        hora_fim: input.dia_inteiro ? null : input.hora_fim || null,
+        local: input.local?.trim() || null,
+        cor: input.cor,
+        categoria: input.categoria,
+        tags: input.tags ?? [],
+        visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
+      };
+
       const { error } = await (supabase as any)
         .from("calendario_eventos")
-        .update({
-          titulo: input.titulo.trim(),
-          descricao: input.descricao?.trim() || null,
-          data_inicio: input.data_inicio,
-          data_fim: input.data_fim,
-          dia_inteiro: input.dia_inteiro,
-          hora_inicio: input.dia_inteiro ? null : input.hora_inicio || null,
-          hora_fim: input.dia_inteiro ? null : input.hora_fim || null,
-          local: input.local?.trim() || null,
-          cor: input.cor,
-          categoria: input.categoria,
-          visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
-        })
+        .update(novos)
         .eq("id", id);
       if (error) throw error;
 
@@ -272,6 +281,28 @@ export function useCalendarioEventosMutations() {
       if (delErr) throw delErr;
 
       await salvarParticipantesELembrete([id], input, user.id);
+
+      if (antes) {
+        const campos = ["titulo", "data_inicio", "data_fim", "hora_inicio", "hora_fim", "local", "categoria"] as const;
+        const alteracoes = campos
+          .map((campo) => ({
+            campo,
+            de: antes[campo] == null ? null : String(antes[campo]),
+            para: (novos as any)[campo] == null ? null : String((novos as any)[campo]),
+          }))
+          .filter((a) => a.de !== a.para);
+
+        if (alteracoes.length) {
+          await registrarHistorico([{
+            evento_id: id,
+            recorrencia_id: antes.recorrencia_id ?? null,
+            user_id: user.id,
+            acao: "editado",
+            escopo: "unico",
+            alteracoes,
+          }]);
+        }
+      }
     },
     onSuccess: invalidate,
   });
