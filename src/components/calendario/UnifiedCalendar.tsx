@@ -443,3 +443,73 @@ function OverflowPopover({
     </Popover>
   );
 }
+
+/** Visão "Agenda": lista cronológica dos dias com eventos do período. */
+function AgendaList({
+  events, days, darkBg, colorStrategy, onSelectEvent,
+}: {
+  events: CalendarEvent[];
+  days: Date[];
+  darkBg: boolean;
+  colorStrategy: ColorStrategy;
+  onSelectEvent: (e: CalendarEvent) => void;
+}) {
+  const porDia = useMemo(() => {
+    return days
+      .map((day) => {
+        const key = getDateKey(day);
+        const doDia = events.filter((ev) => {
+          const ini = ev.data_inicio ? getDateKey(parseLocalDate(ev.data_inicio)!) : null;
+          const fim = ev.data_prazo ? getDateKey(parseLocalDate(ev.data_prazo)!) : null;
+          if (ini && fim) return key >= ini && key <= fim;
+          return key === (ini ?? fim);
+        });
+        return { day, key, eventos: doDia };
+      })
+      .filter((d) => d.eventos.length > 0);
+  }, [events, days]);
+
+  if (porDia.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <CalendarDays className={cn("h-8 w-8 mb-2", darkBg ? "text-white/30" : "text-muted-foreground/40")} />
+        <p className={cn("text-sm", darkBg ? "text-white/60" : "text-muted-foreground")}>
+          Nenhum compromisso neste período
+        </p>
+      </div>
+    );
+  }
+
+  const hoje = getDateKey(getToday());
+
+  return (
+    <div className={cn("border rounded-lg divide-y", darkBg ? "border-white/10 divide-white/10" : "border-border divide-border")}>
+      {porDia.map(({ day, key, eventos }) => (
+        <div key={key} className="flex gap-4 p-3">
+          <div className="w-20 shrink-0 text-right">
+            <div className={cn(
+              "text-2xl font-semibold leading-none tabular-nums",
+              key === hoje ? "text-primary" : darkBg ? "text-white" : "text-foreground",
+            )}>
+              {format(day, "dd")}
+            </div>
+            <div className={cn("text-[11px] mt-1 capitalize", darkBg ? "text-white/50" : "text-muted-foreground")}>
+              {format(day, "EEE, MMM", { locale: ptBR })}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            {eventos.map((ev) => (
+              <EventChip
+                key={`${key}-${ev.id}`}
+                event={ev}
+                darkBg={darkBg}
+                colorStrategy={colorStrategy}
+                onClick={() => onSelectEvent(ev)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
