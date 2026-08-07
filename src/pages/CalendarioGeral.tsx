@@ -87,6 +87,7 @@ export default function CalendarioGeral() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickData, setQuickData] = useState<string | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoTodos, setHistoricoTodos] = useState(false);
   const [notificacoesOpen, setNotificacoesOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [dataInicial, setDataInicial] = useState<string | null>(null);
