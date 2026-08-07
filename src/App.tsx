@@ -324,6 +324,7 @@ const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetoHome = lazyWithRetry(() => import("./pages/ProjetoHome"));
 const MinhasTarefas = lazyWithRetry(() => import("./pages/MinhasTarefas"));
+const CalendarioGeral = lazyWithRetry(() => import("./pages/CalendarioGeral"));
 const MeusModelosProjeto = lazyWithRetry(() => import("./pages/projetos/MeusModelos"));
 const MeusModelosTarefa = lazyWithRetry(() => import("./pages/tarefas/MeusModelosTarefa"));
 const DiagnosticoTarefasDataConclusao = lazyWithRetry(() => import("./pages/admin/DiagnosticoTarefasDataConclusao"));
@@ -953,6 +954,7 @@ function AppContent() {
               <Route path="/dashboard/central/amostras" element={<ScreenRoute screenCode="admin"><CentralAmostras /></ScreenRoute>} />
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
             <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/calendario" element={<ScreenProtectedRoute screenCode="calendario_geral"><CalendarioGeral /></ScreenProtectedRoute>} />
             <Route path="/dashboard/projetos/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosProjeto /></ModuleRoute>} />
             <Route path="/dashboard/tarefas/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosTarefa /></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
