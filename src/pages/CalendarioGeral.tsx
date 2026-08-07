@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2 } from "lucide-react";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2, History, Bell, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
@@ -26,6 +26,9 @@ import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { EventoCalendarioDialog } from "@/components/calendario/EventoCalendarioDialog";
 import { CalendarioBoasVindasDialog } from "@/components/calendario/CalendarioBoasVindasDialog";
 import { CalendarioExportDialog } from "@/components/calendario/CalendarioExportDialog";
+import { QuickAddEventDialog } from "@/components/calendario/QuickAddEventDialog";
+import { CalendarioHistoricoDialog } from "@/components/calendario/CalendarioHistoricoDialog";
+import { CalendarioNotificacoesDialog } from "@/components/calendario/CalendarioNotificacoesDialog";
 import {
   CalendarVisibilityScope, applyVisibilityScope,
   CALENDAR_SCOPE_STORAGE_KEY, type CalendarScope,
@@ -33,6 +36,7 @@ import {
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
   CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
+  normalizeCalendarFilters, countCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +45,9 @@ import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import {
   useCalendarioEventos, useCalendarioEventosMutations, type CalendarioEvento,
 } from "@/hooks/useCalendarioEventos";
+import {
+  useCalendarioPreferencias, useCalendarioPreferenciasMutations,
+} from "@/hooks/useCalendarioPreferencias";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
