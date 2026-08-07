@@ -116,6 +116,7 @@ export function useCalendarioEventos() {
         criado_por: e.criado_por,
         recorrencia_id: e.recorrencia_id ?? null,
         participantes: (e.calendario_evento_participantes || []).map((p: any) => p.user_id),
+        tags: Array.isArray(e.tags) ? e.tags : [],
       }));
     },
   });
