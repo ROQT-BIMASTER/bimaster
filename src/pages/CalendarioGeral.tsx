@@ -408,7 +408,7 @@ export default function CalendarioGeral() {
       <CalendarioNotificacoesDialog
         open={notificacoesOpen}
         onOpenChange={setNotificacoesOpen}
-        events={events}
+        eventos={events}
       />
 
       <CalendarioHistoricoDialog
