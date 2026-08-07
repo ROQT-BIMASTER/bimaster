@@ -955,6 +955,9 @@ function AppContent() {
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
             <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/calendario" element={<ScreenProtectedRoute screenCode="calendario_geral"><CalendarioGeral /></ScreenProtectedRoute>} />
+            {/* Rotas legadas/alternativas do Calendário Geral */}
+            <Route path="/dashboard/projetos/calendario" element={<Navigate to="/dashboard/calendario" replace />} />
+            <Route path="/dashboard/calendario/*" element={<Navigate to="/dashboard/calendario" replace />} />
             <Route path="/dashboard/projetos/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosProjeto /></ModuleRoute>} />
             <Route path="/dashboard/tarefas/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosTarefa /></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
