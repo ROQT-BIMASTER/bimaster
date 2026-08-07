@@ -28,6 +28,7 @@ export const DEFAULT_SCREENS: ReadonlySet<string> = new Set([
   "projetos_home",
   "projetos_dashboard",
   "projetos_minhas_tarefas",
+  "calendario_geral",
   "projetos_equipe",
   "projetos_aprovacoes",
   "projetos_aprovacoes_central",

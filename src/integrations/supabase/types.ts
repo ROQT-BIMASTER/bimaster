@@ -4295,6 +4295,98 @@ export type Database = {
           },
         ]
       }
+      calendario_evento_participantes: {
+        Row: {
+          created_at: string
+          evento_id: string
+          id: string
+          papel: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evento_id: string
+          id?: string
+          papel?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evento_id?: string
+          id?: string
+          papel?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendario_evento_participantes_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "calendario_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendario_eventos: {
+        Row: {
+          categoria: string
+          cor: string
+          created_at: string
+          criado_por: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          dia_inteiro: boolean
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          local: string | null
+          ocorrencia_data: string | null
+          recorrencia_id: string | null
+          titulo: string
+          updated_at: string
+          visibilidade: string
+        }
+        Insert: {
+          categoria?: string
+          cor?: string
+          created_at?: string
+          criado_por: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          dia_inteiro?: boolean
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          ocorrencia_data?: string | null
+          recorrencia_id?: string | null
+          titulo: string
+          updated_at?: string
+          visibilidade?: string
+        }
+        Update: {
+          categoria?: string
+          cor?: string
+          created_at?: string
+          criado_por?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          dia_inteiro?: boolean
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          ocorrencia_data?: string | null
+          recorrencia_id?: string | null
+          titulo?: string
+          updated_at?: string
+          visibilidade?: string
+        }
+        Relationships: []
+      }
       calendario_lembretes: {
         Row: {
           antecedencia_minutos: number
@@ -4302,9 +4394,10 @@ export type Database = {
           canal_email: boolean
           canal_notificacao: boolean
           created_at: string
+          evento_id: string | null
           id: string
           projeto_id: string | null
-          tarefa_id: string
+          tarefa_id: string | null
           ultimo_envio_para: string | null
           updated_at: string
           user_id: string
@@ -4315,9 +4408,10 @@ export type Database = {
           canal_email?: boolean
           canal_notificacao?: boolean
           created_at?: string
+          evento_id?: string | null
           id?: string
           projeto_id?: string | null
-          tarefa_id: string
+          tarefa_id?: string | null
           ultimo_envio_para?: string | null
           updated_at?: string
           user_id: string
@@ -4328,14 +4422,22 @@ export type Database = {
           canal_email?: boolean
           canal_notificacao?: boolean
           created_at?: string
+          evento_id?: string | null
           id?: string
           projeto_id?: string | null
-          tarefa_id?: string
+          tarefa_id?: string | null
           ultimo_envio_para?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "calendario_lembretes_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "calendario_eventos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calendario_lembretes_tarefa_id_fkey"
             columns: ["tarefa_id"]

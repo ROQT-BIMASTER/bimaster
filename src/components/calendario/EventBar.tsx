@@ -24,10 +24,12 @@ export function EventBar({
   event, startCol, endCol, lane, continuesLeft, continuesRight, darkBg, colorStrategy = "estagio", onClick,
 }: Props) {
   const stageClass = ESTAGIO_PILL_COLORS[event.estagio || ""] || "bg-muted-foreground/50";
-  const projColor = event.projeto?.cor;
+  const isEvento = event.tipo === "evento";
+  const projColor = event.cor ?? event.projeto?.cor;
+  const useColor = isEvento || colorStrategy === "projeto";
   const cfg = STATUS_ICON_CONFIG[event.status] || STATUS_ICON_CONFIG.pendente;
-  const isCompleted = cfg.completed;
-  const isLate = !isCompleted && event.data_prazo
+  const isCompleted = !isEvento && cfg.completed;
+  const isLate = !isEvento && !isCompleted && event.data_prazo
     ? new Date(event.data_prazo + "T23:59:59") < new Date()
     : false;
 
@@ -48,15 +50,15 @@ export function EventBar({
         borderBottomLeftRadius: continuesLeft ? 0 : 6,
         borderTopRightRadius: continuesRight ? 0 : 6,
         borderBottomRightRadius: continuesRight ? 0 : 6,
-        ...(colorStrategy === "projeto" && projColor
+        ...(useColor && projColor
           ? { backgroundColor: `${projColor}26` }
           : {}),
       }}
       className={cn(
         "relative flex items-center gap-1.5 px-2 text-left transition-all overflow-hidden",
         "shadow-sm hover:shadow-md hover:-translate-y-px",
-        colorStrategy === "estagio" && (darkBg ? "bg-white/[0.08] hover:bg-white/[0.14] text-white" : "bg-card hover:bg-accent text-foreground"),
-        colorStrategy === "projeto" && (darkBg ? "text-white" : "text-foreground"),
+        !useColor && (darkBg ? "bg-white/[0.08] hover:bg-white/[0.14] text-white" : "bg-card hover:bg-accent text-foreground"),
+        useColor && (darkBg ? "text-white" : "text-foreground"),
         isCompleted && "opacity-60",
       )}
     >
@@ -67,7 +69,7 @@ export function EventBar({
         style={{
           borderTopLeftRadius: continuesLeft ? 0 : 6,
           borderBottomLeftRadius: continuesLeft ? 0 : 6,
-          ...(colorStrategy === "projeto" && projColor ? { backgroundColor: projColor } : {}),
+          ...(useColor && projColor ? { backgroundColor: projColor } : {}),
         }}
       />
       {isCompleted && <CheckCircle2 className={cn("h-3 w-3 shrink-0 ml-0.5", cfg.className)} />}

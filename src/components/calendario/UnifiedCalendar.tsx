@@ -18,7 +18,7 @@ import type { CalendarEvent, ColorStrategy } from "./types";
 import { ESTAGIO_LABELS, ESTAGIO_PILL_COLORS } from "@/lib/projetoConstants";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-type ViewMode = "month" | "week";
+type ViewMode = "month" | "week" | "agenda";
 
 interface Props {
   events: CalendarEvent[];
@@ -60,9 +60,9 @@ export function UnifiedCalendar({
   // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
   useEffect(() => {
     if (!onPeriodChange) return;
-    const inicio = viewMode === "month" ? startOfMonth(currentDate) : startOfWeek(currentDate, { weekStartsOn: 1 });
-    const fim = viewMode === "month" ? endOfMonth(currentDate) : endOfWeek(currentDate, { weekStartsOn: 1 });
-    const label = viewMode === "month"
+    const inicio = viewMode === "week" ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate);
+    const fim = viewMode === "week" ? endOfWeek(currentDate, { weekStartsOn: 1 }) : endOfMonth(currentDate);
+    const label = viewMode !== "week"
       ? format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR })
       : `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`;
     onPeriodChange({ inicio, fim, viewMode, label });
@@ -96,7 +96,7 @@ export function UnifiedCalendar({
   [events]);
 
   const days = useMemo(() => {
-    if (viewMode === "month") {
+    if (viewMode !== "week") {
       const monthStart = startOfMonth(currentDate);
       const monthEnd = endOfMonth(currentDate);
       const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -141,7 +141,7 @@ export function UnifiedCalendar({
   const todayKey = useMemo(() => getDateKey(getToday()), []);
 
   const navigate = (dir: "prev" | "next") => {
-    if (viewMode === "month") {
+    if (viewMode !== "week") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
     } else {
       setCurrentDate(dir === "prev" ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
@@ -176,7 +176,7 @@ export function UnifiedCalendar({
           <Popover>
             <PopoverTrigger asChild>
               <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
-                {viewMode === "month"
+                {viewMode !== "week"
                   ? format(currentDate, "MMMM yyyy", { locale: ptBR })
                   : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
               </button>
@@ -232,12 +232,35 @@ export function UnifiedCalendar({
             >
               Semana
             </button>
+            <button
+              onClick={() => setViewMode("agenda")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "agenda"
+                  ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground")
+                  : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"),
+              )}
+            >
+              Agenda
+            </button>
           </div>
           {rightToolbarExtra}
         </div>
       </div>
 
+      {/* Agenda */}
+      {viewMode === "agenda" && (
+        <AgendaList
+          events={events}
+          days={days}
+          darkBg={darkBg}
+          colorStrategy={colorStrategy}
+          onSelectEvent={onSelectEvent}
+        />
+      )}
+
       {/* Grid */}
+      {viewMode !== "agenda" && (
       <div className={cn("border rounded-lg overflow-hidden", border)}>
         <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
@@ -357,9 +380,11 @@ export function UnifiedCalendar({
           );
         })}
       </div>
+      )}
 
       {/* Legend */}
-      {showLegend && (
+      {showLegend && viewMode !== "agenda" && (
+
         <div className={cn("flex flex-wrap gap-3 text-[10px]", txtMuted)}>
           {Object.entries(ESTAGIO_LABELS).map(([key, label]) => (
             <div key={key} className="flex items-center gap-1.5">
@@ -416,5 +441,75 @@ function OverflowPopover({
         ))}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Visão "Agenda": lista cronológica dos dias com eventos do período. */
+function AgendaList({
+  events, days, darkBg, colorStrategy, onSelectEvent,
+}: {
+  events: CalendarEvent[];
+  days: Date[];
+  darkBg: boolean;
+  colorStrategy: ColorStrategy;
+  onSelectEvent: (e: CalendarEvent) => void;
+}) {
+  const porDia = useMemo(() => {
+    return days
+      .map((day) => {
+        const key = getDateKey(day);
+        const doDia = events.filter((ev) => {
+          const ini = ev.data_inicio ? getDateKey(parseLocalDate(ev.data_inicio)!) : null;
+          const fim = ev.data_prazo ? getDateKey(parseLocalDate(ev.data_prazo)!) : null;
+          if (ini && fim) return key >= ini && key <= fim;
+          return key === (ini ?? fim);
+        });
+        return { day, key, eventos: doDia };
+      })
+      .filter((d) => d.eventos.length > 0);
+  }, [events, days]);
+
+  if (porDia.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <CalendarDays className={cn("h-8 w-8 mb-2", darkBg ? "text-white/30" : "text-muted-foreground/40")} />
+        <p className={cn("text-sm", darkBg ? "text-white/60" : "text-muted-foreground")}>
+          Nenhum compromisso neste período
+        </p>
+      </div>
+    );
+  }
+
+  const hoje = getDateKey(getToday());
+
+  return (
+    <div className={cn("border rounded-lg divide-y", darkBg ? "border-white/10 divide-white/10" : "border-border divide-border")}>
+      {porDia.map(({ day, key, eventos }) => (
+        <div key={key} className="flex gap-4 p-3">
+          <div className="w-20 shrink-0 text-right">
+            <div className={cn(
+              "text-2xl font-semibold leading-none tabular-nums",
+              key === hoje ? "text-primary" : darkBg ? "text-white" : "text-foreground",
+            )}>
+              {format(day, "dd")}
+            </div>
+            <div className={cn("text-[11px] mt-1 capitalize", darkBg ? "text-white/50" : "text-muted-foreground")}>
+              {format(day, "EEE, MMM", { locale: ptBR })}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            {eventos.map((ev) => (
+              <EventChip
+                key={`${key}-${ev.id}`}
+                event={ev}
+                darkBg={darkBg}
+                colorStrategy={colorStrategy}
+                onClick={() => onSelectEvent(ev)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
