@@ -230,10 +230,16 @@ export default function CalendarioGeral() {
                   Visão consolidada das tarefas de todos os projetos e dos seus compromissos.
                 </p>
               </div>
-              <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Novo evento
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setExportOpen(true)}>
+                  <Share2 className="h-4 w-4 mr-1.5" />
+                  Exportar / assinar
+                </Button>
+                <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Novo evento
+                </Button>
+              </div>
             </header>
 
             <div className="rounded-lg border border-border bg-card/70 backdrop-blur-sm p-3 sm:p-4 space-y-3">
@@ -248,6 +254,7 @@ export default function CalendarioGeral() {
                   Eventos
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
+                <CalendarVisibilityScope value={escopo} onChange={setEscopo} />
               </div>
 
               <UnifiedCalendar
@@ -255,6 +262,8 @@ export default function CalendarioGeral() {
                 onSelectEvent={setSelecionado}
                 colorStrategy="projeto"
                 onCreateAt={(dateKey) => { setEditando(null); setDataInicial(dateKey); setDialogOpen(true); }}
+                onMoveEvent={iniciarReagendamento}
+                canDragEvent={podeArrastar}
                 rightToolbarExtra={
                   <CalendarFiltersBar
                     filters={filters}
