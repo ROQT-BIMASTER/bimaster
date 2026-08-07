@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useNovidadesPublicadas, useNovidadesVistas, useMarcarNovidadesVistas } from "@/hooks/useNovidades";
+import { NOVIDADES_OPEN_EVENT } from "@/lib/novidades/abrirCentralNovidades";
 import { NovidadesDialog } from "./NovidadesDialog";
 import { NovidadesHistorico } from "./NovidadesHistorico";
 
@@ -30,6 +31,14 @@ export function NovidadesCenter() {
     if (!session || !permissionsReady || !vistasOk || dispensado) return;
     if (naoVistas.length > 0) setAutoOpen(true);
   }, [session, permissionsReady, vistasOk, naoVistas.length, dispensado]);
+
+  // Permite abrir a Central a partir de outras telas (ex.: boas-vindas do Calendário).
+  useEffect(() => {
+    const abrir = () => setHistoricoOpen(true);
+    window.addEventListener(NOVIDADES_OPEN_EVENT, abrir);
+    return () => window.removeEventListener(NOVIDADES_OPEN_EVENT, abrir);
+  }, []);
+
 
   const concluir = (ids: string[]) => {
     setDispensado(true);

@@ -4387,6 +4387,36 @@ export type Database = {
         }
         Relationships: []
       }
+      calendario_ics_tokens: {
+        Row: {
+          created_at: string
+          filtros: Json
+          id: string
+          last_used_at: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filtros?: Json
+          id?: string
+          last_used_at?: string | null
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filtros?: Json
+          id?: string
+          last_used_at?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendario_lembretes: {
         Row: {
           antecedencia_minutos: number

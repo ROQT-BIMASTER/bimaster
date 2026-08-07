@@ -39,6 +39,10 @@ interface Props {
   onPeriodChange?: (info: { inicio: Date; fim: Date; viewMode: ViewMode; label: string }) => void;
   /** Habilita criação de evento no dia clicado (recebe a data em formato Y-M-D). */
   onCreateAt?: (dateKey: string) => void;
+  /** Habilita arraste para reagendar. Recebe o evento e a nova data (Y-M-D). */
+  onMoveEvent?: (event: CalendarEvent, novaDataKey: string) => void;
+  /** Define quais eventos podem ser arrastados (default: todos, quando onMoveEvent existe). */
+  canDragEvent?: (event: CalendarEvent) => boolean;
 }
 
 export function UnifiedCalendar({
@@ -53,9 +57,39 @@ export function UnifiedCalendar({
   banner,
   onPeriodChange,
   onCreateAt,
+  onMoveEvent,
+  canDragEvent,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(() => getToday());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [arrastando, setArrastando] = useState<CalendarEvent | null>(null);
+  const [alvoDrop, setAlvoDrop] = useState<string | null>(null);
+
+  const podeArrastar = (ev: CalendarEvent) =>
+    !!onMoveEvent && (canDragEvent ? canDragEvent(ev) : true);
+
+  const dragHandlers = (ev: CalendarEvent) =>
+    podeArrastar(ev)
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent<HTMLButtonElement>) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", ev.id);
+            setArrastando(ev);
+          },
+          onDragEnd: () => { setArrastando(null); setAlvoDrop(null); },
+        }
+      : {};
+
+  const soltarNoDia = (dateKey: string) => {
+    const ev = arrastando;
+    setArrastando(null);
+    setAlvoDrop(null);
+    if (!ev || !onMoveEvent) return;
+    if (ev.data_inicio === dateKey) return;
+    onMoveEvent(ev, dateKey);
+  };
+
 
   // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
   useEffect(() => {
@@ -291,6 +325,14 @@ export function UnifiedCalendar({
                   <div
                     key={ci}
                     style={{ minHeight: cellMinH }}
+                    onDragOver={(e) => {
+                      if (!arrastando || !key) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (alvoDrop !== key) setAlvoDrop(key);
+                    }}
+                    onDragLeave={() => { if (alvoDrop === key) setAlvoDrop(null); }}
+                    onDrop={(e) => { if (!key) return; e.preventDefault(); soltarNoDia(key); }}
                     className={cn(
                       "border-b border-r p-1.5 transition-colors relative group/day",
                       border,
@@ -301,6 +343,7 @@ export function UnifiedCalendar({
                           : isWeekend
                             ? cellBgWeekend
                             : cellBg,
+                      arrastando && alvoDrop === key && "ring-2 ring-inset ring-primary/60 bg-primary/5",
                     )}
                   >
                     <div className="flex items-start justify-between mb-1">
@@ -339,6 +382,7 @@ export function UnifiedCalendar({
                           compact={compact}
                           colorStrategy={colorStrategy}
                           onClick={() => onSelectEvent(ev)}
+                          {...dragHandlers(ev)}
                         />
                       ))}
                       {dayEvents.length > maxVisible && (
@@ -370,6 +414,7 @@ export function UnifiedCalendar({
                           darkBg={darkBg}
                           colorStrategy={colorStrategy}
                           onClick={() => onSelectEvent(b.event)}
+                          {...dragHandlers(b.event)}
                         />
                       </div>
                     ))}

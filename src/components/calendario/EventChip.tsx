@@ -11,6 +11,10 @@ interface Props {
   compact?: boolean;
   colorStrategy?: ColorStrategy;
   onClick: () => void;
+  /** Habilita arraste para reagendar. */
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -18,7 +22,10 @@ interface Props {
  * Mostra: cor do estágio/projeto, ícone de status, título truncado, indicador
  * de atraso e avatar do responsável (com tooltip).
  */
-export function EventChip({ event, darkBg = false, compact = false, colorStrategy = "estagio", onClick }: Props) {
+export function EventChip({
+  event, darkBg = false, compact = false, colorStrategy = "estagio", onClick,
+  draggable = false, onDragStart, onDragEnd,
+}: Props) {
   const isEvento = event.tipo === "evento";
   const cfg = STATUS_ICON_CONFIG[event.status] || STATUS_ICON_CONFIG.pendente;
   const StatusIcon = cfg.completed ? CheckCircle2 : Circle;
@@ -35,10 +42,14 @@ export function EventChip({ event, darkBg = false, compact = false, colorStrateg
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       title={`${event.titulo}${event.responsavel ? ` — ${event.responsavel.nome}` : ""}${event.projeto ? ` · ${event.projeto.nome}` : ""}`}
       className={cn(
         "group relative flex items-center gap-1.5 w-full text-left rounded-md transition-all",
         "border border-transparent",
+        draggable && "cursor-grab active:cursor-grabbing",
         compact ? "px-1 py-0.5" : "px-1.5 py-1",
         darkBg
           ? "hover:bg-white/[0.08] hover:border-white/10 hover:shadow-md"

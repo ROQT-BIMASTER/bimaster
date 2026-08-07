@@ -15,6 +15,10 @@ interface Props {
   darkBg?: boolean;
   colorStrategy?: ColorStrategy;
   onClick: () => void;
+  /** Habilita arraste para reagendar. */
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLButtonElement>) => void;
 }
 
 const LANE_HEIGHT = 22;
@@ -22,6 +26,7 @@ const LANE_GAP = 2;
 
 export function EventBar({
   event, startCol, endCol, lane, continuesLeft, continuesRight, darkBg, colorStrategy = "estagio", onClick,
+  draggable = false, onDragStart, onDragEnd,
 }: Props) {
   const stageClass = ESTAGIO_PILL_COLORS[event.estagio || ""] || "bg-muted-foreground/50";
   const isEvento = event.tipo === "evento";
@@ -39,6 +44,9 @@ export function EventBar({
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       title={`${event.titulo}${event.responsavel ? ` — ${event.responsavel.nome}` : ""}${event.projeto ? ` · ${event.projeto.nome}` : ""}`}
       style={{
         position: "absolute",
@@ -57,6 +65,7 @@ export function EventBar({
       className={cn(
         "relative flex items-center gap-1.5 px-2 text-left transition-all overflow-hidden",
         "shadow-sm hover:shadow-md hover:-translate-y-px",
+        draggable && "cursor-grab active:cursor-grabbing",
         !useColor && (darkBg ? "bg-white/[0.08] hover:bg-white/[0.14] text-white" : "bg-card hover:bg-accent text-foreground"),
         useColor && (darkBg ? "text-white" : "text-foreground"),
         isCompleted && "opacity-60",

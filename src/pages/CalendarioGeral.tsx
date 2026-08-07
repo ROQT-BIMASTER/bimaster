@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
@@ -17,28 +17,42 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Home, Plus, MapPin, Clock, Repeat, Pencil, Trash2, ExternalLink, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
 import { EventoCalendarioDialog } from "@/components/calendario/EventoCalendarioDialog";
+import { CalendarioBoasVindasDialog } from "@/components/calendario/CalendarioBoasVindasDialog";
+import { CalendarioExportDialog } from "@/components/calendario/CalendarioExportDialog";
+import {
+  CalendarVisibilityScope, applyVisibilityScope,
+  CALENDAR_SCOPE_STORAGE_KEY, type CalendarScope,
+} from "@/components/calendario/CalendarVisibilityScope";
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
   CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEquipesProjetos } from "@/hooks/useEquipesProjetos";
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import {
   useCalendarioEventos, useCalendarioEventosMutations, type CalendarioEvento,
 } from "@/hooks/useCalendarioEventos";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type Camada = "tarefas" | "eventos";
+
+interface Reagendamento {
+  evento: CalendarioEvento;
+  novaData: string;
+  deltaDias: number;
+}
+
 
 /**
  * Calendário Geral: consolida as tarefas de todos os projetos do usuário
