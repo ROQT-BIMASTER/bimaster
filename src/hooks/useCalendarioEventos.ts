@@ -200,6 +200,7 @@ export function useCalendarioEventosMutations() {
         cor: input.cor,
         categoria: input.categoria,
         visibilidade: input.participantes.length ? "compartilhado" : "pessoal",
+        tags: input.tags ?? [],
         criado_por: user.id,
       };
 
