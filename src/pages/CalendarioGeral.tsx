@@ -35,7 +35,7 @@ import {
 } from "@/components/calendario/CalendarVisibilityScope";
 import { minaTarefaToEvent, eventoToCalendarEvent, type CalendarEvent } from "@/components/calendario/types";
 import {
-  CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters,
+  CalendarFiltersBar, EMPTY_CALENDAR_FILTERS, applyCalendarFilters, applyCalendarBusca,
   normalizeCalendarFilters, countCalendarFilters,
   type CalendarFiltersState,
 } from "@/components/calendario/CalendarFiltersBar";
