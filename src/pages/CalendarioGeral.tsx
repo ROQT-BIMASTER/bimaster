@@ -369,6 +369,23 @@ export default function CalendarioGeral() {
 
       <CalendarioBoasVindasDialog />
 
+      <QuickAddEventDialog
+        open={quickOpen}
+        onOpenChange={setQuickOpen}
+        data={quickData}
+        onMaisOpcoes={(d) => { setEditando(null); setDataInicial(d); setDialogOpen(true); }}
+      />
+
+      <CalendarioNotificacoesDialog open={notificacoesOpen} onOpenChange={setNotificacoesOpen} />
+
+      <CalendarioHistoricoDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        eventoId={eventoSelecionado?.id}
+        recorrenciaId={eventoSelecionado?.recorrencia_id}
+        titulo={eventoSelecionado?.titulo}
+      />
+
       <CalendarioExportDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
