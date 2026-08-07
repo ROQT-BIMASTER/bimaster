@@ -418,10 +418,11 @@ export default function CalendarioGeral() {
 
       <CalendarioHistoricoDialog
         open={historicoOpen}
-        onOpenChange={setHistoricoOpen}
-        eventoId={eventoSelecionado?.id}
-        recorrenciaId={eventoSelecionado?.recorrencia_id}
-        titulo={eventoSelecionado?.titulo}
+        onOpenChange={(v) => { setHistoricoOpen(v); if (!v) setHistoricoTodos(false); }}
+        eventoId={historicoTodos ? null : eventoSelecionado?.id}
+        recorrenciaId={historicoTodos ? null : eventoSelecionado?.recorrencia_id}
+        titulo={historicoTodos ? undefined : eventoSelecionado?.titulo}
+        todos={historicoTodos}
       />
 
       <CalendarioExportDialog
