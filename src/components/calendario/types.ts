@@ -30,6 +30,8 @@ export interface CalendarEvent {
   /** Cor explícita (eventos avulsos). Prevalece sobre a cor do projeto. */
   cor?: string | null;
   categoria?: string | null;
+  /** Marcadores livres (eventos avulsos). */
+  tags?: string[];
 }
 
 import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
