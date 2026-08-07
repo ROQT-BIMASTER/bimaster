@@ -290,12 +290,16 @@ export default function CalendarioGeral() {
                   Visão consolidada das tarefas de todos os projetos e dos seus compromissos.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => setNotificacoesOpen(true)}>
+                  <Bell className="h-4 w-4 mr-1.5" />
+                  Lembretes
+                </Button>
                 <Button variant="outline" onClick={() => setExportOpen(true)}>
                   <Share2 className="h-4 w-4 mr-1.5" />
                   Exportar / assinar
                 </Button>
-                <Button onClick={() => { setEditando(null); setDataInicial(null); setDialogOpen(true); }}>
+                <Button onClick={() => { setQuickData(null); setQuickOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1.5" />
                   Novo evento
                 </Button>
@@ -315,13 +319,19 @@ export default function CalendarioGeral() {
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
                 <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
+                {countCalendarFilters(filters) > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Tag className="h-3.5 w-3.5" />
+                    {countCalendarFilters(filters)} filtro(s) ativo(s)
+                  </span>
+                )}
               </div>
 
               <UnifiedCalendar
                 events={events}
                 onSelectEvent={setSelecionado}
                 colorStrategy="projeto"
-                onCreateAt={(dateKey) => { setEditando(null); setDataInicial(dateKey); setDialogOpen(true); }}
+                onCreateAt={(dateKey) => { setQuickData(dateKey); setQuickOpen(true); }}
                 onMoveEvent={iniciarReagendamento}
                 canDragEvent={podeArrastar}
                 rightToolbarExtra={
@@ -331,6 +341,20 @@ export default function CalendarioGeral() {
                     equipes={equipes}
                     responsaveis={responsaveis}
                     projetos={projetos}
+                    statusDisponiveis={statusDisponiveis}
+                    categorias={categoriasDisponiveis}
+                    tags={tagsDisponiveis}
+                    footer={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full h-7 text-xs"
+                        onClick={salvarFiltros}
+                        disabled={salvarPrefs.isPending}
+                      >
+                        {salvarPrefs.isPending ? "Salvando..." : "Salvar filtros como padrão"}
+                      </Button>
+                    }
                   />
                 }
               />
