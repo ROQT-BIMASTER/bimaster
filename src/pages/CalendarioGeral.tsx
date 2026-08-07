@@ -283,6 +283,46 @@ export default function CalendarioGeral() {
         </main>
       </div>
 
+      <CalendarioBoasVindasDialog />
+
+      <CalendarioExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        events={events}
+        equipes={equipes}
+        responsaveis={responsaveis}
+      />
+
+      <AlertDialog open={!!reagendamento} onOpenChange={(v) => !v && setReagendamento(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reagendar evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              {reagendamento && (
+                <>
+                  Mover <strong>{reagendamento.evento.titulo}</strong> para{" "}
+                  {format(parseLocalDate(reagendamento.novaData)!, "dd/MM/yyyy", { locale: ptBR })}
+                  {reagendamento.evento.recorrencia_id
+                    ? ". Este evento faz parte de uma série recorrente."
+                    : "."}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {reagendamento?.evento.recorrencia_id && (
+              <Button variant="outline" onClick={() => confirmarReagendamento(true)}>
+                Mover a série
+              </Button>
+            )}
+            <AlertDialogAction onClick={() => confirmarReagendamento(false)}>
+              Mover só esta ocorrência
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EventoCalendarioDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
