@@ -380,9 +380,11 @@ export function UnifiedCalendar({
           );
         })}
       </div>
+      )}
 
       {/* Legend */}
-      {showLegend && (
+      {showLegend && viewMode !== "agenda" && (
+
         <div className={cn("flex flex-wrap gap-3 text-[10px]", txtMuted)}>
           {Object.entries(ESTAGIO_LABELS).map(([key, label]) => (
             <div key={key} className="flex items-center gap-1.5">
