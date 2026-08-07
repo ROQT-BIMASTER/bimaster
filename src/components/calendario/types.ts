@@ -70,7 +70,29 @@ export function minaTarefaToEvent(t: MinaTarefa): CalendarEvent {
     projeto: { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor },
     secao_nome: t.secao_nome,
     origem: "minhas-tarefas",
+    tipo: "tarefa",
   };
 }
+
+/** Converte um evento avulso do Calendário Geral no modelo unificado. */
+export function eventoToCalendarEvent(e: CalendarioEvento): CalendarEvent {
+  return {
+    id: e.id,
+    titulo: e.titulo,
+    status: "evento",
+    data_inicio: e.data_inicio,
+    data_prazo: e.data_fim,
+    descricao: e.descricao,
+    hora_inicio: e.dia_inteiro ? null : (e.hora_inicio?.slice(0, 5) ?? null),
+    hora_fim: e.dia_inteiro ? null : (e.hora_fim?.slice(0, 5) ?? null),
+    local: e.local,
+    cor: e.cor,
+    categoria: e.categoria,
+    recorrencia_id: e.recorrencia_id,
+    origem: "calendario",
+    tipo: "evento",
+  };
+}
+
 
 export type ColorStrategy = "estagio" | "projeto";
