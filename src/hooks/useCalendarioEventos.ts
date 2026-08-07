@@ -19,6 +19,7 @@ export interface CalendarioEvento {
   criado_por: string;
   recorrencia_id: string | null;
   participantes: string[];
+  tags: string[];
 }
 
 export interface EventoInput {
@@ -33,6 +34,7 @@ export interface EventoInput {
   cor: string;
   categoria: string;
   participantes: string[];
+  tags?: string[];
   lembrete?: {
     ativo: boolean;
     antecedenciaMinutos: number;
