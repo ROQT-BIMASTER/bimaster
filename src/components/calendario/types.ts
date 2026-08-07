@@ -90,6 +90,7 @@ export function eventoToCalendarEvent(e: CalendarioEvento): CalendarEvent {
     local: e.local,
     cor: e.cor,
     categoria: e.categoria,
+    tags: e.tags ?? [],
     recorrencia_id: e.recorrencia_id,
     origem: "calendario",
     tipo: "evento",
