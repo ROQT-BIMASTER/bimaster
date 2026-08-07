@@ -339,7 +339,9 @@ export function useCalendarioEventosMutations() {
         return fmt(new Date(y, m - 1, d + deltaDias));
       };
 
-      for (const row of (data || []) as Array<{ id: string; data_inicio: string; data_fim: string }>) {
+      const entradas: Parameters<typeof registrarHistorico>[0] = [];
+
+      for (const row of (data || []) as Array<{ id: string; data_inicio: string; data_fim: string; recorrencia_id: string | null }>) {
         const novoInicio = shift(row.data_inicio);
         const novoFim = shift(row.data_fim || row.data_inicio);
         const { error: upErr } = await (supabase as any)
@@ -351,7 +353,23 @@ export function useCalendarioEventosMutations() {
           })
           .eq("id", row.id);
         if (upErr) throw upErr;
+
+        if (user?.id) {
+          entradas.push({
+            evento_id: row.id,
+            recorrencia_id: row.recorrencia_id ?? null,
+            user_id: user.id,
+            acao: "reagendado",
+            escopo: serie ? "serie" : "unico",
+            alteracoes: [
+              { campo: "data_inicio", de: row.data_inicio, para: novoInicio },
+              { campo: "data_fim", de: row.data_fim || row.data_inicio, para: novoFim },
+            ],
+          });
+        }
       }
+
+      await registrarHistorico(entradas);
     },
     onSuccess: invalidate,
   });
