@@ -322,10 +322,35 @@ export default function CalendarioGeral() {
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
                 <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar por título, descrição ou local"
+                    aria-label="Buscar eventos"
+                    className="h-8 pl-8 pr-8 text-xs"
+                  />
+                  {busca && (
+                    <button
+                      type="button"
+                      aria-label="Limpar busca"
+                      onClick={() => setBusca("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 {countCalendarFilters(filters) > 0 && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Tag className="h-3.5 w-3.5" />
                     {countCalendarFilters(filters)} filtro(s) ativo(s)
+                  </span>
+                )}
+                {busca && (
+                  <span className="text-xs text-muted-foreground">
+                    {events.length} resultado(s)
                   </span>
                 )}
               </div>
