@@ -79,6 +79,7 @@ export default function CalendarioGeral() {
   const { salvar: salvarPrefs } = useCalendarioPreferenciasMutations();
 
   const [filters, setFilters] = useState<CalendarFiltersState>(EMPTY_CALENDAR_FILTERS);
+  const [busca, setBusca] = useState("");
   const [filtrosRestaurados, setFiltrosRestaurados] = useState(false);
   const [camadas, setCamadas] = useState<Camada[]>(["tarefas", "eventos"]);
   const [dialogOpen, setDialogOpen] = useState(false);
