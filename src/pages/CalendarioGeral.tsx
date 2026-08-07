@@ -254,7 +254,7 @@ export default function CalendarioGeral() {
                   Eventos
                   <Badge variant="secondary" className="ml-1">{eventos.length}</Badge>
                 </label>
-                <CalendarVisibilityScope value={escopo} onChange={setEscopo} />
+                <CalendarVisibilityScope scope={escopo} onChange={setEscopo} />
               </div>
 
               <UnifiedCalendar
