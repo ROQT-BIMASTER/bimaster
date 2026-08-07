@@ -59,7 +59,7 @@ Deno.serve(secureHandler(
     try {
       const { data: lembretes, error } = await supabase
         .from("calendario_lembretes")
-        .select("id, tarefa_id, projeto_id, user_id, antecedencia_minutos, canal_email, canal_notificacao, ultimo_envio_para")
+        .select("id, tarefa_id, evento_id, projeto_id, user_id, antecedencia_minutos, canal_email, canal_notificacao, ultimo_envio_para")
         .eq("ativo", true)
         .limit(500);
 
@@ -67,16 +67,49 @@ Deno.serve(secureHandler(
 
       for (const lem of lembretes ?? []) {
         try {
-          const { data: tarefa } = await supabase
-            .from("projeto_tarefas")
-            .select("id, titulo, status, data_inicio_planejada, data_prazo, projeto_id")
-            .eq("id", lem.tarefa_id)
-            .maybeSingle();
+          // Origem do lembrete: tarefa de projeto ou evento avulso do Calendário Geral.
+          let titulo: string;
+          let dataEvento: string | null;
+          let dataPrazo: string | null;
+          let actionUrl: string;
+          let contextoNome: string | undefined;
 
-          if (!tarefa) continue;
-          if (tarefa.status === "concluida") continue;
+          if (lem.evento_id) {
+            const { data: evento } = await supabase
+              .from("calendario_eventos")
+              .select("id, titulo, data_inicio, data_fim, local")
+              .eq("id", lem.evento_id)
+              .maybeSingle();
 
-          const dataEvento = tarefa.data_inicio_planejada || tarefa.data_prazo;
+            if (!evento) continue;
+            titulo = evento.titulo;
+            dataEvento = evento.data_inicio;
+            dataPrazo = evento.data_fim;
+            actionUrl = "/dashboard/calendario";
+            contextoNome = evento.local ?? undefined;
+          } else {
+            const { data: tarefa } = await supabase
+              .from("projeto_tarefas")
+              .select("id, titulo, status, data_inicio_planejada, data_prazo, projeto_id")
+              .eq("id", lem.tarefa_id)
+              .maybeSingle();
+
+            if (!tarefa) continue;
+            if (tarefa.status === "concluida") continue;
+
+            titulo = tarefa.titulo;
+            dataEvento = tarefa.data_inicio_planejada || tarefa.data_prazo;
+            dataPrazo = tarefa.data_prazo;
+            actionUrl = `/dashboard/projetos/${tarefa.projeto_id}?tarefa=${tarefa.id}`;
+
+            const { data: projeto } = await supabase
+              .from("projetos")
+              .select("nome")
+              .eq("id", tarefa.projeto_id)
+              .maybeSingle();
+            contextoNome = projeto?.nome ?? undefined;
+          }
+
           if (!dataEvento) continue;
           if (lem.ultimo_envio_para === dataEvento) continue;
 
@@ -93,19 +126,13 @@ Deno.serve(secureHandler(
             .eq("id", lem.user_id)
             .maybeSingle();
 
-          const { data: projeto } = await supabase
-            .from("projetos")
-            .select("nome")
-            .eq("id", tarefa.projeto_id)
-            .maybeSingle();
-
           if (lem.canal_notificacao) {
             await supabase.from("notifications").insert({
               user_id: lem.user_id,
               type: "calendario_lembrete",
-              title: `Lembrete: ${tarefa.titulo}`,
+              title: `Lembrete: ${titulo}`,
               message: `${rotuloAntecedencia(lem.antecedencia_minutos)} — ${formatarDataBR(dataEvento)}`,
-              action_url: `/dashboard/projetos/${tarefa.projeto_id}?tarefa=${tarefa.id}`,
+              action_url: actionUrl,
             });
           }
 
@@ -117,15 +144,16 @@ Deno.serve(secureHandler(
                 idempotencyKey: `cal-lembrete-${lem.id}-${dataEvento}`,
                 templateData: {
                   destinatarioNome: perfil.nome,
-                  eventoTitulo: tarefa.titulo,
-                  projetoNome: projeto?.nome,
-                  dataInicio: formatarDataBR(tarefa.data_inicio_planejada),
-                  dataPrazo: formatarDataBR(tarefa.data_prazo),
+                  eventoTitulo: titulo,
+                  projetoNome: contextoNome,
+                  dataInicio: formatarDataBR(dataEvento),
+                  dataPrazo: formatarDataBR(dataPrazo),
                   antecedencia: rotuloAntecedencia(lem.antecedencia_minutos),
                 },
               },
             });
           }
+
 
           await supabase
             .from("calendario_lembretes")
