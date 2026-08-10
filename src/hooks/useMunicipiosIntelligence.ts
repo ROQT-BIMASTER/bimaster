@@ -111,34 +111,28 @@ export function useMunicipiosIntelligence() {
   });
 
   // Top 10 opportunities query (Virgem municipalities sorted by PIB desc)
+  // Uses a dedicated lightweight RPC (no vendor/revenue aggregation) to avoid timeouts.
   const topOpportunitiesQuery = useQuery({
-    queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search, filters.vendedor],
-    queryFn: async (): Promise<MunicipioIntelligence[]> => {
-      const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
-        ...rpcParamsVend,
-        p_status: 'virgem',
-        p_sort_column: 'pib_per_capita',
-        p_sort_direction: 'desc',
+    queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search],
+    queryFn: async (): Promise<MunicipioOportunidade[]> => {
+      const { data, error } = await supabase.rpc('fn_get_municipios_oportunidades', {
+        p_uf: filters.uf || undefined,
+        p_regiao: filters.regiao || undefined,
+        p_microrregiao_id: filters.microrregiao_id || undefined,
+        p_search: filters.search || undefined,
         p_limit: 10,
-        p_offset: 0,
       } as any);
       if (error) throw error;
       return ((data as any[]) || []).map(r => ({
-        ...r,
+        municipio_id: Number(r.municipio_id),
+        municipio_nome: r.municipio_nome,
+        uf_sigla: r.uf_sigla,
+        regiao_nome: r.regiao_nome,
+        microrregiao_id: Number(r.microrregiao_id),
+        microrregiao_nome: r.microrregiao_nome,
         populacao: Number(r.populacao),
         pib_mil_reais: Number(r.pib_mil_reais),
         pib_per_capita: Number(r.pib_per_capita),
-        total_clientes: Number(r.total_clientes),
-        clientes_com_compra: Number(r.clientes_com_compra),
-        receita_total: Number(r.receita_total),
-        receita_maior: Number(r.receita_maior),
-        ticket_medio: Number(r.ticket_medio),
-        total_prospects: Number(r.total_prospects),
-        total_leads: Number(r.total_leads),
-        densidade_comercial: Number(r.densidade_comercial),
-        intensidade_comercial: Number(r.intensidade_comercial),
-        vendedores: Array.isArray(r.vendedores) ? r.vendedores : [],
-        total_count: Number(r.total_count),
       }));
     },
     staleTime: 60 * 1000,
