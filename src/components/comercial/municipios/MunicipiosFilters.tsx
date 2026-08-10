@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X, MapPin, Check, ChevronsUpDown } from "lucide-react";
+import { Search, X, MapPin, Check, ChevronsUpDown, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { REGIOES, REGIOES_UFS } from "@/lib/constants/regioes";
 import { MunicipiosFilters as FiltersType } from "@/hooks/useMunicipiosIntelligence";
@@ -28,6 +28,8 @@ export function MunicipiosFiltersBar({ filters, onFilterChange }: MunicipiosFilt
   const ufs = filters.regiao ? REGIOES_UFS[filters.regiao] || [] : Object.values(REGIOES_UFS).flat().sort();
   const [municipioOpen, setMunicipioOpen] = useState(false);
   const [municipioSearch, setMunicipioSearch] = useState("");
+  const [vendedorOpen, setVendedorOpen] = useState(false);
+  const [vendedorSearch, setVendedorSearch] = useState("");
 
   const { data: municipios } = useQuery({
     queryKey: ['municipios-list-filter', filters.uf, filters.regiao],
@@ -63,13 +65,34 @@ export function MunicipiosFiltersBar({ filters, onFilterChange }: MunicipiosFilt
 
   const selectedMunicipio = municipios?.find(m => m.nome === filters.search && filters.search);
 
-  const hasActiveFilters = filters.uf || filters.regiao || filters.status || filters.search;
+  const { data: vendedores } = useQuery({
+    queryKey: ['municipios-vendedores-filter', filters.uf, filters.regiao],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('fn_get_municipios_vendedores', {
+        p_uf: filters.uf || undefined,
+        p_regiao: filters.regiao || undefined,
+      } as any);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const filteredVendedores = useMemo(() => {
+    const list = vendedores || [];
+    if (!vendedorSearch) return list.slice(0, 100);
+    const term = vendedorSearch.toLowerCase();
+    return list.filter((v: any) => (v.vendedor || '').toLowerCase().includes(term)).slice(0, 100);
+  }, [vendedores, vendedorSearch]);
+
+  const hasActiveFilters = filters.uf || filters.regiao || filters.status || filters.search || filters.vendedor;
 
   const clearAll = () => {
     onFilterChange('uf', null);
     onFilterChange('regiao', null);
     onFilterChange('microrregiao_id', null);
     onFilterChange('status', null);
+    onFilterChange('vendedor', null);
     onFilterChange('search', '');
   };
 
@@ -196,6 +219,66 @@ export function MunicipiosFiltersBar({ filters, onFilterChange }: MunicipiosFilt
           ))}
         </SelectContent>
       </Select>
+
+      {/* Vendedor */}
+      <Popover open={vendedorOpen} onOpenChange={setVendedorOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={vendedorOpen}
+            className="w-[200px] justify-between font-normal"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">{filters.vendedor || "Vendedor"}</span>
+            </div>
+            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Buscar vendedor..."
+              value={vendedorSearch}
+              onValueChange={setVendedorSearch}
+            />
+            <CommandList>
+              <CommandEmpty>Nenhum vendedor encontrado.</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="__all__"
+                  onSelect={() => {
+                    onFilterChange('vendedor', null);
+                    setVendedorOpen(false);
+                    setVendedorSearch("");
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", !filters.vendedor ? "opacity-100" : "opacity-0")} />
+                  Todos os Vendedores
+                </CommandItem>
+                {filteredVendedores.map((v: any) => (
+                  <CommandItem
+                    key={v.vendedor}
+                    value={v.vendedor}
+                    onSelect={() => {
+                      onFilterChange('vendedor', v.vendedor);
+                      setVendedorOpen(false);
+                      setVendedorSearch("");
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", filters.vendedor === v.vendedor ? "opacity-100" : "opacity-0")} />
+                    <span className="truncate">{v.vendedor}</span>
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {v.municipios} mun.
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
 
       {hasActiveFilters && (
         <Button variant="ghost" size="sm" onClick={clearAll} className="h-9 gap-1">
