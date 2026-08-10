@@ -46,6 +46,7 @@ export function MunicipiosKPICards({ kpis, loading, vendedorFiltro }: Municipios
           />
         );
       })}
+      </div>
     </div>
   );
 }
