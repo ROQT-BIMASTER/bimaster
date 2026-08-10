@@ -119,6 +119,7 @@ const MunicipiosIntelligence = () => {
             loading={topOpportunitiesLoading}
             error={topOpportunitiesError}
             onRetry={refetchTopOpportunities}
+            vendedorFiltro={filters.vendedor}
           />
         </div>
 
