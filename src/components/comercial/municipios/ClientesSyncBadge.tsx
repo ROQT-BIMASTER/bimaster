@@ -33,23 +33,19 @@ export function ClientesSyncBadge() {
 
   const sync = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("sync-erp-clientes/sync", {
-        body: { mode: "incremental" },
-      });
+      const { error } = await supabase.rpc("solicitar_sync_rubysp" as any, { p_alvo: "clientes" });
       if (error) throw error;
-      if (data && (data as any).ok === false) {
-        throw new Error(((data as any).errors || []).join(" | ") || "Falha na sincronização");
-      }
-      return data;
+      return true;
     },
-    onSuccess: (d: any) => {
-      toast.success("Clientes sincronizados", {
-        description: `${d?.total_upserts ?? 0} registros atualizados do ERP`,
-      });
+    onSuccess: () => {
+      toast.success("Solicitado — o conector sincroniza em até 1 minuto");
       qc.invalidateQueries({ queryKey: ["clientes-sync-status"] });
       qc.invalidateQueries({ queryKey: ["municipios-kpis"] });
       qc.invalidateQueries({ queryKey: ["municipios-intelligence"] });
       qc.invalidateQueries({ queryKey: ["municipios-top-opportunities"] });
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["clientes-sync-status"] });
+      }, 90_000);
     },
     onError: (err: any) => {
       toast.error("Não foi possível sincronizar", { description: err?.message ?? "Erro desconhecido" });
