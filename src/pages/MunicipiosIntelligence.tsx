@@ -113,7 +113,10 @@ const MunicipiosIntelligence = () => {
 
         {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-2">
-          <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
+          <div className="flex flex-col gap-4">
+            <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
+            <SupervisorShareCard data={shareSupervisor} loading={shareSupervisorLoading} />
+          </div>
           <MunicipiosOpportunityCard
             data={topOpportunities}
             loading={topOpportunitiesLoading}
