@@ -60265,6 +60265,26 @@ export type Database = {
           total_municipios: number
         }[]
       }
+      fn_get_municipios_oportunidades: {
+        Args: {
+          p_limit?: number
+          p_microrregiao_id?: number
+          p_regiao?: string
+          p_search?: string
+          p_uf?: string
+        }
+        Returns: {
+          microrregiao_id: number
+          microrregiao_nome: string
+          municipio_id: number
+          municipio_nome: string
+          pib_mil_reais: number
+          pib_per_capita: number
+          populacao: number
+          regiao_nome: string
+          uf_sigla: string
+        }[]
+      }
       fn_get_municipios_vendedores: {
         Args: { p_regiao?: string; p_uf?: string }
         Returns: {

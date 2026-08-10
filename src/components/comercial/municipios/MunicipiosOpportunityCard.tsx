@@ -3,23 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, MapPin, Users, Crosshair } from "lucide-react";
-import { MunicipioIntelligence } from "@/hooks/useMunicipiosIntelligence";
+import { TrendingUp, MapPin, Users, Crosshair, AlertTriangle, RefreshCw } from "lucide-react";
+import { MunicipioOportunidade } from "@/hooks/useMunicipiosIntelligence";
 import { ModoFocoDialog } from "./ModoFocoDialog";
 
 interface MunicipiosOpportunityCardProps {
-  data: MunicipioIntelligence[];
+  data: MunicipioOportunidade[];
   loading: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
-export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportunityCardProps) {
+export function MunicipiosOpportunityCard({ data, loading, error, onRetry }: MunicipiosOpportunityCardProps) {
   const [modoFocoOpen, setModoFocoOpen] = useState(false);
 
-  // Top 10 municipalities with highest PIB where company has NO clients
-  const opportunities = data
-    .filter(d => d.total_clientes === 0 && d.pib_mil_reais > 0)
-    .sort((a, b) => b.pib_mil_reais - a.pib_mil_reais)
-    .slice(0, 10);
+  const opportunities = data;
 
   if (loading) {
     return (
@@ -33,6 +31,31 @@ export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportuni
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full" />
           ))}
+        </CardContent>
+      </Card>
+      <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+      <Card className="border-l-4 border-l-destructive">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            Top 10 Oportunidades
+          </CardTitle>
+          <CardDescription>
+            Não foi possível carregar as oportunidades. {error.message}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRetry?.()}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Tentar novamente
+          </Button>
         </CardContent>
       </Card>
       <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />

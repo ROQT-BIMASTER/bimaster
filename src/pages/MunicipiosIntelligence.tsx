@@ -25,6 +25,8 @@ const MunicipiosIntelligence = () => {
     dataLoading,
     topOpportunities,
     topOpportunitiesLoading,
+    topOpportunitiesError,
+    refetchTopOpportunities,
     fetchAllForExport,
     pageSize,
   } = useMunicipiosIntelligence();
@@ -112,7 +114,12 @@ const MunicipiosIntelligence = () => {
         {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-2">
           <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
-          <MunicipiosOpportunityCard data={topOpportunities} loading={topOpportunitiesLoading} />
+          <MunicipiosOpportunityCard
+            data={topOpportunities}
+            loading={topOpportunitiesLoading}
+            error={topOpportunitiesError}
+            onRetry={refetchTopOpportunities}
+          />
         </div>
 
         {/* Full Table */}
