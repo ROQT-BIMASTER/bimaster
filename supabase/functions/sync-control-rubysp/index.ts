@@ -9,7 +9,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 const PullSchema = z.object({ action: z.literal("pull") }).strict();
 const DoneSchema = z.object({
   action: z.literal("done"),
-  alvo: z.enum(["pedidos", "historico", "contas_pagar"]),
+  alvo: z.enum(["pedidos", "historico", "contas_pagar", "clientes"]),
   status: z.enum(["rodando", "ok", "erro"]),
 }).strict();
 const BodySchema = z.union([PullSchema, DoneSchema]);
