@@ -60244,50 +60244,28 @@ export type Database = {
           vendedores: Json
         }[]
       }
-      fn_get_municipios_kpis:
-        | {
-            Args: {
-              p_microrregiao_id?: number
-              p_regiao?: string
-              p_search?: string
-              p_status?: string
-              p_uf?: string
-            }
-            Returns: {
-              densidade_media: number
-              municipios_atendidos: number
-              municipios_lead: number
-              municipios_prospect: number
-              municipios_virgem: number
-              pib_total: number
-              populacao_total: number
-              receita_total_municipios: number
-              taxa_penetracao: number
-              total_municipios: number
-            }[]
-          }
-        | {
-            Args: {
-              p_microrregiao_id?: number
-              p_regiao?: string
-              p_search?: string
-              p_status?: string
-              p_uf?: string
-              p_vendedor?: string
-            }
-            Returns: {
-              densidade_media: number
-              municipios_atendidos: number
-              municipios_lead: number
-              municipios_prospect: number
-              municipios_virgem: number
-              pib_total: number
-              populacao_total: number
-              receita_total_municipios: number
-              taxa_penetracao: number
-              total_municipios: number
-            }[]
-          }
+      fn_get_municipios_kpis: {
+        Args: {
+          p_microrregiao_id?: number
+          p_regiao?: string
+          p_search?: string
+          p_status?: string
+          p_uf?: string
+          p_vendedor?: string
+        }
+        Returns: {
+          densidade_media: number
+          municipios_atendidos: number
+          municipios_lead: number
+          municipios_prospect: number
+          municipios_virgem: number
+          pib_total: number
+          populacao_total: number
+          receita_total_municipios: number
+          taxa_penetracao: number
+          total_municipios: number
+        }[]
+      }
       fn_get_municipios_oportunidades: {
         Args: {
           p_limit?: number
@@ -60315,6 +60293,21 @@ export type Database = {
           municipios: number
           ultima_compra: string
           vendedor: string
+        }[]
+      }
+      fn_get_share_supervisor: {
+        Args: {
+          p_microrregiao_id?: number
+          p_regiao?: string
+          p_search?: string
+          p_status?: string
+          p_uf?: string
+        }
+        Returns: {
+          supervisor: string
+          total_clientes: number
+          total_municipios: number
+          total_vendedores: number
         }[]
       }
       fn_get_whitespace_analysis: {
