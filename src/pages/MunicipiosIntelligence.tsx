@@ -28,6 +28,8 @@ const MunicipiosIntelligence = () => {
     topOpportunitiesLoading,
     topOpportunitiesError,
     refetchTopOpportunities,
+    shareSupervisor,
+    shareSupervisorLoading,
     fetchAllForExport,
     pageSize,
   } = useMunicipiosIntelligence();
