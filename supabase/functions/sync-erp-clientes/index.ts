@@ -198,12 +198,39 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
     let connection = null;
     let totalLidos = 0;
     let totalUpserts = 0;
+    let viewResolvida = viewName;
     const errors: string[] = [];
 
     try {
       connection = await connectToSqlServer();
+
+      // Valida se a view configurada existe; se não, descobre a de clientes disponível.
+      const exists = await executeSqlQuery(
+        connection,
+        `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_NAME = '${viewName.replace(/'/g, "''")}'`,
+      );
+      if (!Array.isArray(exists) || exists.length === 0) {
+        const candidates = await executeSqlQuery(
+          connection,
+          `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+            WHERE (TABLE_NAME LIKE 'Cust_%Cliente%' OR TABLE_NAME LIKE 'Cust_%Client%')
+            ORDER BY TABLE_NAME`,
+        );
+        const nomes = (candidates as Array<Record<string, unknown>>)
+          .map((c) => String(c.TABLE_NAME ?? "").trim())
+          .filter((n) => n.length > 0);
+        if (nomes.length === 0) {
+          throw new Error(
+            `Consulta de clientes não encontrada no ERP (procurado: "${viewName}"). ` +
+            `Nenhuma consulta compatível (Cust_*Cliente*) está disponível.`,
+          );
+        }
+        viewResolvida = nomes[0];
+      }
+
       const topClause = limit ? `TOP ${limit} ` : "";
-      const rows = await executeSqlQuery(connection, `SELECT ${topClause}* FROM [${viewName}]`);
+      const rows = await executeSqlQuery(connection, `SELECT ${topClause}* FROM [${viewResolvida}]`);
       totalLidos = rows.length;
 
       const normalized = rows
