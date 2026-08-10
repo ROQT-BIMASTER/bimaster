@@ -9,7 +9,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 const PullSchema = z.object({ action: z.literal("pull") }).strict();
 const DoneSchema = z.object({
   action: z.literal("done"),
-  alvo: z.enum(["pedidos", "historico", "contas_pagar"]),
+  alvo: z.enum(["pedidos", "historico", "contas_pagar", "clientes"]),
   status: z.enum(["rodando", "ok", "erro"]),
 }).strict();
 const BodySchema = z.union([PullSchema, DoneSchema]);
@@ -67,7 +67,7 @@ Deno.serve(secureHandler(
       if (parsed.data.action === "pull") {
         const { data, error } = await supabase
           .from("sync_control_rubysp")
-          .select("solicitar_pedidos_em, solicitar_historico_em, solicitar_contas_pagar_em, ultima_exec_pedidos, ultima_exec_historico, ultima_exec_contas_pagar, status_pedidos, status_historico, status_contas_pagar, updated_at")
+          .select("solicitar_pedidos_em, solicitar_historico_em, solicitar_contas_pagar_em, solicitar_clientes_em, ultima_exec_pedidos, ultima_exec_historico, ultima_exec_contas_pagar, ultima_exec_clientes, status_pedidos, status_historico, status_contas_pagar, status_clientes, updated_at")
           .eq("id", 1)
           .maybeSingle();
         if (error) throw error;
@@ -83,6 +83,9 @@ Deno.serve(secureHandler(
       } else if (alvo === "historico") {
         patch.status_historico = status;
         if (status === "ok") patch.ultima_exec_historico = now;
+      } else if (alvo === "clientes") {
+        patch.status_clientes = status;
+        if (status === "ok") patch.ultima_exec_clientes = now;
       } else {
         patch.status_contas_pagar = status;
         if (status === "ok") patch.ultima_exec_contas_pagar = now;
