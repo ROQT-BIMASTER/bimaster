@@ -83,6 +83,9 @@ Deno.serve(secureHandler(
       } else if (alvo === "historico") {
         patch.status_historico = status;
         if (status === "ok") patch.ultima_exec_historico = now;
+      } else if (alvo === "clientes") {
+        patch.status_clientes = status;
+        if (status === "ok") patch.ultima_exec_clientes = now;
       } else {
         patch.status_contas_pagar = status;
         if (status === "ok") patch.ultima_exec_contas_pagar = now;
