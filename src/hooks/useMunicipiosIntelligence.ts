@@ -54,6 +54,7 @@ export interface MunicipiosFilters {
   regiao: string | null;
   microrregiao_id: number | null;
   status: string | null;
+  vendedor: string | null;
   search: string;
   sortColumn: string;
   sortDirection: 'asc' | 'desc';
@@ -68,6 +69,7 @@ export function useMunicipiosIntelligence() {
     regiao: null,
     microrregiao_id: null,
     status: null,
+    vendedor: null,
     search: '',
     sortColumn: 'nome',
     sortDirection: 'asc',
@@ -81,6 +83,9 @@ export function useMunicipiosIntelligence() {
     p_search: filters.search || undefined,
     p_status: filters.status || undefined,
   };
+
+  const rpcParamsVend = { ...rpcParams, p_vendedor: filters.vendedor || undefined };
+
 
   // KPIs query
   const kpisQuery = useQuery({
