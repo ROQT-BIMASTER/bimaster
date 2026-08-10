@@ -122,10 +122,18 @@ Deno.serve(secureHandler(
     }
 
     let aplicado: unknown = null;
+    let aplicacao: string | null = null;
+    let rpcErro: string | null = null;
     if (finalizar === true) {
       const { data, error } = await supabase.rpc("aplicar_clientes_rp_no_master");
-      if (error) errors.push(`rpc: ${error.message}`);
-      else aplicado = data;
+      if (error) {
+        // Aplicação não bloqueia a recepção: o pg_cron aplica em até 15 min.
+        rpcErro = error.message;
+        aplicacao = "agendada_pg_cron";
+      } else {
+        aplicado = data;
+        aplicacao = "aplicada";
+      }
 
       try {
         await supabase.from("erp_sync_log").insert({
@@ -136,7 +144,7 @@ Deno.serve(secureHandler(
           success: errors.length === 0,
           error_message: errors.length ? errors.slice(0, 5).join(" | ") : null,
           duration_ms: Date.now() - new Date(startedAt).getTime(),
-          response_payload: { origem: "connector-rubysp", upserts, aplicado },
+          response_payload: { origem: "connector-rubysp", upserts, aplicado, aplicacao, rpc_error: rpcErro },
         });
       } catch (_e) {
         // log é best-effort
@@ -148,6 +156,7 @@ Deno.serve(secureHandler(
       upserts,
       finalizado: finalizar === true,
       aplicado,
+      ...(aplicacao ? { aplicacao } : {}),
       ...(errors.length ? { errors } : {}),
     });
   },
