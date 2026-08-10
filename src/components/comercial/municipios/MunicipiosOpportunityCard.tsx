@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, MapPin, Users, Crosshair, AlertTriangle, RefreshCw } from "lucide-react";
+import { TrendingUp, MapPin, Users, Crosshair, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { MunicipioOportunidade } from "@/hooks/useMunicipiosIntelligence";
 import { ModoFocoDialog } from "./ModoFocoDialog";
 
