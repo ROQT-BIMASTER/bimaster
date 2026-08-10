@@ -74,7 +74,7 @@ export function ClientesSyncBadge() {
             <div className="text-xs space-y-0.5">
               <div>Carga ERP: {data?.total_raw?.toLocaleString("pt-BR") ?? "-"} clientes</div>
               <div>Base mestre: {data?.total_master?.toLocaleString("pt-BR") ?? "-"} clientes</div>
-              <div className="text-muted-foreground pt-1">Sincronização automática a cada 15 min</div>
+              <div className="text-muted-foreground pt-1">Sincronização automática via conector (a cada 60 min)</div>
             </div>
           </TooltipContent>
         </Tooltip>
