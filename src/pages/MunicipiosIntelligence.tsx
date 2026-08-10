@@ -4,6 +4,7 @@ import { MunicipiosFiltersBar } from "@/components/comercial/municipios/Municipi
 import { MunicipiosKPICards } from "@/components/comercial/municipios/MunicipiosKPICards";
 import { MunicipiosScatterChart } from "@/components/comercial/municipios/MunicipiosScatterChart";
 import { MunicipiosOpportunityCard } from "@/components/comercial/municipios/MunicipiosOpportunityCard";
+import { SupervisorShareCard } from "@/components/comercial/municipios/SupervisorShareCard";
 import { MunicipiosTable } from "@/components/comercial/municipios/MunicipiosTable";
 import { ClientesSyncBadge } from "@/components/comercial/municipios/ClientesSyncBadge";
 import { Progress } from "@/components/ui/progress";
