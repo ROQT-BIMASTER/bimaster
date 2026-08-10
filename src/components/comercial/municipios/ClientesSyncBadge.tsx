@@ -43,6 +43,7 @@ export function ClientesSyncBadge() {
       qc.invalidateQueries({ queryKey: ["municipios-kpis"] });
       qc.invalidateQueries({ queryKey: ["municipios-intelligence"] });
       qc.invalidateQueries({ queryKey: ["municipios-top-opportunities"] });
+      qc.invalidateQueries({ queryKey: ["municipios-share-supervisor"] });
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["clientes-sync-status"] });
       }, 90_000);
