@@ -341,6 +341,8 @@ export function useMunicipiosIntelligence() {
     topOpportunitiesLoading: topOpportunitiesQuery.isLoading,
     topOpportunitiesError: topOpportunitiesQuery.error as Error | null,
     refetchTopOpportunities: topOpportunitiesQuery.refetch,
+    shareSupervisor: shareSupervisorQuery.data || [],
+    shareSupervisorLoading: shareSupervisorQuery.isLoading,
     fetchAllForExport,
     pageSize: PAGE_SIZE,
   };
