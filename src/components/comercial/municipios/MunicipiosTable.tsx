@@ -6,6 +6,7 @@ import { ArrowUpDown, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronU
 import { MunicipioIntelligence, MunicipiosFilters } from "@/hooks/useMunicipiosIntelligence";
 import { useState } from "react";
 import { logger } from "@/lib/logger";
+import { VendedoresCell } from "./VendedoresCell";
 
 import { toast } from "sonner";
 interface MunicipiosTableProps {
@@ -358,7 +359,7 @@ export function MunicipiosTable({
                         <Badge variant={badge.variant}>{badge.label}</Badge>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell text-xs text-muted-foreground">
-                        {row.vendedor_nome || '-'}
+                        <VendedoresCell vendedores={row.vendedores} fallback={row.vendedor_nome} />
                       </TableCell>
                     </TableRow>
                     {isExpanded && <ExpandedRow key={`detail-${row.municipio_id}`} row={row} />}

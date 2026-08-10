@@ -60217,6 +60217,7 @@ export type Database = {
           p_sort_direction?: string
           p_status?: string
           p_uf?: string
+          p_vendedor?: string
         }
         Returns: {
           clientes_com_compra: number
@@ -60240,6 +60241,7 @@ export type Database = {
           total_prospects: number
           uf_sigla: string
           vendedor_nome: string
+          vendedores: Json
         }[]
       }
       fn_get_municipios_kpis: {
@@ -60261,6 +60263,15 @@ export type Database = {
           receita_total_municipios: number
           taxa_penetracao: number
           total_municipios: number
+        }[]
+      }
+      fn_get_municipios_vendedores: {
+        Args: { p_regiao?: string; p_uf?: string }
+        Returns: {
+          clientes: number
+          municipios: number
+          ultima_compra: string
+          vendedor: string
         }[]
       }
       fn_get_whitespace_analysis: {

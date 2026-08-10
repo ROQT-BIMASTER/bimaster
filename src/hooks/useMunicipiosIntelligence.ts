@@ -2,6 +2,14 @@ import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface MunicipioVendedor {
+  nome: string;
+  clientes: number;
+  ultima_compra: string | null;
+  receita: number;
+  mais_recente: boolean;
+}
+
 export interface MunicipioIntelligence {
   municipio_id: number;
   municipio_nome: string;
@@ -23,8 +31,10 @@ export interface MunicipioIntelligence {
   intensidade_comercial: number;
   status_comercial: string;
   vendedor_nome: string | null;
+  vendedores: MunicipioVendedor[];
   total_count: number;
 }
+
 
 export interface MunicipiosKPIs {
   total_municipios: number;
@@ -44,6 +54,7 @@ export interface MunicipiosFilters {
   regiao: string | null;
   microrregiao_id: number | null;
   status: string | null;
+  vendedor: string | null;
   search: string;
   sortColumn: string;
   sortDirection: 'asc' | 'desc';
@@ -58,6 +69,7 @@ export function useMunicipiosIntelligence() {
     regiao: null,
     microrregiao_id: null,
     status: null,
+    vendedor: null,
     search: '',
     sortColumn: 'nome',
     sortDirection: 'asc',
@@ -71,6 +83,9 @@ export function useMunicipiosIntelligence() {
     p_search: filters.search || undefined,
     p_status: filters.status || undefined,
   };
+
+  const rpcParamsVend = { ...rpcParams, p_vendedor: filters.vendedor || undefined };
+
 
   // KPIs query
   const kpisQuery = useQuery({
@@ -97,10 +112,10 @@ export function useMunicipiosIntelligence() {
 
   // Top 10 opportunities query (Virgem municipalities sorted by PIB desc)
   const topOpportunitiesQuery = useQuery({
-    queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search],
+    queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search, filters.vendedor],
     queryFn: async (): Promise<MunicipioIntelligence[]> => {
       const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
-        ...rpcParams,
+        ...rpcParamsVend,
         p_status: 'virgem',
         p_sort_column: 'pib_per_capita',
         p_sort_direction: 'desc',
@@ -122,6 +137,7 @@ export function useMunicipiosIntelligence() {
         total_leads: Number(r.total_leads),
         densidade_comercial: Number(r.densidade_comercial),
         intensidade_comercial: Number(r.intensidade_comercial),
+        vendedores: Array.isArray(r.vendedores) ? r.vendedores : [],
         total_count: Number(r.total_count),
       }));
     },
@@ -133,7 +149,7 @@ export function useMunicipiosIntelligence() {
     queryKey: ['municipios-intelligence', filters],
     queryFn: async (): Promise<{ data: MunicipioIntelligence[]; totalCount: number }> => {
       const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
-        ...rpcParams,
+        ...rpcParamsVend,
         p_sort_column: filters.sortColumn,
         p_sort_direction: filters.sortDirection,
         p_limit: PAGE_SIZE,
@@ -156,7 +172,8 @@ export function useMunicipiosIntelligence() {
           total_leads: Number(r.total_leads),
           densidade_comercial: Number(r.densidade_comercial),
           intensidade_comercial: Number(r.intensidade_comercial),
-          total_count: Number(r.total_count),
+          vendedores: Array.isArray(r.vendedores) ? r.vendedores : [],
+        total_count: Number(r.total_count),
         })),
         totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
       };
@@ -173,7 +190,7 @@ export function useMunicipiosIntelligence() {
 
     while (hasMore) {
       const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
-        ...rpcParams,
+        ...rpcParamsVend,
         p_sort_column: filters.sortColumn,
         p_sort_direction: filters.sortDirection,
         p_limit: batchSize,
@@ -195,13 +212,14 @@ export function useMunicipiosIntelligence() {
         total_leads: Number(r.total_leads),
         densidade_comercial: Number(r.densidade_comercial),
         intensidade_comercial: Number(r.intensidade_comercial),
+        vendedores: Array.isArray(r.vendedores) ? r.vendedores : [],
         total_count: Number(r.total_count),
       })));
       hasMore = rows.length === batchSize;
       offset += batchSize;
     }
     return allData;
-  }, [rpcParams, filters.sortColumn, filters.sortDirection]);
+  }, [rpcParamsVend, filters.sortColumn, filters.sortDirection]);
 
   const updateFilter = useCallback((key: keyof MunicipiosFilters, value: any) => {
     setFilters(prev => ({
