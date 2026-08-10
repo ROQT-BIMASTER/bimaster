@@ -127,18 +127,20 @@ Deno.serve(secureHandler(
       if (error) errors.push(`rpc: ${error.message}`);
       else aplicado = data;
 
-      const completedAt = new Date().toISOString();
-      const { error: logError } = await supabase.from("erp_sync_log").insert({
-        sync_type: "erp_clientes",
-        status: errors.length === 0 ? "success" : "partial",
-        started_at: startedAt,
-        completed_at: completedAt,
-        records_processed: lote.length,
-        records_inserted: upserts,
-        error_message: errors.length ? errors.join(" | ") : null,
-        metadata: { origem: "connector-rubysp", aplicado },
-      });
-      if (logError) errors.push(`log: ${logError.message}`);
+      try {
+        await supabase.from("erp_sync_log").insert({
+          entity_type: "erp_clientes",
+          entity_id: crypto.randomUUID(),
+          action: "sync",
+          direction: "inbound",
+          success: errors.length === 0,
+          error_message: errors.length ? errors.slice(0, 5).join(" | ") : null,
+          duration_ms: Date.now() - new Date(startedAt).getTime(),
+          response_payload: { origem: "connector-rubysp", upserts, aplicado },
+        });
+      } catch (_e) {
+        // log é best-effort
+      }
     }
 
     return json(200, {
