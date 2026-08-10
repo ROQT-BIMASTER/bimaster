@@ -12,9 +12,10 @@ interface MunicipiosOpportunityCardProps {
   loading: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  vendedorFiltro?: string | null;
 }
 
-export function MunicipiosOpportunityCard({ data, loading, error, onRetry }: MunicipiosOpportunityCardProps) {
+export function MunicipiosOpportunityCard({ data, loading, error, onRetry, vendedorFiltro }: MunicipiosOpportunityCardProps) {
   const [modoFocoOpen, setModoFocoOpen] = useState(false);
 
   const opportunities = data;
@@ -24,8 +25,11 @@ export function MunicipiosOpportunityCard({ data, loading, error, onRetry }: Mun
       <>
       <Card className="border-l-4 border-l-amber-500">
         <CardHeader>
-          <Skeleton className="h-6 w-56" />
-          <Skeleton className="h-4 w-72" />
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Loader2 className="h-5 w-5 text-amber-500 animate-spin" />
+            Top 10 Oportunidades
+          </CardTitle>
+          <CardDescription>Carregando oportunidades inexploradas...</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -37,6 +41,7 @@ export function MunicipiosOpportunityCard({ data, loading, error, onRetry }: Mun
       </>
     );
   }
+
 
   if (error) {
     return (
