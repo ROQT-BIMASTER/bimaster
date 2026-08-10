@@ -25,6 +25,8 @@ const MunicipiosIntelligence = () => {
     dataLoading,
     topOpportunities,
     topOpportunitiesLoading,
+    topOpportunitiesError,
+    refetchTopOpportunities,
     fetchAllForExport,
     pageSize,
   } = useMunicipiosIntelligence();
