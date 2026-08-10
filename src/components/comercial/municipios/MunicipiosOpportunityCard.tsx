@@ -81,6 +81,12 @@ export function MunicipiosOpportunityCard({ data, loading, error, onRetry, vende
             Nenhuma oportunidade inexplorada encontrada com os filtros atuais.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRetry?.()}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Tentar novamente
+          </Button>
+        </CardContent>
       </Card>
       <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />
       </>
