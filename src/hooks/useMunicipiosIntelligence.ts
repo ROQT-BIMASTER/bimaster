@@ -63,6 +63,13 @@ export interface MunicipiosKPIs {
   municipios_virgem: number;
 }
 
+export interface SupervisorShare {
+  supervisor: string;
+  total_clientes: number;
+  total_municipios: number;
+  total_vendedores: number;
+}
+
 export interface MunicipiosFilters {
   uf: string | null;
   regiao: string | null;
