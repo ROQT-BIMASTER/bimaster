@@ -63,6 +63,13 @@ export interface MunicipiosKPIs {
   municipios_virgem: number;
 }
 
+export interface SupervisorShare {
+  supervisor: string;
+  total_clientes: number;
+  total_municipios: number;
+  total_vendedores: number;
+}
+
 export interface MunicipiosFilters {
   uf: string | null;
   regiao: string | null;
@@ -206,6 +213,24 @@ export function useMunicipiosIntelligence() {
     staleTime: 60 * 1000,
   });
 
+  // Share por supervisor (mesmos filtros de município)
+  const shareSupervisorQuery = useQuery({
+    queryKey: ['municipios-share-supervisor', filters.uf, filters.regiao, filters.microrregiao_id, filters.status, filters.search],
+    queryFn: async (): Promise<SupervisorShare[]> => {
+      const { data, error } = await supabase.rpc('fn_get_share_supervisor', rpcParams as any);
+      if (error) throw error;
+      return ((data as any[]) || []).map(r => ({
+        supervisor: r.supervisor,
+        total_clientes: Number(r.total_clientes || 0),
+        total_municipios: Number(r.total_municipios || 0),
+        total_vendedores: Number(r.total_vendedores || 0),
+      }));
+    },
+    staleTime: 60 * 1000,
+  });
+
+
+
   // Data query (paginated)
   const dataQuery = useQuery({
     queryKey: ['municipios-intelligence', filters],
@@ -316,6 +341,8 @@ export function useMunicipiosIntelligence() {
     topOpportunitiesLoading: topOpportunitiesQuery.isLoading,
     topOpportunitiesError: topOpportunitiesQuery.error as Error | null,
     refetchTopOpportunities: topOpportunitiesQuery.refetch,
+    shareSupervisor: shareSupervisorQuery.data || [],
+    shareSupervisorLoading: shareSupervisorQuery.isLoading,
     fetchAllForExport,
     pageSize: PAGE_SIZE,
   };

@@ -4,6 +4,7 @@ import { MunicipiosFiltersBar } from "@/components/comercial/municipios/Municipi
 import { MunicipiosKPICards } from "@/components/comercial/municipios/MunicipiosKPICards";
 import { MunicipiosScatterChart } from "@/components/comercial/municipios/MunicipiosScatterChart";
 import { MunicipiosOpportunityCard } from "@/components/comercial/municipios/MunicipiosOpportunityCard";
+import { SupervisorShareCard } from "@/components/comercial/municipios/SupervisorShareCard";
 import { MunicipiosTable } from "@/components/comercial/municipios/MunicipiosTable";
 import { ClientesSyncBadge } from "@/components/comercial/municipios/ClientesSyncBadge";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +28,8 @@ const MunicipiosIntelligence = () => {
     topOpportunitiesLoading,
     topOpportunitiesError,
     refetchTopOpportunities,
+    shareSupervisor,
+    shareSupervisorLoading,
     fetchAllForExport,
     pageSize,
   } = useMunicipiosIntelligence();
@@ -113,7 +116,10 @@ const MunicipiosIntelligence = () => {
 
         {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-2">
-          <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
+          <div className="flex flex-col gap-4">
+            <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
+            <SupervisorShareCard data={shareSupervisor} loading={shareSupervisorLoading} />
+          </div>
           <MunicipiosOpportunityCard
             data={topOpportunities}
             loading={topOpportunitiesLoading}
