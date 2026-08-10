@@ -2,6 +2,14 @@ import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface MunicipioVendedor {
+  nome: string;
+  clientes: number;
+  ultima_compra: string | null;
+  receita: number;
+  mais_recente: boolean;
+}
+
 export interface MunicipioIntelligence {
   municipio_id: number;
   municipio_nome: string;
@@ -23,8 +31,10 @@ export interface MunicipioIntelligence {
   intensidade_comercial: number;
   status_comercial: string;
   vendedor_nome: string | null;
+  vendedores: MunicipioVendedor[];
   total_count: number;
 }
+
 
 export interface MunicipiosKPIs {
   total_municipios: number;
