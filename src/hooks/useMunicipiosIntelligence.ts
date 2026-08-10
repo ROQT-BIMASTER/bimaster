@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export interface MunicipioVendedor {
   nome: string;
@@ -125,28 +126,82 @@ export function useMunicipiosIntelligence() {
 
   // Top 10 opportunities query (Virgem municipalities sorted by PIB desc)
   // Uses a dedicated lightweight RPC (no vendor/revenue aggregation) to avoid timeouts.
+  // NOTE: the "vendedor" filter is intentionally NOT applied here — opportunities are
+  // municipalities without any client, so no vendor can be attributed to them.
   const topOpportunitiesQuery = useQuery({
     queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search],
     queryFn: async (): Promise<MunicipioOportunidade[]> => {
-      const { data, error } = await supabase.rpc('fn_get_municipios_oportunidades', {
+      const payload = {
         p_uf: filters.uf || undefined,
         p_regiao: filters.regiao || undefined,
         p_microrregiao_id: filters.microrregiao_id || undefined,
         p_search: filters.search || undefined,
         p_limit: 10,
-      } as any);
-      if (error) throw error;
-      return ((data as any[]) || []).map(r => ({
+      };
+      logger.info('[municipios-oportunidades] RPC payload', payload);
+
+      const { data, error } = await supabase.rpc('fn_get_municipios_oportunidades', payload as any);
+
+      if (error) {
+        logger.error('[municipios-oportunidades] RPC erro', {
+          message: error.message,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          code: (error as any).code,
+        });
+      } else {
+        logger.info('[municipios-oportunidades] RPC resposta', {
+          rows: (data as any[])?.length ?? 0,
+          primeiro: (data as any[])?.[0] ?? null,
+        });
+      }
+
+      const mapa = (rows: any[]): MunicipioOportunidade[] => rows.map(r => ({
         municipio_id: Number(r.municipio_id),
         municipio_nome: r.municipio_nome,
         uf_sigla: r.uf_sigla,
         regiao_nome: r.regiao_nome,
         microrregiao_id: Number(r.microrregiao_id),
         microrregiao_nome: r.microrregiao_nome,
-        populacao: Number(r.populacao),
-        pib_mil_reais: Number(r.pib_mil_reais),
-        pib_per_capita: Number(r.pib_per_capita),
+        populacao: Number(r.populacao || 0),
+        pib_mil_reais: Number(r.pib_mil_reais || 0),
+        pib_per_capita: Number(r.pib_per_capita || 0),
       }));
+
+      const principais = !error ? mapa((data as any[]) || []) : [];
+      if (principais.length > 0) return principais;
+
+      // Fallback: consulta alternativa pela função completa, filtrando status "virgem"
+      logger.warn('[municipios-oportunidades] usando consulta alternativa (fallback)', {
+        motivo: error ? 'erro na RPC leve' : 'RPC leve retornou vazio',
+      });
+
+      const fallbackPayload = {
+        p_uf: filters.uf || undefined,
+        p_regiao: filters.regiao || undefined,
+        p_microrregiao_id: filters.microrregiao_id || undefined,
+        p_search: filters.search || undefined,
+        p_status: 'virgem',
+        p_sort_column: 'pib',
+        p_sort_direction: 'desc',
+        p_limit: 10,
+        p_offset: 0,
+      };
+      logger.info('[municipios-oportunidades] fallback payload', fallbackPayload);
+
+      const fb = await supabase.rpc('fn_get_municipios_intelligence', fallbackPayload as any);
+      if (fb.error) {
+        logger.error('[municipios-oportunidades] fallback erro', {
+          message: fb.error.message,
+          code: (fb.error as any).code,
+        });
+        // Se a RPC leve falhou e o fallback também, propaga o erro original
+        throw error ?? fb.error;
+      }
+
+      const fallbackRows = mapa((fb.data as any[]) || []);
+      logger.info('[municipios-oportunidades] fallback resposta', { rows: fallbackRows.length });
+      return fallbackRows;
     },
     staleTime: 60 * 1000,
   });
