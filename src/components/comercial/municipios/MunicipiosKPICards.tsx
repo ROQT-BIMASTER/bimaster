@@ -23,9 +23,15 @@ const cards = [
   { key: "pib_total", title: "PIB Total Filtrado", icon: Globe, variant: "info" as const, format: (v: number) => `R$ ${formatNumber(v * 1000)}`, subtitle: "em milhares de reais" },
 ];
 
-export function MunicipiosKPICards({ kpis, loading }: MunicipiosKPICardsProps) {
+export function MunicipiosKPICards({ kpis, loading, vendedorFiltro }: MunicipiosKPICardsProps) {
   return (
-    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="space-y-2">
+      {vendedorFiltro && (
+        <p className="text-xs text-muted-foreground">
+          Indicadores restritos aos municípios da carteira de <span className="font-medium text-foreground">{vendedorFiltro}</span>
+        </p>
+      )}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {cards.map((card) => {
         const value = kpis ? (kpis as any)[card.key] : 0;
         return (
