@@ -5,6 +5,7 @@ import { MunicipiosKPIs } from "@/hooks/useMunicipiosIntelligence";
 interface MunicipiosKPICardsProps {
   kpis: MunicipiosKPIs | undefined;
   loading: boolean;
+  vendedorFiltro?: string | null;
 }
 
 function formatNumber(n: number): string {
