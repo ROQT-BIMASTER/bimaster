@@ -274,13 +274,13 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
         records_processed: totalLidos,
         records_inserted: totalUpserts,
         error_message: errors.length ? errors.slice(0, 5).join(" | ") : null,
-        metadata: { mode, view: viewName, aplicado },
+        metadata: { mode, view: viewName, view_resolvida: viewResolvida, aplicado },
       });
     } catch { /* ignora se o shape não bater */ }
 
     return new Response(JSON.stringify({
       ok: errors.length === 0,
-      mode, view: viewName,
+      mode, view: viewName, view_resolvida: viewResolvida,
       total_lidos: totalLidos,
       total_upserts: totalUpserts,
       aplicado,
