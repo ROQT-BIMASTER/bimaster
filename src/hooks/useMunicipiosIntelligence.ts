@@ -35,6 +35,19 @@ export interface MunicipioIntelligence {
   total_count: number;
 }
 
+export interface MunicipioOportunidade {
+  municipio_id: number;
+  municipio_nome: string;
+  uf_sigla: string;
+  regiao_nome: string;
+  microrregiao_id: number;
+  microrregiao_nome: string;
+  populacao: number;
+  pib_mil_reais: number;
+  pib_per_capita: number;
+}
+
+
 
 export interface MunicipiosKPIs {
   total_municipios: number;
