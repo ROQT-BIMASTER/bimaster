@@ -114,6 +114,7 @@ export function MunicipiosOpportunityCard({ data, loading, error, onRetry, vende
         </div>
         <CardDescription>
           Municípios com maior PIB onde a empresa ainda não possui clientes
+          {vendedorFiltro ? " — o filtro por vendedor não se aplica a municípios sem clientes" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent>
