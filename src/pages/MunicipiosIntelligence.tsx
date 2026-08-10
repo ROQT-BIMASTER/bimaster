@@ -109,7 +109,7 @@ const MunicipiosIntelligence = () => {
         <MunicipiosFiltersBar filters={filters} onFilterChange={updateFilter} />
 
         {/* KPI Cards */}
-        <MunicipiosKPICards kpis={kpis} loading={kpisLoading} />
+        <MunicipiosKPICards kpis={kpis} loading={kpisLoading} vendedorFiltro={filters.vendedor} />
 
         {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-2">
