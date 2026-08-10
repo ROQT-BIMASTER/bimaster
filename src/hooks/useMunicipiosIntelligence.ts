@@ -103,9 +103,9 @@ export function useMunicipiosIntelligence() {
 
   // KPIs query
   const kpisQuery = useQuery({
-    queryKey: ['municipios-kpis', filters.uf, filters.regiao, filters.microrregiao_id, filters.status, filters.search],
+    queryKey: ['municipios-kpis', filters.uf, filters.regiao, filters.microrregiao_id, filters.status, filters.search, filters.vendedor],
     queryFn: async (): Promise<MunicipiosKPIs> => {
-      const { data, error } = await supabase.rpc('fn_get_municipios_kpis', rpcParams as any);
+      const { data, error } = await supabase.rpc('fn_get_municipios_kpis', rpcParamsVend as any);
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
       return {
