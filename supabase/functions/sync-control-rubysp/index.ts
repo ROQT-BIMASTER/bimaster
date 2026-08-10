@@ -67,7 +67,7 @@ Deno.serve(secureHandler(
       if (parsed.data.action === "pull") {
         const { data, error } = await supabase
           .from("sync_control_rubysp")
-          .select("solicitar_pedidos_em, solicitar_historico_em, solicitar_contas_pagar_em, ultima_exec_pedidos, ultima_exec_historico, ultima_exec_contas_pagar, status_pedidos, status_historico, status_contas_pagar, updated_at")
+          .select("solicitar_pedidos_em, solicitar_historico_em, solicitar_contas_pagar_em, solicitar_clientes_em, ultima_exec_pedidos, ultima_exec_historico, ultima_exec_contas_pagar, ultima_exec_clientes, status_pedidos, status_historico, status_contas_pagar, status_clientes, updated_at")
           .eq("id", 1)
           .maybeSingle();
         if (error) throw error;
