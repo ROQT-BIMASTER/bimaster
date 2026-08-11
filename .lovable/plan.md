@@ -36,11 +36,25 @@ alteração de sistema quando surgir uma terceira regra.
 
 ### 2. Produtos hipotéticos no simulador
 
-Uma grade onde se digita direto: descrição do produto e custo de fábrica. Três linhas por
-padrão, com botão para adicionar/remover. Nada é gravado no catálogo de produtos; a simulação
-fica só na tela (com opção de salvar a simulação como um registro próprio, separado do catálogo).
+Uma grade onde se digita direto: descrição do produto, valor e **em qual nível esse valor está**
+(custo de fábrica, Clear, Mude, Primavera...). Quando o valor informado não é o custo de fábrica,
+o simulador faz o cálculo reverso até a base e depois projeta os demais níveis — assim os preços
+Clear já praticados podem ser usados como ponto de partida.
 
-Opcional: importar o custo de um produto existente como ponto de partida, sem vínculo.
+Pré-carregado para esta simulação (valores já em preço Clear):
+
+```text
+Corretivo   5,25
+Pó          5,50
+Blush       4,75
+Base        9,00
+```
+
+Nada é gravado no catálogo de produtos; a simulação fica só na tela, com opção de salvá-la
+como registro próprio, separado do catálogo. Também é possível importar o custo de um
+produto existente como ponto de partida, sem criar vínculo.
+
+
 
 ### 3. Comparativo na tela
 
