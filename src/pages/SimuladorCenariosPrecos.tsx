@@ -11,10 +11,12 @@ import { SimuladorGraficos } from "@/components/simulador/SimuladorGraficos";
 import { SimuladorCadeiaImpacto } from "@/components/simulador/SimuladorCadeiaImpacto";
 import { SimuladorProdutoSelector } from "@/components/simulador/SimuladorProdutoSelector";
 import { useSimuladorPrecos } from "@/hooks/useSimuladorPrecos";
+import { SimuladorPerfisTab } from "@/components/simulador/SimuladorPerfisTab";
+
 
 import { toast } from "sonner";
 export default function SimuladorCenariosPrecos() {
-  const [activeTab, setActiveTab] = useState("configuracao");
+  const [activeTab, setActiveTab] = useState("perfis");
   
   const {
     cenarioBase,
@@ -101,12 +103,18 @@ export default function SimuladorCenariosPrecos() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="perfis">Perfis e Produtos Hipotéticos</TabsTrigger>
             <TabsTrigger value="configuracao">Configuração</TabsTrigger>
             <TabsTrigger value="comparativo" disabled={!temResultados}>Comparativo</TabsTrigger>
             <TabsTrigger value="graficos" disabled={!temResultados}>Gráficos</TabsTrigger>
             <TabsTrigger value="cadeia" disabled={!temResultados}>Cadeia de Impacto</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="perfis">
+            <SimuladorPerfisTab />
+          </TabsContent>
+
 
           <TabsContent value="configuracao" className="space-y-6">
             {/* Configuração de Cenários */}
