@@ -16,7 +16,7 @@ import { SimuladorPerfisTab } from "@/components/simulador/SimuladorPerfisTab";
 
 import { toast } from "sonner";
 export default function SimuladorCenariosPrecos() {
-  const [activeTab, setActiveTab] = useState("configuracao");
+  const [activeTab, setActiveTab] = useState("perfis");
   
   const {
     cenarioBase,
