@@ -56,10 +56,16 @@ function connectToSqlServer(): Promise<Connection> {
   });
 }
 
+// TODAS as leituras contra o Result rodam SEM LOCK (READ UNCOMMITTED).
+// Pedido do time do Result (10/08/2026): SELECTs longos em READ COMMITTED
+// seguravam shared locks e travavam gravações do ERP. Somos 100% leitura —
+// dado de transação em andamento é aceitável para syncs periódicos.
+const READ_UNCOMMITTED_PREFIX = "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;\n";
+
 function executeSqlQueryOnce(connection: Connection, query: string): Promise<SqlRow[]> {
   return new Promise((resolve, reject) => {
     const rows: SqlRow[] = [];
-    const request = new TdsRequest(query, (err: any) => {
+    const request = new TdsRequest(READ_UNCOMMITTED_PREFIX + query, (err: any) => {
       if (err) {
         const inner = Array.isArray(err?.errors)
           ? err.errors.map((e: any) => `${e?.message ?? e}`).join(" ; ")
