@@ -11,6 +11,8 @@ import { SimuladorGraficos } from "@/components/simulador/SimuladorGraficos";
 import { SimuladorCadeiaImpacto } from "@/components/simulador/SimuladorCadeiaImpacto";
 import { SimuladorProdutoSelector } from "@/components/simulador/SimuladorProdutoSelector";
 import { useSimuladorPrecos } from "@/hooks/useSimuladorPrecos";
+import { SimuladorPerfisTab } from "@/components/simulador/SimuladorPerfisTab";
+
 
 import { toast } from "sonner";
 export default function SimuladorCenariosPrecos() {
