@@ -1,7 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, FileDown, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
+import { logger } from "@/lib/logger";
 import type { PerfilMarkup } from "@/hooks/usePerfisMarkup";
 import {
   custoRaizDoProduto,
@@ -10,6 +15,14 @@ import {
   type ProdutoHipotetico,
   type TabelaNode,
 } from "@/lib/fabrica/perfilSimulacao";
+import {
+  exportarComparativoExcel,
+  exportarComparativoPDF,
+  ordenarColunasPadrao,
+  type ComparativoLinhaExport,
+} from "@/lib/fabrica/exportComparativoPerfis";
+
+const STORAGE_KEY = "simulador:comparativo:ordem-colunas";
 
 interface Props {
   produtos: ProdutoHipotetico[];
@@ -19,7 +32,55 @@ interface Props {
 }
 
 export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: Props) {
+  const [ordem, setOrdem] = useState<string[]>([]);
+
+  // Ordem padrão comercial + preferência salva do usuário.
+  const colunasOrdenadas = useMemo(() => {
+    const padrao = ordenarColunasPadrao(tabelas);
+    if (ordem.length === 0) return padrao;
+    const mapa = new Map(padrao.map((t) => [t.id, t]));
+    const escolhidas = ordem.map((id) => mapa.get(id)).filter(Boolean) as TabelaNode[];
+    const restantes = padrao.filter((t) => !ordem.includes(t.id));
+    return [...escolhidas, ...restantes];
+  }, [tabelas, ordem]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setOrdem(JSON.parse(raw));
+    } catch {
+      /* preferência opcional */
+    }
+  }, []);
+
+  const moverColuna = (id: string, delta: number) => {
+    const ids = colunasOrdenadas.map((t) => t.id);
+    const i = ids.indexOf(id);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    setOrdem(ids);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+      /* preferência opcional */
+    }
+  };
+
   const validos = produtos.filter((p) => p.valor > 0);
+
+  const linhas = useMemo(() => {
+    if (!perfilA) return [];
+    const itensA = perfilA.itens;
+    const itensB = perfilB?.itens ?? [];
+    return validos.map((p) => {
+      const custoA = custoRaizDoProduto(p, tabelas, itensA);
+      const precosA = precosPorTabela(custoA, tabelas, itensA);
+      const custoB = perfilB ? custoRaizDoProduto(p, tabelas, itensB) : 0;
+      const precosB = perfilB ? precosPorTabela(custoB, tabelas, itensB) : {};
+      return { produto: p, custoA, precosA, custoB, precosB };
+    });
+  }, [validos, tabelas, perfilA, perfilB]);
 
   if (!perfilA || validos.length === 0) {
     return (
@@ -31,26 +92,79 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     );
   }
 
-  const itensA = perfilA.itens;
-  const itensB = perfilB?.itens ?? [];
+  const linhasExport = (): ComparativoLinhaExport[] => {
+    const out: ComparativoLinhaExport[] = [];
+    for (const l of linhas) {
+      out.push({
+        produto: l.produto.descricao || "Sem descrição",
+        perfil: perfilA.nome,
+        custo: l.custoA,
+        precos: l.precosA,
+      });
+      if (perfilB) {
+        const diffs: Record<string, number> = {};
+        for (const t of colunasOrdenadas) {
+          diffs[t.id] = (l.precosB[t.id] ?? 0) - (l.precosA[t.id] ?? 0);
+        }
+        out.push({
+          produto: l.produto.descricao || "Sem descrição",
+          perfil: perfilB.nome,
+          custo: l.custoB,
+          precos: l.precosB,
+          diffs,
+        });
+      }
+    }
+    return out;
+  };
 
-  const linhas = validos.map((p) => {
-    const custoA = custoRaizDoProduto(p, tabelas, itensA);
-    const precosA = precosPorTabela(custoA, tabelas, itensA);
-    const custoB = perfilB ? custoRaizDoProduto(p, tabelas, itensB) : 0;
-    const precosB = perfilB ? precosPorTabela(custoB, tabelas, itensB) : {};
-    return { produto: p, custoA, precosA, custoB, precosB };
-  });
+  const handleExcel = async () => {
+    try {
+      await exportarComparativoExcel(colunasOrdenadas, linhasExport(), {
+        a: perfilA.nome,
+        b: perfilB?.nome,
+      });
+      toast.success("Comparativo exportado em Excel");
+    } catch (e) {
+      logger.error("Erro ao exportar comparativo em Excel", e);
+      toast.error("Não foi possível exportar o Excel");
+    }
+  };
+
+  const handlePDF = () => {
+    try {
+      exportarComparativoPDF(colunasOrdenadas, linhasExport(), {
+        a: perfilA.nome,
+        b: perfilB?.nome,
+      });
+      toast.success("PDF gerado");
+    } catch (e) {
+      logger.error("Erro ao gerar PDF do comparativo", e);
+      toast.error("Não foi possível gerar o PDF");
+    }
+  };
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Comparativo de preços por perfil</CardTitle>
-        <CardDescription>
-          {perfilA.nome}
-          {perfilB ? ` vs ${perfilB.nome}` : ""} — preços projetados a partir do custo de fábrica
-          reconstruído.
-        </CardDescription>
+      <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle className="text-base">Comparativo de preços por perfil</CardTitle>
+          <CardDescription>
+            {perfilA.nome}
+            {perfilB ? ` vs ${perfilB.nome}` : ""} — preços projetados a partir do custo de fábrica
+            reconstruído.
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={handleExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePDF}>
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
@@ -58,64 +172,84 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <TableRow>
               <TableHead>Produto</TableHead>
               <TableHead className="text-right">Custo fábrica</TableHead>
-              {tabelas.map((t) => (
+              {colunasOrdenadas.map((t, idx) => (
                 <TableHead key={t.id} className="text-right">
-                  {t.nome}
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      disabled={idx === 0}
+                      aria-label={`Mover ${t.nome} para a esquerda`}
+                      onClick={() => moverColuna(t.id, -1)}
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                    </Button>
+                    <span>{t.nome}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      disabled={idx === colunasOrdenadas.length - 1}
+                      aria-label={`Mover ${t.nome} para a direita`}
+                      onClick={() => moverColuna(t.id, 1)}
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.map(({ produto, custoA, precosA, custoB, precosB }) => (
-              <>
-                <TableRow key={`${produto.id}-a`}>
-                  <TableCell className="font-medium">
-                    {produto.descricao || "Sem descrição"}
-                    <div className="text-xs text-muted-foreground">{perfilA.nome}</div>
+            {linhas.map(({ produto, custoA, precosA, custoB, precosB }) => [
+              <TableRow key={`${produto.id}-a`}>
+                <TableCell className="font-medium">
+                  {produto.descricao || "Sem descrição"}
+                  <div className="text-xs text-muted-foreground">{perfilA.nome}</div>
+                </TableCell>
+                <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
+                {colunasOrdenadas.map((t) => (
+                  <TableCell key={t.id} className="text-right font-mono">
+                    {formatCurrency(precosA[t.id] ?? 0)}
+                    <div className="text-[10px] text-muted-foreground">
+                      {markupEfetivo(precosA[t.id] ?? 0, custoA).toFixed(3)}x
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
-                  {tabelas.map((t) => (
-                    <TableCell key={t.id} className="text-right font-mono">
-                      {formatCurrency(precosA[t.id] ?? 0)}
-                      <div className="text-[10px] text-muted-foreground">
-                        {markupEfetivo(precosA[t.id] ?? 0, custoA).toFixed(3)}x
-                      </div>
-                    </TableCell>
-                  ))}
-                </TableRow>
+                ))}
+              </TableRow>,
 
-                {perfilB && (
-                  <TableRow key={`${produto.id}-b`} className="bg-muted/40">
-                    <TableCell className="text-xs text-muted-foreground pl-6">
-                      {perfilB.nome}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
-                    {tabelas.map((t) => {
-                      const a = precosA[t.id] ?? 0;
-                      const b = precosB[t.id] ?? 0;
-                      const diff = b - a;
-                      const pct = a > 0 ? (diff / a) * 100 : 0;
-                      return (
-                        <TableCell key={t.id} className="text-right font-mono">
-                          {formatCurrency(b)}
-                          {Math.abs(diff) > 0.004 && (
-                            <div className="text-[10px]">
-                              <Badge
-                                variant={diff > 0 ? "default" : "secondary"}
-                                className="font-mono text-[10px] px-1 py-0"
-                              >
-                                {diff > 0 ? "+" : ""}
-                                {formatCurrency(diff)} ({pct.toFixed(1)}%)
-                              </Badge>
-                            </div>
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                )}
-              </>
-            ))}
+              perfilB ? (
+                <TableRow key={`${produto.id}-b`} className="bg-muted/40">
+                  <TableCell className="text-xs text-muted-foreground pl-6">
+                    {perfilB.nome}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
+                  {colunasOrdenadas.map((t) => {
+                    const a = precosA[t.id] ?? 0;
+                    const b = precosB[t.id] ?? 0;
+                    const diff = b - a;
+                    const pct = a > 0 ? (diff / a) * 100 : 0;
+                    return (
+                      <TableCell key={t.id} className="text-right font-mono">
+                        {formatCurrency(b)}
+                        {Math.abs(diff) > 0.004 && (
+                          <div className="text-[10px]">
+                            <Badge
+                              variant={diff > 0 ? "default" : "secondary"}
+                              className="font-mono text-[10px] px-1 py-0"
+                            >
+                              {diff > 0 ? "+" : ""}
+                              {formatCurrency(diff)} ({pct.toFixed(1)}%)
+                            </Badge>
+                          </div>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ) : null,
+            ])}
           </TableBody>
         </Table>
       </CardContent>
