@@ -23718,6 +23718,87 @@ export type Database = {
           },
         ]
       }
+      fabrica_perfis_markup: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fabrica_perfis_markup_itens: {
+        Row: {
+          created_at: string
+          id: string
+          nome_linha: string | null
+          ordem: number
+          perfil_id: string
+          tabela_id: string | null
+          tipo_markup: string
+          updated_at: string
+          valor_markup: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_linha?: string | null
+          ordem?: number
+          perfil_id: string
+          tabela_id?: string | null
+          tipo_markup?: string
+          updated_at?: string
+          valor_markup?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_linha?: string | null
+          ordem?: number
+          perfil_id?: string
+          tabela_id?: string | null
+          tipo_markup?: string
+          updated_at?: string
+          valor_markup?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_perfis_markup_itens_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_perfis_markup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_perfis_markup_itens_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_planejamento_necessidades: {
         Row: {
           compra_realizada_em: string | null
