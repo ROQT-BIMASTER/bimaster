@@ -1534,18 +1534,25 @@ function estoqueLiveEmpresas(): number[] {
 }
 
 function estoqueLiveQuery(empresas: number[]): string {
+  // READ UNCOMMITTED + NOLOCK: leitura de integração NUNCA deve segurar shared
+  // lock nas tabelas que o ERP escreve (pedido do time do Result, 10/08 —
+  // SELECTs longos em READ COMMITTED bloqueavam gravações de outras aplicações).
+  // Dado "sujo" é aceitável: é uma foto de estoque refeita a cada hora.
+  // A subquery da view também filtra pelas empresas do catálogo (menos I/O).
   return `
+  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
   SELECT i.Empresa_InfPro AS empresa,
          i.Produto_InfPro AS cod_produto,
          CAST(i.Estoque_InfPro - COALESCE(b.bloq, 0) - COALESCE(i.reserva_Infpro, 0) AS float) AS estoque_disponivel,
          i.pcvenda_infpro AS preco_venda,
          LTRIM(RTRIM(p.codfor_pro)) AS cod_fabricante,
          LTRIM(RTRIM(p.descricao_pro)) AS nome_prod
-  FROM dbo.InformacoesProdutos i
-  JOIN dbo.Produtos p ON p.Id_Pro = i.Produto_InfPro
+  FROM dbo.InformacoesProdutos i WITH (NOLOCK)
+  JOIN dbo.Produtos p WITH (NOLOCK) ON p.Id_Pro = i.Produto_InfPro
   LEFT JOIN (
     SELECT [Empresa_Par] AS e, [Cod Produto] AS c, MAX([Estoque Bloqueado Produto]) AS bloq
-    FROM dbo.Cust_EstoqueDistribuidora
+    FROM dbo.Cust_EstoqueDistribuidora WITH (NOLOCK)
+    WHERE [Empresa_Par] IN (${empresas.join(", ")})
     GROUP BY [Empresa_Par], [Cod Produto]
   ) b ON b.e = i.Empresa_InfPro AND b.c = i.Produto_InfPro
   WHERE i.Empresa_InfPro IN (${empresas.join(", ")})
