@@ -137,6 +137,32 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     persistirOrdem(ids);
   };
 
+  // Cabeçalho personalizável do PDF (preferência por usuário).
+  const headerKey = `${PDF_HEADER_KEY}:${uid}`;
+  const [pdfDialogAberto, setPdfDialogAberto] = useState(false);
+  const [cabecalho, setCabecalho] = useState<CabecalhoPDF>(CABECALHO_PDF_PADRAO);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(headerKey);
+      setCabecalho(raw ? { ...CABECALHO_PDF_PADRAO, ...JSON.parse(raw) } : CABECALHO_PDF_PADRAO);
+    } catch {
+      setCabecalho(CABECALHO_PDF_PADRAO);
+    }
+  }, [headerKey]);
+
+  const atualizarCabecalho = (patch: Partial<CabecalhoPDF>) => {
+    setCabecalho((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem(headerKey, JSON.stringify(next));
+      } catch {
+        /* preferência opcional */
+      }
+      return next;
+    });
+  };
+
 
   const validos = produtos.filter((p) => p.valor > 0);
 
