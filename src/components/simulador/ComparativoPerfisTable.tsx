@@ -279,33 +279,40 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <TableRow>
               <TableHead>Produto</TableHead>
               <TableHead className="text-right">Custo fábrica</TableHead>
-              {colunasVisiveis.map((t, idx) => (
-                <TableHead key={t.id} className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      disabled={idx === 0}
-                      aria-label={`Mover ${t.nome} para a esquerda`}
-                      onClick={() => moverColuna(t.id, -1)}
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
+              {colunasVisiveis.map((t) => (
+                <TableHead
+                  key={t.id}
+                  className={`text-right select-none ${
+                    alvo === t.id ? "bg-accent/60" : ""
+                  } ${arrastando === t.id ? "opacity-50" : ""}`}
+                  draggable
+                  onDragStart={(e) => {
+                    setArrastando(t.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (alvo !== t.id) setAlvo(t.id);
+                  }}
+                  onDragLeave={() => setAlvo((a) => (a === t.id ? null : a))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    soltarColuna(t.id);
+                  }}
+                  onDragEnd={() => {
+                    setArrastando(null);
+                    setAlvo(null);
+                  }}
+                  title="Arraste para reordenar a coluna"
+                >
+                  <div className="flex items-center justify-end gap-1 cursor-grab active:cursor-grabbing">
+                    <GripVertical className="h-3 w-3 text-muted-foreground" aria-hidden />
                     <span>{t.nome}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      disabled={idx === colunasVisiveis.length - 1}
-                      aria-label={`Mover ${t.nome} para a direita`}
-                      onClick={() => moverColuna(t.id, 1)}
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
                   </div>
                 </TableHead>
               ))}
+
             </TableRow>
           </TableHeader>
           <TableBody>
