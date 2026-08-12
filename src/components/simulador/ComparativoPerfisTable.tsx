@@ -151,7 +151,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
       });
       if (perfilB) {
         const diffs: Record<string, number> = {};
-        for (const t of colunasOrdenadas) {
+        for (const t of colunasVisiveis) {
           diffs[t.id] = (l.precosB[t.id] ?? 0) - (l.precosA[t.id] ?? 0);
         }
         out.push({
@@ -168,7 +168,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const handleExcel = async () => {
     try {
-      await exportarComparativoExcel(colunasOrdenadas, linhasExport(), {
+      await exportarComparativoExcel(colunasVisiveis, linhasExport(), {
         a: perfilA.nome,
         b: perfilB?.nome,
       });
@@ -181,7 +181,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const handlePDF = () => {
     try {
-      exportarComparativoPDF(colunasOrdenadas, linhasExport(), {
+      exportarComparativoPDF(colunasVisiveis, linhasExport(), {
         a: perfilA.nome,
         b: perfilB?.nome,
       });
@@ -220,7 +220,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <TableRow>
               <TableHead>Produto</TableHead>
               <TableHead className="text-right">Custo fábrica</TableHead>
-              {colunasOrdenadas.map((t, idx) => (
+              {colunasVisiveis.map((t, idx) => (
                 <TableHead key={t.id} className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button
@@ -238,7 +238,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
-                      disabled={idx === colunasOrdenadas.length - 1}
+                      disabled={idx === colunasVisiveis.length - 1}
                       aria-label={`Mover ${t.nome} para a direita`}
                       onClick={() => moverColuna(t.id, 1)}
                     >
@@ -257,7 +257,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
                   <div className="text-xs text-muted-foreground">{perfilA.nome}</div>
                 </TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
-                {colunasOrdenadas.map((t) => (
+                {colunasVisiveis.map((t) => (
                   <TableCell key={t.id} className="text-right font-mono">
                     {formatCurrency(precosA[t.id] ?? 0)}
                     <div className="text-[10px] text-muted-foreground">
@@ -273,7 +273,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
                     {perfilB.nome}
                   </TableCell>
                   <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
-                  {colunasOrdenadas.map((t) => {
+                  {colunasVisiveis.map((t) => {
                     const a = precosA[t.id] ?? 0;
                     const b = precosB[t.id] ?? 0;
                     const diff = b - a;
