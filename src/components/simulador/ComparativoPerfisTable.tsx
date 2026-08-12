@@ -112,15 +112,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     persistirOcultas(ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id]);
   };
 
-  const moverColuna = (id: string, delta: number) => {
-    const ids = colunasOrdenadas.map((t) => t.id);
-    const visiveis = colunasVisiveis.map((t) => t.id);
-    const vi = visiveis.indexOf(id);
-    const vizinho = visiveis[vi + delta];
-    if (!vizinho) return;
-    const i = ids.indexOf(id);
-    const j = ids.indexOf(vizinho);
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+  const persistirOrdem = (ids: string[]) => {
     setOrdem(ids);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
@@ -128,6 +120,23 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
       /* preferência opcional */
     }
   };
+
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvo, setAlvo] = useState<string | null>(null);
+
+  const soltarColuna = (destinoId: string) => {
+    const origemId = arrastando;
+    setArrastando(null);
+    setAlvo(null);
+    if (!origemId || origemId === destinoId) return;
+    const ids = colunasOrdenadas.map((t) => t.id);
+    const from = ids.indexOf(origemId);
+    const to = ids.indexOf(destinoId);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    persistirOrdem(ids);
+  };
+
 
   const validos = produtos.filter((p) => p.valor > 0);
 
