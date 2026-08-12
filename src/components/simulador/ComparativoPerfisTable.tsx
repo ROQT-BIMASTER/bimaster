@@ -3,10 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, FileDown, FileSpreadsheet } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronLeft, ChevronRight, Columns3, FileDown, FileSpreadsheet, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/contexts/AuthContext";
 import type { PerfilMarkup } from "@/hooks/usePerfisMarkup";
 import {
   custoRaizDoProduto,
@@ -23,6 +33,7 @@ import {
 } from "@/lib/fabrica/exportComparativoPerfis";
 
 const STORAGE_KEY = "simulador:comparativo:ordem-colunas";
+const HIDDEN_KEY = "simulador:comparativo:colunas-ocultas";
 
 interface Props {
   produtos: ProdutoHipotetico[];
@@ -32,7 +43,12 @@ interface Props {
 }
 
 export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: Props) {
+  const { user } = useAuth();
+  const uid = user?.id ?? "anon";
+  const hiddenKey = `${HIDDEN_KEY}:${uid}`;
+
   const [ordem, setOrdem] = useState<string[]>([]);
+  const [ocultas, setOcultas] = useState<string[]>([]);
 
   // Ordem padrão comercial + preferência salva do usuário.
   const colunasOrdenadas = useMemo(() => {
@@ -44,6 +60,11 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     return [...escolhidas, ...restantes];
   }, [tabelas, ordem]);
 
+  const colunasVisiveis = useMemo(
+    () => colunasOrdenadas.filter((t) => !ocultas.includes(t.id)),
+    [colunasOrdenadas, ocultas],
+  );
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -53,11 +74,37 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     }
   }, []);
 
+  // Colunas ocultas: preferência por usuário.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(hiddenKey);
+      setOcultas(raw ? JSON.parse(raw) : []);
+    } catch {
+      setOcultas([]);
+    }
+  }, [hiddenKey]);
+
+  const persistirOcultas = (ids: string[]) => {
+    setOcultas(ids);
+    try {
+      localStorage.setItem(hiddenKey, JSON.stringify(ids));
+    } catch {
+      /* preferência opcional */
+    }
+  };
+
+  const toggleColuna = (id: string) => {
+    persistirOcultas(ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id]);
+  };
+
   const moverColuna = (id: string, delta: number) => {
     const ids = colunasOrdenadas.map((t) => t.id);
+    const visiveis = colunasVisiveis.map((t) => t.id);
+    const vi = visiveis.indexOf(id);
+    const vizinho = visiveis[vi + delta];
+    if (!vizinho) return;
     const i = ids.indexOf(id);
-    const j = i + delta;
-    if (i < 0 || j < 0 || j >= ids.length) return;
+    const j = ids.indexOf(vizinho);
     [ids[i], ids[j]] = [ids[j], ids[i]];
     setOrdem(ids);
     try {
@@ -68,6 +115,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
   };
 
   const validos = produtos.filter((p) => p.valor > 0);
+
 
   const linhas = useMemo(() => {
     if (!perfilA) return [];
