@@ -71,21 +71,49 @@ export async function exportarComparativoExcel(
   });
 }
 
+export interface CabecalhoPDF {
+  titulo?: string;
+  subtitulo?: string;
+  incluirData?: boolean;
+  incluirPerfis?: boolean;
+}
+
+export const CABECALHO_PDF_PADRAO: CabecalhoPDF = {
+  titulo: "Comparativo de preços por perfil",
+  subtitulo: "",
+  incluirData: true,
+  incluirPerfis: true,
+};
+
 export function exportarComparativoPDF(
   colunas: ComparativoColuna[],
   linhas: ComparativoLinhaExport[],
   perfis: { a: string; b?: string | null },
+  cabecalho: CabecalhoPDF = CABECALHO_PDF_PADRAO,
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
+  const titulo = cabecalho.titulo?.trim() || CABECALHO_PDF_PADRAO.titulo!;
   doc.setFontSize(14);
-  doc.text("Comparativo de preços por perfil", 40, 40);
+  doc.text(titulo, 40, 40);
+
+  let y = 56;
   doc.setFontSize(9);
-  doc.text(
-    `${perfis.a}${perfis.b ? ` vs ${perfis.b}` : ""} — gerado em ${agora()}`,
-    40,
-    56,
-  );
+  if (cabecalho.subtitulo?.trim()) {
+    doc.text(cabecalho.subtitulo.trim(), 40, y);
+    y += 14;
+  }
+  const meta: string[] = [];
+  if (cabecalho.incluirPerfis !== false) {
+    meta.push(`${perfis.a}${perfis.b ? ` vs ${perfis.b}` : ""}`);
+  }
+  if (cabecalho.incluirData !== false) {
+    meta.push(`gerado em ${agora()}`);
+  }
+  if (meta.length > 0) {
+    doc.text(meta.join(" — "), 40, y);
+    y += 14;
+  }
 
   const head = [["Produto", "Perfil", "Custo Fábrica", ...colunas.map((c) => c.nome)]];
   const body = linhas.map((l) => [
@@ -105,7 +133,7 @@ export function exportarComparativoPDF(
   autoTable(doc, {
     head,
     body,
-    startY: 70,
+    startY: y + 6,
     styles: { fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [40, 40, 40] },
     columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } },
@@ -113,3 +141,4 @@ export function exportarComparativoPDF(
 
   doc.save(`comparativo_perfis_${new Date().toISOString().split("T")[0]}.pdf`);
 }
+

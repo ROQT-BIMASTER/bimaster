@@ -3,6 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -12,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronLeft, ChevronRight, Columns3, FileDown, FileSpreadsheet, RotateCcw } from "lucide-react";
+import { Columns3, FileDown, FileSpreadsheet, GripVertical, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { logger } from "@/lib/logger";
@@ -29,11 +40,15 @@ import {
   exportarComparativoExcel,
   exportarComparativoPDF,
   ordenarColunasPadrao,
+  CABECALHO_PDF_PADRAO,
+  type CabecalhoPDF,
   type ComparativoLinhaExport,
 } from "@/lib/fabrica/exportComparativoPerfis";
 
 const STORAGE_KEY = "simulador:comparativo:ordem-colunas";
 const HIDDEN_KEY = "simulador:comparativo:colunas-ocultas";
+const PDF_HEADER_KEY = "simulador:comparativo:cabecalho-pdf";
+
 
 interface Props {
   produtos: ProdutoHipotetico[];
@@ -97,15 +112,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     persistirOcultas(ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id]);
   };
 
-  const moverColuna = (id: string, delta: number) => {
-    const ids = colunasOrdenadas.map((t) => t.id);
-    const visiveis = colunasVisiveis.map((t) => t.id);
-    const vi = visiveis.indexOf(id);
-    const vizinho = visiveis[vi + delta];
-    if (!vizinho) return;
-    const i = ids.indexOf(id);
-    const j = ids.indexOf(vizinho);
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+  const persistirOrdem = (ids: string[]) => {
     setOrdem(ids);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
@@ -113,6 +120,49 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
       /* preferência opcional */
     }
   };
+
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvo, setAlvo] = useState<string | null>(null);
+
+  const soltarColuna = (destinoId: string) => {
+    const origemId = arrastando;
+    setArrastando(null);
+    setAlvo(null);
+    if (!origemId || origemId === destinoId) return;
+    const ids = colunasOrdenadas.map((t) => t.id);
+    const from = ids.indexOf(origemId);
+    const to = ids.indexOf(destinoId);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    persistirOrdem(ids);
+  };
+
+  // Cabeçalho personalizável do PDF (preferência por usuário).
+  const headerKey = `${PDF_HEADER_KEY}:${uid}`;
+  const [pdfDialogAberto, setPdfDialogAberto] = useState(false);
+  const [cabecalho, setCabecalho] = useState<CabecalhoPDF>(CABECALHO_PDF_PADRAO);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(headerKey);
+      setCabecalho(raw ? { ...CABECALHO_PDF_PADRAO, ...JSON.parse(raw) } : CABECALHO_PDF_PADRAO);
+    } catch {
+      setCabecalho(CABECALHO_PDF_PADRAO);
+    }
+  }, [headerKey]);
+
+  const atualizarCabecalho = (patch: Partial<CabecalhoPDF>) => {
+    setCabecalho((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem(headerKey, JSON.stringify(next));
+      } catch {
+        /* preferência opcional */
+      }
+      return next;
+    });
+  };
+
 
   const validos = produtos.filter((p) => p.valor > 0);
 
@@ -181,16 +231,20 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const handlePDF = () => {
     try {
-      exportarComparativoPDF(colunasVisiveis, linhasExport(), {
-        a: perfilA.nome,
-        b: perfilB?.nome,
-      });
+      exportarComparativoPDF(
+        colunasVisiveis,
+        linhasExport(),
+        { a: perfilA.nome, b: perfilB?.nome },
+        cabecalho,
+      );
+      setPdfDialogAberto(false);
       toast.success("PDF gerado");
     } catch (e) {
       logger.error("Erro ao gerar PDF do comparativo", e);
       toast.error("Não foi possível gerar o PDF");
     }
   };
+
 
   return (
     <Card>
@@ -243,11 +297,76 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePDF}>
+          <Button variant="outline" size="sm" onClick={() => setPdfDialogAberto(true)}>
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+
+          <Dialog open={pdfDialogAberto} onOpenChange={setPdfDialogAberto}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cabeçalho do PDF</DialogTitle>
+                <DialogDescription>
+                  Personalize o título e as informações exibidas antes da tabela.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="pdf-titulo">Título</Label>
+                  <Input
+                    id="pdf-titulo"
+                    value={cabecalho.titulo ?? ""}
+                    placeholder={CABECALHO_PDF_PADRAO.titulo}
+                    onChange={(e) => atualizarCabecalho({ titulo: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pdf-subtitulo">Subtítulo (opcional)</Label>
+                  <Input
+                    id="pdf-subtitulo"
+                    value={cabecalho.subtitulo ?? ""}
+                    placeholder="Ex.: Simulação de reajuste — linha Baunilha"
+                    onChange={(e) => atualizarCabecalho({ subtitulo: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pdf-data" className="font-normal">
+                    Incluir data e hora de geração
+                  </Label>
+                  <Switch
+                    id="pdf-data"
+                    checked={cabecalho.incluirData !== false}
+                    onCheckedChange={(v) => atualizarCabecalho({ incluirData: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pdf-perfis" className="font-normal">
+                    Incluir nome do perfil
+                  </Label>
+                  <Switch
+                    id="pdf-perfis"
+                    checked={cabecalho.incluirPerfis !== false}
+                    onCheckedChange={(v) => atualizarCabecalho({ incluirPerfis: v })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  onClick={() => atualizarCabecalho(CABECALHO_PDF_PADRAO)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Restaurar padrão
+                </Button>
+                <Button onClick={handlePDF}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Gerar PDF
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
+
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
@@ -255,33 +374,40 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <TableRow>
               <TableHead>Produto</TableHead>
               <TableHead className="text-right">Custo fábrica</TableHead>
-              {colunasVisiveis.map((t, idx) => (
-                <TableHead key={t.id} className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      disabled={idx === 0}
-                      aria-label={`Mover ${t.nome} para a esquerda`}
-                      onClick={() => moverColuna(t.id, -1)}
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
+              {colunasVisiveis.map((t) => (
+                <TableHead
+                  key={t.id}
+                  className={`text-right select-none ${
+                    alvo === t.id ? "bg-accent/60" : ""
+                  } ${arrastando === t.id ? "opacity-50" : ""}`}
+                  draggable
+                  onDragStart={(e) => {
+                    setArrastando(t.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (alvo !== t.id) setAlvo(t.id);
+                  }}
+                  onDragLeave={() => setAlvo((a) => (a === t.id ? null : a))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    soltarColuna(t.id);
+                  }}
+                  onDragEnd={() => {
+                    setArrastando(null);
+                    setAlvo(null);
+                  }}
+                  title="Arraste para reordenar a coluna"
+                >
+                  <div className="flex items-center justify-end gap-1 cursor-grab active:cursor-grabbing">
+                    <GripVertical className="h-3 w-3 text-muted-foreground" aria-hidden />
                     <span>{t.nome}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      disabled={idx === colunasVisiveis.length - 1}
-                      aria-label={`Mover ${t.nome} para a direita`}
-                      onClick={() => moverColuna(t.id, 1)}
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
                   </div>
                 </TableHead>
               ))}
+
             </TableRow>
           </TableHeader>
           <TableBody>
