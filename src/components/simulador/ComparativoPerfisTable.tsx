@@ -204,6 +204,41 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Columns3 className="h-4 w-4 mr-2" />
+                Colunas
+                {ocultas.length > 0 && (
+                  <span className="ml-2 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+                    {colunasVisiveis.length}/{colunasOrdenadas.length}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-xs">Colunas visíveis</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {colunasOrdenadas.map((t) => (
+                <DropdownMenuCheckboxItem
+                  key={t.id}
+                  checked={!ocultas.includes(t.id)}
+                  onCheckedChange={() => toggleColuna(t.id)}
+                  onSelect={(e) => e.preventDefault()}
+                  disabled={!ocultas.includes(t.id) && colunasVisiveis.length === 1}
+                  className="text-xs"
+                >
+                  {t.nome}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => persistirOcultas([])} className="text-xs">
+                <RotateCcw className="h-3 w-3 mr-2" />
+                Mostrar todas
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button variant="outline" size="sm" onClick={handleExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Excel
