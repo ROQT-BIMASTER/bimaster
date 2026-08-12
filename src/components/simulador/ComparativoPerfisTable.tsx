@@ -297,11 +297,76 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePDF}>
+          <Button variant="outline" size="sm" onClick={() => setPdfDialogAberto(true)}>
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+
+          <Dialog open={pdfDialogAberto} onOpenChange={setPdfDialogAberto}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cabeçalho do PDF</DialogTitle>
+                <DialogDescription>
+                  Personalize o título e as informações exibidas antes da tabela.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="pdf-titulo">Título</Label>
+                  <Input
+                    id="pdf-titulo"
+                    value={cabecalho.titulo ?? ""}
+                    placeholder={CABECALHO_PDF_PADRAO.titulo}
+                    onChange={(e) => atualizarCabecalho({ titulo: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pdf-subtitulo">Subtítulo (opcional)</Label>
+                  <Input
+                    id="pdf-subtitulo"
+                    value={cabecalho.subtitulo ?? ""}
+                    placeholder="Ex.: Simulação de reajuste — linha Baunilha"
+                    onChange={(e) => atualizarCabecalho({ subtitulo: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pdf-data" className="font-normal">
+                    Incluir data e hora de geração
+                  </Label>
+                  <Switch
+                    id="pdf-data"
+                    checked={cabecalho.incluirData !== false}
+                    onCheckedChange={(v) => atualizarCabecalho({ incluirData: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pdf-perfis" className="font-normal">
+                    Incluir nome do perfil
+                  </Label>
+                  <Switch
+                    id="pdf-perfis"
+                    checked={cabecalho.incluirPerfis !== false}
+                    onCheckedChange={(v) => atualizarCabecalho({ incluirPerfis: v })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  onClick={() => atualizarCabecalho(CABECALHO_PDF_PADRAO)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Restaurar padrão
+                </Button>
+                <Button onClick={handlePDF}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Gerar PDF
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
+
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
