@@ -205,16 +205,20 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const handlePDF = () => {
     try {
-      exportarComparativoPDF(colunasVisiveis, linhasExport(), {
-        a: perfilA.nome,
-        b: perfilB?.nome,
-      });
+      exportarComparativoPDF(
+        colunasVisiveis,
+        linhasExport(),
+        { a: perfilA.nome, b: perfilB?.nome },
+        cabecalho,
+      );
+      setPdfDialogAberto(false);
       toast.success("PDF gerado");
     } catch (e) {
       logger.error("Erro ao gerar PDF do comparativo", e);
       toast.error("Não foi possível gerar o PDF");
     }
   };
+
 
   return (
     <Card>
