@@ -103,7 +103,15 @@ const MunicipiosIntelligence = () => {
                 </p>
               </div>
             </div>
-            <ClientesSyncBadge />
+            <div className="flex items-center gap-2">
+              <Link
+                to="/dashboard/comercial/relatorio-vendedores"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Relatório por vendedor
+              </Link>
+              <ClientesSyncBadge />
+            </div>
           </div>
         </div>
 
