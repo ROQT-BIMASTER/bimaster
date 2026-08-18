@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { uploadResilient } from "@/lib/china/uploadCore";
 
 /**
  * Comprime uma imagem mantendo qualidade aceitável para mobile
@@ -63,19 +63,13 @@ export async function uploadFile(
   filePath: string,
   file: File
 ): Promise<{ path: string; error: Error | null }> {
-  try {
-    const result = await resumableUpload({
-      bucket,
-      path: filePath,
-      file,
-      upsert: false,
-    });
-
-    return { path: result.path, error: null };
-  } catch (error) {
-    return { path: '', error: error as Error };
+  const result = await uploadResilient({ bucket, path: filePath, file, upsert: false });
+  if (result.ok === false) {
+    return { path: '', error: new Error(result.failure.message) };
   }
+  return { path: result.path, error: null };
 }
+
 
 /**
  * Gera URL assinada com expiração (signed URL)
@@ -142,12 +136,9 @@ export async function uploadAndGetSignedUrl(
   expiresIn = 31536000 // 1 ano
 ): Promise<{ signedUrl: string; path: string; error: null } | { signedUrl: null; path: string; error: Error }> {
   try {
-    await resumableUpload({
-      bucket,
-      path: filePath,
-      file,
-      upsert: false,
-    });
+    const up = await uploadResilient({ bucket, path: filePath, file, upsert: false });
+    if (up.ok === false) throw new Error(up.failure.message);
+
 
     const { data, error: signError } = await supabase.storage
       .from(bucket)

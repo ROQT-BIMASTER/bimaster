@@ -9,17 +9,18 @@
 // ── Extensões e MIME types permitidos ──────────────────────────────────────────
 
 const ALLOWED_EXTENSIONS = new Set([
-  "pdf", "png", "jpg", "jpeg", "webp", "gif", "heic",
-  "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "xml",
-  "zip", "txt",
+  "pdf", "png", "jpg", "jpeg", "webp", "gif", "heic", "heif", "bmp", "tif", "tiff", "svg",
+  "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "xml", "txt",
+  "zip", "rar", "7z",
   "mp4", "mov", "webm",
-  // Arquivos de design (equipes de criação) — limite ampliado para 1 GB
-  "ai", "psd",
+  // Arquivos de design (equipes de criação e fornecedores) — limite 1 GB
+  "ai", "psd", "eps", "cdr", "dwg", "dxf",
 ]);
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "image/png", "image/jpeg", "image/webp", "image/gif", "image/heic", "image/heif",
+  "image/bmp", "image/tiff", "image/svg+xml",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
@@ -29,9 +30,11 @@ const ALLOWED_MIME_TYPES = new Set([
   "text/csv", "text/plain",
   "application/xml", "text/xml",
   "application/zip", "application/x-zip-compressed",
+  "application/vnd.rar", "application/x-rar-compressed", "application/x-rar",
+  "application/x-7z-compressed",
   "video/mp4", "video/quicktime", "video/webm",
-  "application/octet-stream", // alguns browsers usam para .docx/.xlsx/.pptx/.psd
-  // Design (Illustrator / Photoshop)
+  "application/octet-stream", // alguns browsers usam para .docx/.xlsx/.pptx/.psd/.cdr/.dwg
+  // Design (Illustrator / Photoshop / CorelDRAW / CAD)
   "application/postscript",
   "application/illustrator",
   "application/vnd.adobe.illustrator",
@@ -39,13 +42,45 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/x-photoshop",
   "application/photoshop",
   "image/psd",
+  "image/x-eps", "application/eps", "application/x-eps",
+  "application/coreldraw", "application/x-coreldraw", "application/cdr", "image/x-coreldraw",
+  "image/vnd.dwg", "application/acad", "application/x-acad", "image/vnd.dxf",
 ]);
+
 
 const DANGEROUS_EXTENSIONS = new Set([
   "exe", "bat", "cmd", "sh", "ps1", "vbs", "js",
   "html", "htm", "msi", "dll", "scr", "com",
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
+
+/** MIMEs ativos/executáveis — bloqueados mesmo com extensão permitida. */
+const DANGEROUS_MIME_TYPES = new Set([
+  "text/html", "application/xhtml+xml",
+  "text/javascript", "application/javascript", "application/x-javascript",
+  "application/x-msdownload", "application/x-msdos-program", "application/x-executable",
+  "application/x-sh", "application/x-bat", "application/x-msi",
+  "application/vnd.microsoft.portable-executable",
+  "application/x-shockwave-flash",
+]);
+
+/** Rótulo único de formatos aceitos, usado em mensagens de erro e na UI. */
+export const ALLOWED_FORMATS_LABEL =
+  "Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC, BMP, TIFF, SVG), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, compactados (ZIP, RAR, 7Z), design/CAD (AI, PSD, EPS, CDR, DWG, DXF) e vídeos (MP4, MOV, WEBM). Limite de 1 GB por arquivo.";
+
+/** Lista de extensões aceitas (usada em testes de paridade e em inputs `accept`). */
+export function getAllowedExtensions(): string[] {
+  return [...ALLOWED_EXTENSIONS].sort();
+}
+
+/** Lista de MIME types aceitos (usada no teste de paridade com o armazenamento). */
+export function getAllowedMimeTypes(): string[] {
+  return [...ALLOWED_MIME_TYPES].sort();
+}
+
+/** Valor pronto para o atributo `accept` de `<input type="file">`. */
+export const UPLOAD_ACCEPT_ATTR = [...ALLOWED_EXTENSIONS].map((e) => `.${e}`).join(",");
+
 
 // Limite unificado de upload — fonte única em `@/lib/upload/limits`.
 // As constantes específicas são mantidas como aliases para compatibilidade
@@ -90,7 +125,27 @@ const MAGIC_SIGNATURES: Record<string, MagicSignature[]> = {
     { bytes: [0x25, 0x50, 0x44, 0x46] },                    // %PDF
     { bytes: [0x25, 0x21, 0x50, 0x53] },                    // %!PS
   ],
+  eps:  [
+    { bytes: [0x25, 0x21, 0x50, 0x53] },                    // %!PS
+    { bytes: [0xC5, 0xD0, 0xD3, 0xC6] },                    // EPS binário (DOS header)
+  ],
+  rar:  [{ bytes: [0x52, 0x61, 0x72, 0x21] }],              // Rar!
+  "7z": [{ bytes: [0x37, 0x7A, 0xBC, 0xAF] }],              // 7z
+  tif:  [
+    { bytes: [0x49, 0x49, 0x2A, 0x00] },                    // little-endian
+    { bytes: [0x4D, 0x4D, 0x00, 0x2A] },                    // big-endian
+  ],
+  tiff: [
+    { bytes: [0x49, 0x49, 0x2A, 0x00] },
+    { bytes: [0x4D, 0x4D, 0x00, 0x2A] },
+  ],
+  bmp:  [{ bytes: [0x42, 0x4D] }],                          // BM
+  heif: [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],
+  // CorelDRAW é um contêiner RIFF ("RIFF....CDR")
+  cdr:  [{ bytes: [0x52, 0x49, 0x46, 0x46] }],
+  // SVG/DXF são texto puro: sem assinatura binária confiável (validação por MIME/extensão).
 };
+
 
 // ── Tipos de resultado ─────────────────────────────────────────────────────────
 
@@ -159,7 +214,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "EXTENSION_NOT_ALLOWED",
-      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP, design (AI, PSD) e vídeos (MP4, MOV, WEBM). Limite unificado de 1 GB por arquivo.`,
+      error: `Extensão ".${ext}" não é suportada. ${ALLOWED_FORMATS_LABEL}`,
     };
   }
 
@@ -172,14 +227,18 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 4. MIME type (tolerante: aceita octet-stream para .docx/.xlsx/.psd/.ai)
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
+  // 4. MIME type — tolerante por design. Browsers e sistemas chineses reportam
+  // MIMEs não padronizados para .cdr/.dwg/.rar/.eps; nesses casos confiamos na
+  // extensão permitida + magic bytes. Só bloqueamos MIMEs executáveis/ativos.
+  if (file.type && DANGEROUS_MIME_TYPES.has(file.type.toLowerCase())) {
     return {
       valid: false,
       code: "MIME_REJECTED",
       error: `Tipo MIME "${file.type}" não é permitido para ".${ext}". Verifique se o arquivo não foi renomeado a partir de outro formato.`,
     };
   }
+
+
 
   // 5. Tamanho — teto unificado de 1 GB para qualquer extensão suportada
   const maxSize = MAX_FILE_SIZE_BYTES;

@@ -33,6 +33,8 @@ export type UploadModule =
   | "china-doc"
   | "china-pasta-digital"
   | "china-revisao"
+  | "china-comentario"
+  | "china-parecer"
   | "fabrica-produto-foto"
   | "fabrica-cofre"
   | "fabrica-cotacao"

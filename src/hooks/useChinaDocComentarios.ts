@@ -4,7 +4,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
-import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { uploadResilient } from "@/lib/china/uploadCore";
+import {
+  guardFileUpload,
+  reportUploadFailureShared,
+  reportUploadSuccessShared,
+} from "@/lib/utils/sharedUploadGuard";
 
 export interface ComentarioAnexo {
   path: string;
@@ -52,18 +57,22 @@ async function uploadAnexos(
 ): Promise<ComentarioAnexo[]> {
   const out: ComentarioAnexo[] = [];
   for (const f of files) {
+    // Validação compartilhada antes de tocar o armazenamento.
+    const ok = await guardFileUpload({ file: f, module: "china-comentario", userId, contextId: basePath });
+    if (!ok) continue;
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
     const path = `${userId}/${basePath}/${Date.now()}-${safe}`;
-    await resumableUpload({
-      bucket: BUCKET,
-      path,
-      file: f,
-      upsert: false,
-    });
-    out.push({ path, nome: f.name, tamanho: f.size, mime: f.type });
+    const up = await uploadResilient({ bucket: BUCKET, path, file: f, upsert: false });
+    if (up.ok === false) {
+      reportUploadFailureShared({ module: "china-comentario", file: f, userId, contextId: basePath, error: up.failure.message });
+      throw new Error(up.failure.message);
+    }
+    reportUploadSuccessShared({ module: "china-comentario", file: f, userId, contextId: basePath, storagePath: up.path });
+    out.push({ path: up.path, nome: f.name, tamanho: f.size, mime: f.type });
   }
   return out;
 }
+
 
 export function useComentariosPorDocumento(documentoId: string | undefined) {
   const qc = useQueryClient();

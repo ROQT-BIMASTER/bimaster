@@ -17,35 +17,24 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { validateFileForUpload } from "@/lib/utils/file-security";
-import { UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
-import { resumableUpload } from "@/lib/upload/resumableUpload";
+import {
+  uploadResilient,
+  mapDbError,
+  type UploadErrorCode,
+} from "@/lib/china/uploadCore";
 import { reportGenericUploadSuccess, reportGenericUploadRejection, reportGenericUploadError } from "@/lib/telemetry/uploadTelemetry";
 import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
 const BUCKET = "china-documentos";
-const UPLOAD_TIMEOUT_MS = 60_000;
-const MAX_RETRIES = 2; // total = 3 tentativas
-const RETRY_BASE_MS = 700;
 
 const observacaoSchema = z
   .string()
   .trim()
   .max(2000, "Observação deve ter até 2000 caracteres.");
 
-export type UploadErrorCode =
-  | "INVALID_FILE"
-  | "NO_SESSION"
-  | "STORAGE_PAYLOAD_TOO_LARGE"
-  | "STORAGE_INVALID_KEY"
-  | "STORAGE_DENIED"
-  | "STORAGE_NETWORK"
-  | "STORAGE_TIMEOUT"
-  | "STORAGE_UNKNOWN"
-  | "DB_DENIED"
-  | "DB_CONFLICT"
-  | "DB_UNKNOWN";
+export type { UploadErrorCode };
 
 export interface UploadVars {
   submissaoId: string;
@@ -53,6 +42,8 @@ export interface UploadVars {
   file: File;
   status?: "rascunho" | "pendente";
   observacoesChina?: string | null;
+  /** Progresso 0–100 para barra na UI. */
+  onProgress?: (percent: number) => void;
 }
 
 export interface UploadResult {
@@ -61,91 +52,6 @@ export interface UploadResult {
   signed_url: string;
 }
 
-interface UploadFailure {
-  code: UploadErrorCode;
-  message: string;
-}
-
-function mapStorageError(err: any): UploadFailure {
-  const raw = String(err?.message ?? err ?? "");
-  const status = err?.statusCode ?? err?.status;
-
-  if (/invalid key/i.test(raw)) {
-    return { code: "STORAGE_INVALID_KEY", message: "Nome de arquivo inválido. Renomeie e tente novamente." };
-  }
-  if (status === 413 || /payload too large|exceeds/i.test(raw)) {
-    return { code: "STORAGE_PAYLOAD_TOO_LARGE", message: `Arquivo excede o limite permitido (${UPLOAD_MAX_LABEL}).` };
-  }
-  if (status === 401 || status === 403 || /not authorized|forbidden|denied/i.test(raw)) {
-    return { code: "STORAGE_DENIED", message: "Você não tem permissão para enviar este documento." };
-  }
-  if (err?.name === "AbortError" || /timeout|aborted/i.test(raw)) {
-    return { code: "STORAGE_TIMEOUT", message: "O envio demorou demais. Verifique sua conexão e tente novamente." };
-  }
-  if (/network|fetch failed|load failed/i.test(raw)) {
-    return { code: "STORAGE_NETWORK", message: "Falha de rede ao enviar o arquivo. Tente novamente." };
-  }
-  return { code: "STORAGE_UNKNOWN", message: raw || "Falha ao enviar o arquivo." };
-}
-
-function mapDbError(err: any): UploadFailure {
-  const raw = String(err?.message ?? err ?? "");
-  const code = err?.code;
-  if (code === "42501" || /permission denied|rls|policy/i.test(raw)) {
-    return { code: "DB_DENIED", message: "Você não tem permissão para registrar este documento." };
-  }
-  if (code === "23505" || /duplicate|unique/i.test(raw)) {
-    return { code: "DB_CONFLICT", message: "Este documento já foi registrado. Atualize a página." };
-  }
-  return { code: "DB_UNKNOWN", message: raw || "Falha ao registrar o documento." };
-}
-
-function isTransient(code: UploadErrorCode): boolean {
-  return code === "STORAGE_NETWORK" || code === "STORAGE_TIMEOUT" || code === "STORAGE_UNKNOWN";
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(Object.assign(new Error(`${label} timeout`), { name: "AbortError" })), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-async function uploadWithRetry(
-  path: string,
-  file: File,
-): Promise<{ ok: true } | { ok: false; failure: UploadFailure }> {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await withTimeout(
-        resumableUpload({
-          bucket: BUCKET,
-          path,
-          file,
-          upsert: false,
-          skipValidation: true,
-        }),
-        UPLOAD_TIMEOUT_MS,
-        "upload",
-      );
-      return { ok: true };
-    } catch (err: any) {
-      const failure = mapStorageError(err);
-      if (!isTransient(failure.code) || attempt === MAX_RETRIES) {
-        return { ok: false, failure };
-      }
-    }
-    await new Promise((r) => setTimeout(r, RETRY_BASE_MS * Math.pow(2, attempt)));
-  }
-  return { ok: false, failure: { code: "STORAGE_UNKNOWN", message: "Falha ao enviar." } };
-}
 
 export function useUploadChinaDocumento() {
   const qc = useQueryClient();
@@ -170,6 +76,7 @@ export function useUploadChinaDocumento() {
       file,
       status = "rascunho",
       observacoesChina,
+      onProgress,
     }: UploadVars): Promise<UploadResult | null> => {
       setError(null);
 
@@ -228,8 +135,18 @@ export function useUploadChinaDocumento() {
         const safeTipo = sanitizeStorageSegment(tipo);
         const path = `${uid}/${submissaoId}/${safeTipo}/${Date.now()}_${safeName}`;
 
-        // 5. Upload com retry/timeout/abort.
-        const up = await uploadWithRetry(path, file);
+        // 5. Upload com retry/timeout/progresso (núcleo compartilhado).
+        const up = await uploadResilient({
+          bucket: BUCKET,
+          path,
+          file,
+          onProgress,
+          onRetry: (attempt) =>
+            logger.warn("Upload China — nova tentativa", {
+              action: "china_upload_retry",
+              metadata: { attempt, submissaoId, tipo: safeTipo },
+            }),
+        });
         if (up.ok === false) {
           const failure = up.failure;
           setError(failure.message);
