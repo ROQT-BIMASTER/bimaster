@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { exportToExcel } from "@/utils/excelExport";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface RelatorioVendedorRow {
   cod_vend: number | null;
