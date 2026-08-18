@@ -196,7 +196,13 @@ export function useAddChinaPastaDigitalItem() {
           departamento_id: params.departamento_id || null,
           created_by: user?.id,
         }) as any);
-      if (error) throw error;
+      if (error) {
+        // Rollback: evita arquivo órfão no armazenamento quando o cadastro falha.
+        if (arquivo_path) {
+          await supabase.storage.from("china-pasta-digital").remove([arquivo_path]).catch(() => {});
+        }
+        throw error;
+      }
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["china-pasta-digital", vars.submissao_id] });
