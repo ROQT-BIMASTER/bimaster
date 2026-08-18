@@ -208,17 +208,7 @@ export function FlowItemFocusDrawer({
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => onOpenChange(false)}
-              title="Fechar"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </SheetHeader>
+            {/* Fechar: usa o botão nativo do SheetContent (canto superior direito). */}
 
 
 
