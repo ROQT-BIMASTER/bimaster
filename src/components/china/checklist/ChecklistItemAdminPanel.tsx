@@ -42,6 +42,12 @@ interface Props {
   };
   /** Aba inicial. */
   defaultTab?: "parecer" | "comentarios";
+  /**
+   * Quando o painel já está dentro de outra navegação por abas (ex.:
+   * FlowItemFocusDrawer), esconde a barra interna e renderiza apenas a
+   * seção de `defaultTab` — evita duas navegações idênticas aninhadas.
+   */
+  hideTabs?: boolean;
   className?: string;
 }
 
@@ -56,8 +62,47 @@ export function ChecklistItemAdminPanel({
   isSender,
   allowedActions,
   defaultTab = "parecer",
+  hideTabs = false,
   className,
 }: Props) {
+  const parecerSection = (
+    <>
+      <DrawerParecerActions
+        documentoId={documentoId}
+        submissaoId={submissaoId}
+        tipoDocumento={tipoDocumento}
+        tipoDocumentoLabel={tipoDocumentoLabel}
+        bucket={bucket}
+        isReceiver={isReceiver}
+        isSender={isSender}
+        allowedActions={allowedActions}
+      />
+      <DrawerRevisoesList
+        submissaoId={submissaoId}
+        documentoId={documentoId}
+      />
+    </>
+  );
+
+  const comentariosSection = (
+    <DrawerComentariosTab
+      documentoId={documentoId}
+      submissaoId={submissaoId}
+      tipoDocumento={tipoDocumento}
+      lado={lado}
+    />
+  );
+
+  if (hideTabs) {
+    return defaultTab === "comentarios" ? (
+      <div className={className}>{comentariosSection}</div>
+    ) : (
+      <div className={className ? `${className} space-y-3` : "space-y-3"}>
+        {parecerSection}
+      </div>
+    );
+  }
+
   return (
     <Tabs defaultValue={defaultTab} className={className}>
       <TabsList className="h-8 grid w-full grid-cols-2">
@@ -70,29 +115,11 @@ export function ChecklistItemAdminPanel({
       </TabsList>
 
       <TabsContent value="parecer" className="mt-3 space-y-3">
-        <DrawerParecerActions
-          documentoId={documentoId}
-          submissaoId={submissaoId}
-          tipoDocumento={tipoDocumento}
-          tipoDocumentoLabel={tipoDocumentoLabel}
-          bucket={bucket}
-          isReceiver={isReceiver}
-          isSender={isSender}
-          allowedActions={allowedActions}
-        />
-        <DrawerRevisoesList
-          submissaoId={submissaoId}
-          documentoId={documentoId}
-        />
+        {parecerSection}
       </TabsContent>
 
       <TabsContent value="comentarios" className="mt-3">
-        <DrawerComentariosTab
-          documentoId={documentoId}
-          submissaoId={submissaoId}
-          tipoDocumento={tipoDocumento}
-          lado={lado}
-        />
+        {comentariosSection}
       </TabsContent>
     </Tabs>
   );

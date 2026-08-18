@@ -294,6 +294,7 @@ export const PhotoBeforeAfterView = ({
 
       <Dialog open={!!focusGroup} onOpenChange={(open) => !open && setFocusKey(null)}>
         <DialogContent
+          hideClose
           className="max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}

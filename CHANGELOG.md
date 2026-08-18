@@ -6,6 +6,18 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 > Para o changelog operacional de SDK/OpenAPI consumido por integradores,
 > consulte `src/pages/admin/ApiDocumentation.tsx`.
 
+## [4.1.6]
+
+- China / Painel de foco do item: removido o botão de fechar duplicado (mantido
+  apenas o nativo do painel) e eliminada a barra de abas "Pareceres/Comentários"
+  repetida dentro das abas do próprio painel.
+- China / Pareceres: o menu "..." do anexo não repete mais a ação "Baixar" (o
+  clique no nome do arquivo já faz o download) e só aparece quando há ação
+  disponível.
+- China / Rótulos: "Substituir arquivo (sem parecer)" na aba Documento e
+  "Substituir com parecer técnico" na aba Pareceres, para distinguir os fluxos.
+- Trade / Antes e Depois: fechar duplicado no visualizador em tela cheia.
+
 ## [4.0.1]
 
 - Copilotos (Projeto, Central de Trabalho, Pedidos): corrigida a falha que impedia

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Archive, Download, ExternalLink, FileSpreadsheet, FileText, FileType2, ImageIcon,
-  Link2, Loader2, Maximize2, Palette, Send, Upload, X,
+  Link2, Loader2, Maximize2, Palette, Send, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -162,7 +162,7 @@ export function FlowItemFocusDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 flex flex-col">
-        <SheetHeader className="border-b border-border bg-card/40 px-4 py-3">
+        <SheetHeader className="border-b border-border bg-card/40 px-4 py-3 pr-10">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-1.5 text-[10.5px] tabular-nums text-muted-foreground">
@@ -208,17 +208,11 @@ export function FlowItemFocusDrawer({
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => onOpenChange(false)}
-              title="Fechar"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {/* Fechar: usa o botão nativo do SheetContent (canto superior direito). */}
           </div>
         </SheetHeader>
+
+
 
 
 
@@ -280,7 +274,7 @@ export function FlowItemFocusDrawer({
                     ) : (
                       <Upload className="h-3.5 w-3.5" />
                     )}
-                    Substituir arquivo
+                    Substituir arquivo (sem parecer)
                   </Button>
                 )}
                 <p className="text-[10px] text-muted-foreground/80">
@@ -390,6 +384,7 @@ export function FlowItemFocusDrawer({
                     : undefined
                 }
                 defaultTab="parecer"
+                hideTabs
               />
             ) : (
               <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
@@ -420,6 +415,7 @@ export function FlowItemFocusDrawer({
                   (!isChina && isBrasilCategory)
                 }
                 defaultTab="comentarios"
+                hideTabs
               />
             ) : (
               <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
