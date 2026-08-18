@@ -246,6 +246,7 @@ const FabricaManualPage = lazyWithRetry(() => import("./pages/FabricaManualPage"
 const ComercialModule = lazyWithRetry(() => import("./pages/modules/ComercialModule"));
 const WhitespaceAnalysis = lazyWithRetry(() => import("./pages/WhitespaceAnalysis"));
 const MunicipiosIntelligence = lazyWithRetry(() => import("./pages/MunicipiosIntelligence"));
+const RelatorioVendedores = lazyWithRetry(() => import("./pages/RelatorioVendedores"));
 const IBGEData = lazyWithRetry(() => import("./pages/IBGEData"));
 const LeadMining = lazyWithRetry(() => import("./pages/LeadMining"));
 const MarketIntelligence = lazyWithRetry(() => import("./pages/MarketIntelligence"));
