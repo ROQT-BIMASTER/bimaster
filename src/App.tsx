@@ -829,6 +829,7 @@ function AppContent() {
             <Route path="/dashboard/comercial/reativacao" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_reativacao"><ClientReactivation /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/comercial/mapa" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_mapa"><ComercialMapa /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/comercial/municipios-inteligencia" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_municipios"><MunicipiosIntelligence /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/relatorio-vendedores" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_municipios"><RelatorioVendedores /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/comercial/whitespace" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_whitespace"><WhitespaceAnalysis /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
