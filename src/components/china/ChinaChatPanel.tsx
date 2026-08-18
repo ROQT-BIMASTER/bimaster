@@ -27,7 +27,7 @@ import { useUserLanguage, LANGUAGE_LABEL, LANGUAGE_FLAG, type UserLanguage } fro
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { validateFileForUpload } from "@/lib/utils/file-security";
 import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
-import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { uploadResilient } from "@/lib/china/uploadCore";
 import { reportGenericUploadSuccess, reportGenericUploadError, reportGenericUploadRejection } from "@/lib/telemetry/uploadTelemetry";
 import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
@@ -325,17 +325,15 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
         const ext = file.name.split(".").pop() || "bin";
         const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const path = `${submissaoId}/${user.id}/${safeName}`;
-        try {
-          await resumableUpload({
-            bucket: "china-chat-anexos",
-            path,
-            file,
-            upsert: false,
-            skipValidation: true,
-          });
-        } catch (error) {
-          reportGenericUploadError({ module: "china-chat", file, userId: user.id, contextId: submissaoId, error, reason: "storage_upload_failed" });
-          throw error;
+        const up = await uploadResilient({
+          bucket: "china-chat-anexos",
+          path,
+          file,
+          upsert: false,
+        });
+        if (up.ok === false) {
+          reportGenericUploadError({ module: "china-chat", file, userId: user.id, contextId: submissaoId, error: up.failure.message, reason: "storage_upload_failed" });
+          throw new Error(up.failure.message);
         }
         reportGenericUploadSuccess({ module: "china-chat", file, userId: user.id, contextId: submissaoId, storagePath: path });
         out.push({ path, nome: file.name, mime: file.type, size: file.size });

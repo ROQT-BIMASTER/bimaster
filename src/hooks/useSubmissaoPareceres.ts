@@ -3,6 +3,7 @@ import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { guardFileUpload, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
+import { uploadResilient } from "@/lib/china/uploadCore";
 import { sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 
 export interface ParecerAnexo {
@@ -136,16 +137,19 @@ export function useSubmissaoPareceres(submissaoId: string | null | undefined) {
         // Nome sanitizado: Storage rejeita caracteres não-ASCII ("Invalid key").
         const safeName = sanitizeStorageFileName(file.name);
         const path = `${uid}/${submissaoId}/${parecerId}/${crypto.randomUUID()}-${safeName}`;
-        const { error: upErr } = await supabase.storage
-          .from("china-pareceres")
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (upErr) {
+        const up = await uploadResilient({
+          bucket: "china-pareceres",
+          path,
+          file,
+          upsert: false,
+        });
+        if (up.ok === false) {
           reportUploadFailureShared({
-            module: "china-doc",
+            module: "china-parecer",
             file,
             userId: uid,
             contextId: submissaoId ?? null,
-            error: upErr,
+            error: up.failure.message,
             toast: true,
           });
           continue;

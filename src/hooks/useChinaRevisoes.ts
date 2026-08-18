@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
-import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { uploadResilient } from "@/lib/china/uploadCore";
 import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 
 export interface Anotacao {
@@ -238,19 +238,13 @@ async function uploadAnexos(
     const safe = sanitizeStorageFileName(f.name);
     const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     let uploadedPath = path;
-    try {
-      const result = await resumableUpload({
-        bucket: BUCKET,
-        path,
-        file: f,
-        upsert: false,
-        skipValidation: true,
-      });
-      uploadedPath = result.path;
-    } catch (error) {
-      reportUploadFailureShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, error });
-      throw error;
+    const up = await uploadResilient({ bucket: BUCKET, path, file: f, upsert: false });
+    if (up.ok === false) {
+      reportUploadFailureShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, error: up.failure.message });
+      throw new Error(up.failure.message);
     }
+    uploadedPath = up.path;
+
     reportUploadSuccessShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, storagePath: uploadedPath });
     out.push({ path: uploadedPath, nome: f.name, tamanho: f.size, mime: f.type, lado });
   }
@@ -570,14 +564,15 @@ export function useContestarComParecer() {
       const safeTipo = sanitizeStorageSegment(params.tipo_documento || "documento");
       // Path exigido pelas regras de acesso: <uid>/<submissao>/...
       const novoPath = `${user.id}/${params.submissao_id}/versoes/${safeTipo}/v${rodada}/${Date.now()}-${safe}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(
-        novoPath,
-        params.novo_arquivo,
-        { contentType: params.novo_arquivo.type || "application/octet-stream", upsert: false },
-      );
-      if (upErr) {
-        reportUploadFailureShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, error: upErr });
-        throw upErr;
+      const upNovo = await uploadResilient({
+        bucket: BUCKET,
+        path: novoPath,
+        file: params.novo_arquivo,
+        upsert: false,
+      });
+      if (upNovo.ok === false) {
+        reportUploadFailureShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, error: upNovo.failure.message });
+        throw new Error(upNovo.failure.message);
       }
       reportUploadSuccessShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, storagePath: novoPath });
       // Bucket privado: URL assinada (getPublicUrl não funciona aqui).

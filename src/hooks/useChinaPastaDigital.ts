@@ -1,8 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
-import { guardFileUpload, reportUploadSuccessShared } from "@/lib/utils/sharedUploadGuard";
+import { uploadResilient } from "@/lib/china/uploadCore";
+import {
+  guardFileUpload,
+  reportUploadSuccessShared,
+  reportUploadFailureShared,
+} from "@/lib/utils/sharedUploadGuard";
 import { sanitizeStorageSegment, sanitizeStorageFileName } from "@/lib/china/sanitizeTipoKey";
 import { DOCUMENT_CATEGORIES, CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 
@@ -138,9 +142,26 @@ export function useAddChinaPastaDigitalItem() {
         const safeFase = sanitizeStorageSegment(params.fase || "geral");
         const safeName = sanitizeStorageFileName(params.file.name);
         const path = `${user.id}/${params.submissao_id}/${safeFase}/${Date.now()}_${safeName}`;
-        const result = await uploadAndGetSignedUrl("china-pasta-digital", path, params.file);
-        if (result.error) throw result.error;
-        arquivo_url = result.signedUrl;
+        const up = await uploadResilient({
+          bucket: "china-pasta-digital",
+          path,
+          file: params.file,
+          upsert: false,
+        });
+        if (up.ok === false) {
+          reportUploadFailureShared({
+            module: "china-pasta-digital",
+            file: params.file,
+            userId: user.id,
+            contextId: params.submissao_id,
+            error: up.failure.message,
+          });
+          throw new Error(up.failure.message);
+        }
+        const { data: signed } = await supabase.storage
+          .from("china-pasta-digital")
+          .createSignedUrl(path, 31_536_000);
+        arquivo_url = signed?.signedUrl ?? null;
         arquivo_path = path;
         reportUploadSuccessShared({
           module: "china-doc",

@@ -55112,6 +55112,54 @@ export type Database = {
         }
         Relationships: []
       }
+      upload_audit_events: {
+        Row: {
+          context_id: string | null
+          created_at: string
+          error_code: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          message: string | null
+          module: string
+          page_url: string | null
+          reason: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          context_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          message?: string | null
+          module: string
+          page_url?: string | null
+          reason?: string | null
+          status: string
+          user_id?: string
+        }
+        Update: {
+          context_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          message?: string | null
+          module?: string
+          page_url?: string | null
+          reason?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_behavior_baseline: {
         Row: {
           avg_req_per_min: number | null

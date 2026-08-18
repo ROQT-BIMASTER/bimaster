@@ -12,8 +12,10 @@ import "@fontsource/dm-sans/700.css";
 import "@fontsource-variable/space-grotesk/index.css";
 import "./index.css";
 import "./lib/debug/flickerLog";
+import { initUploadAuditPersistence } from "./lib/telemetry/uploadAuditPersistence";
 
-
+// Auditoria de uploads no backend (diagnóstico de falhas de anexo).
+initUploadAuditPersistence();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
