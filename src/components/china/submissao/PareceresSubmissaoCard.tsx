@@ -345,28 +345,25 @@ function ParecerItem({
                     <CheckCircle2 className="h-2.5 w-2.5" /> No checklist
                   </span>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="border-l h-full px-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                      title="Mais ações"
-                      aria-label="Mais ações do anexo"
-                    >
-                      <MoreVertical className="h-3 w-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => baixar(a.storage_path, a.nome_arquivo)}>
-                      <Download className="h-3.5 w-3.5 mr-2" /> Baixar
-                    </DropdownMenuItem>
-                    {!promovidoId && (
+                {!promovidoId && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="border-l h-full px-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                        title="Mais ações"
+                        aria-label="Mais ações do anexo"
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
                       <DropdownMenuItem onSelect={() => setTimeout(() => setPromoverAnexo(a), 0)}>
                         <ClipboardList className="h-3.5 w-3.5 mr-2" /> Promover ao Checklist
                       </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             );
           })}
