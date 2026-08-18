@@ -108,7 +108,7 @@ export function DrawerParecerActions({
             onClick={() => setContestarOpen(true)}
           >
             <Upload className="h-3.5 w-3.5" />
-            Substituir com parecer
+            Substituir com parecer técnico
           </Button>
         )}
       </div>

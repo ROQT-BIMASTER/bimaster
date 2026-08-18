@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Archive, Download, ExternalLink, FileSpreadsheet, FileText, FileType2, ImageIcon,
-  Link2, Loader2, Maximize2, Palette, Send, Upload, X,
+  Link2, Loader2, Maximize2, Palette, Send, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
