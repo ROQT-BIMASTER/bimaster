@@ -247,6 +247,7 @@ const ComercialModule = lazyWithRetry(() => import("./pages/modules/ComercialMod
 const WhitespaceAnalysis = lazyWithRetry(() => import("./pages/WhitespaceAnalysis"));
 const MunicipiosIntelligence = lazyWithRetry(() => import("./pages/MunicipiosIntelligence"));
 const RelatorioVendedores = lazyWithRetry(() => import("./pages/RelatorioVendedores"));
+const ExportacaoClientes = lazyWithRetry(() => import("./pages/ExportacaoClientes"));
 const IBGEData = lazyWithRetry(() => import("./pages/IBGEData"));
 const LeadMining = lazyWithRetry(() => import("./pages/LeadMining"));
 const MarketIntelligence = lazyWithRetry(() => import("./pages/MarketIntelligence"));
