@@ -60424,6 +60424,21 @@ export type Database = {
           vendedor: string
         }[]
       }
+      fn_get_relatorio_vendedores: {
+        Args: { p_search?: string; p_somente_ativos?: boolean; p_uf?: string }
+        Returns: {
+          clientes_ativos: number
+          cod_vend: number
+          equipes: string
+          supervisores: string
+          total_clientes: number
+          total_municipios: number
+          total_supervisores: number
+          total_ufs: number
+          ultima_compra: string
+          vendedor: string
+        }[]
+      }
       fn_get_share_supervisor: {
         Args: {
           p_microrregiao_id?: number
