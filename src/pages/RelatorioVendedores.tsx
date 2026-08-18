@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { exportToExcel } from "@/utils/excelExport";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface RelatorioVendedorRow {
   cod_vend: number | null;
@@ -131,6 +132,12 @@ const RelatorioVendedores = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/comercial/exportacao-clientes"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Exportar clientes
+            </Link>
             <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
