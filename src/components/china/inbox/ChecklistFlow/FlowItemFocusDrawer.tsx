@@ -209,6 +209,10 @@ export function FlowItemFocusDrawer({
               </div>
             </div>
             {/* Fechar: usa o botão nativo do SheetContent (canto superior direito). */}
+          </div>
+        </SheetHeader>
+
+
 
 
 
