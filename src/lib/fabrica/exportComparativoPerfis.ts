@@ -10,6 +10,8 @@ export interface ComparativoColuna {
 
 export interface ComparativoLinhaExport {
   produto: string;
+  /** Linha comercial do produto (rótulo da simulação). */
+  linha?: string;
   perfil: string;
   custo: number;
   /** id da coluna -> preço */
@@ -48,6 +50,7 @@ export async function exportarComparativoExcel(
   const dados = linhas.map((l) => {
     const row: Record<string, string | number> = {
       Produto: l.produto,
+      Linha: l.linha ?? "Sem linha",
       Perfil: l.perfil,
       "Custo Fábrica": Number(l.custo.toFixed(4)),
     };
@@ -115,9 +118,10 @@ export function exportarComparativoPDF(
     y += 14;
   }
 
-  const head = [["Produto", "Perfil", "Custo Fábrica", ...colunas.map((c) => c.nome)]];
+  const head = [["Produto", "Linha", "Perfil", "Custo Fábrica", ...colunas.map((c) => c.nome)]];
   const body = linhas.map((l) => [
     l.produto,
+    l.linha ?? "Sem linha",
     l.perfil,
     formatCurrency(l.custo),
     ...colunas.map((c) => {
@@ -136,7 +140,7 @@ export function exportarComparativoPDF(
     startY: y + 6,
     styles: { fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [40, 40, 40] },
-    columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } },
+    columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 70 }, 2: { cellWidth: 80 } },
   });
 
   doc.save(`comparativo_perfis_${new Date().toISOString().split("T")[0]}.pdf`);
