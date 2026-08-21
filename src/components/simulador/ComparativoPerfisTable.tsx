@@ -218,7 +218,9 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Informe ao menos um produto com valor e selecione um perfil para ver o comparativo.
+          {produtos.some((p) => p.valor > 0) && (busca || linhasFiltro.length > 0)
+            ? "Nenhum produto corresponde ao filtro aplicado."
+            : "Informe ao menos um produto com valor e selecione um perfil para ver o comparativo."}
         </CardContent>
       </Card>
     );
@@ -226,9 +228,13 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const linhasExport = (): ComparativoLinhaExport[] => {
     const out: ComparativoLinhaExport[] = [];
-    for (const l of linhas) {
+    const fonte = agrupar ? grupos.flatMap(([, itens]) => itens) : linhas;
+    for (const l of fonte) {
+      const nome = l.produto.descricao || "Sem descrição";
+      const linhaProduto = (l.produto.linha || "").trim() || "Sem linha";
       out.push({
-        produto: l.produto.descricao || "Sem descrição",
+        produto: nome,
+        linha: linhaProduto,
         perfil: perfilA.nome,
         custo: l.custoA,
         precos: l.precosA,
@@ -239,7 +245,8 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
           diffs[t.id] = (l.precosB[t.id] ?? 0) - (l.precosA[t.id] ?? 0);
         }
         out.push({
-          produto: l.produto.descricao || "Sem descrição",
+          produto: nome,
+          linha: linhaProduto,
           perfil: perfilB.nome,
           custo: l.custoB,
           precos: l.precosB,
@@ -249,6 +256,7 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     }
     return out;
   };
+
 
   const handleExcel = async () => {
     try {
