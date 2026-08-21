@@ -164,8 +164,29 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
   };
 
 
-  const validos = produtos.filter((p) => p.valor > 0);
+  // Filtros da simulação
+  const [busca, setBusca] = useState("");
+  const [linhasFiltro, setLinhasFiltro] = useState<string[]>([]);
+  const [agrupar, setAgrupar] = useState(false);
+  const [filtroLinhaAberto, setFiltroLinhaAberto] = useState(false);
 
+  const linhasDisponiveis = useMemo(
+    () =>
+      Array.from(
+        new Set(produtos.map((p) => (p.linha || "").trim()).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [produtos],
+  );
+
+  const validos = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return produtos.filter((p) => {
+      if (!(p.valor > 0)) return false;
+      if (termo && !`${p.descricao} ${p.linha ?? ""}`.toLowerCase().includes(termo)) return false;
+      if (linhasFiltro.length > 0 && !linhasFiltro.includes((p.linha || "").trim())) return false;
+      return true;
+    });
+  }, [produtos, busca, linhasFiltro]);
 
   const linhas = useMemo(() => {
     if (!perfilA) return [];
@@ -179,6 +200,19 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
       return { produto: p, custoA, precosA, custoB, precosB };
     });
   }, [validos, tabelas, perfilA, perfilB]);
+
+  /** Agrupamento por linha comercial (mantém a ordem de entrada dentro do grupo). */
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, typeof linhas>();
+    for (const l of linhas) {
+      const chave = (l.produto.linha || "").trim() || "Sem linha";
+      const atual = mapa.get(chave) ?? [];
+      atual.push(l);
+      mapa.set(chave, atual);
+    }
+    return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
+
 
   if (!perfilA || validos.length === 0) {
     return (
