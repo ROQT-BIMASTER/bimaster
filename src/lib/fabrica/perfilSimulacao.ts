@@ -20,7 +20,12 @@ export interface ProdutoHipotetico {
   valor: number;
   /** Tabela em que o `valor` informado já está (null = custo de fábrica / raiz). */
   nivel_id: string | null;
+  /** Linha comercial (rótulo da simulação — não grava no catálogo). */
+  linha?: string | null;
+  /** URL da foto (importada do catálogo ou enviada na simulação). */
+  foto_url?: string | null;
 }
+
 
 /** Markup efetivo de uma tabela considerando o override do perfil. */
 export function markupDaTabela(
