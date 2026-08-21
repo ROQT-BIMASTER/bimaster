@@ -23,7 +23,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Columns3, FileDown, FileSpreadsheet, GripVertical, RotateCcw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import {
+  Check,
+  Columns3,
+  FileDown,
+  FileSpreadsheet,
+  GripVertical,
+  Layers3,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { logger } from "@/lib/logger";
@@ -164,8 +183,29 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
   };
 
 
-  const validos = produtos.filter((p) => p.valor > 0);
+  // Filtros da simulação
+  const [busca, setBusca] = useState("");
+  const [linhasFiltro, setLinhasFiltro] = useState<string[]>([]);
+  const [agrupar, setAgrupar] = useState(false);
+  const [filtroLinhaAberto, setFiltroLinhaAberto] = useState(false);
 
+  const linhasDisponiveis = useMemo(
+    () =>
+      Array.from(
+        new Set(produtos.map((p) => (p.linha || "").trim()).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [produtos],
+  );
+
+  const validos = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return produtos.filter((p) => {
+      if (!(p.valor > 0)) return false;
+      if (termo && !`${p.descricao} ${p.linha ?? ""}`.toLowerCase().includes(termo)) return false;
+      if (linhasFiltro.length > 0 && !linhasFiltro.includes((p.linha || "").trim())) return false;
+      return true;
+    });
+  }, [produtos, busca, linhasFiltro]);
 
   const linhas = useMemo(() => {
     if (!perfilA) return [];
@@ -180,11 +220,26 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     });
   }, [validos, tabelas, perfilA, perfilB]);
 
+  /** Agrupamento por linha comercial (mantém a ordem de entrada dentro do grupo). */
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, typeof linhas>();
+    for (const l of linhas) {
+      const chave = (l.produto.linha || "").trim() || "Sem linha";
+      const atual = mapa.get(chave) ?? [];
+      atual.push(l);
+      mapa.set(chave, atual);
+    }
+    return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
+
+
   if (!perfilA || validos.length === 0) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Informe ao menos um produto com valor e selecione um perfil para ver o comparativo.
+          {produtos.some((p) => p.valor > 0) && (busca || linhasFiltro.length > 0)
+            ? "Nenhum produto corresponde ao filtro aplicado."
+            : "Informe ao menos um produto com valor e selecione um perfil para ver o comparativo."}
         </CardContent>
       </Card>
     );
@@ -192,9 +247,13 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
 
   const linhasExport = (): ComparativoLinhaExport[] => {
     const out: ComparativoLinhaExport[] = [];
-    for (const l of linhas) {
+    const fonte = agrupar ? grupos.flatMap(([, itens]) => itens) : linhas;
+    for (const l of fonte) {
+      const nome = l.produto.descricao || "Sem descrição";
+      const linhaProduto = (l.produto.linha || "").trim() || "Sem linha";
       out.push({
-        produto: l.produto.descricao || "Sem descrição",
+        produto: nome,
+        linha: linhaProduto,
         perfil: perfilA.nome,
         custo: l.custoA,
         precos: l.precosA,
@@ -205,7 +264,8 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
           diffs[t.id] = (l.precosB[t.id] ?? 0) - (l.precosA[t.id] ?? 0);
         }
         out.push({
-          produto: l.produto.descricao || "Sem descrição",
+          produto: nome,
+          linha: linhaProduto,
           perfil: perfilB.nome,
           custo: l.custoB,
           precos: l.precosB,
@@ -215,6 +275,64 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     }
     return out;
   };
+
+
+  type LinhaCalculada = (typeof linhas)[number];
+
+  /** Renderiza as linhas (perfil A e, quando houver, perfil B) de um produto. */
+  const renderProduto = ({ produto, custoA, precosA, custoB, precosB }: LinhaCalculada) => [
+    <TableRow key={`${produto.id}-a`}>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          <ProductThumbnail src={produto.foto_url ?? null} alt={produto.descricao} size="sm" />
+          <div className="min-w-0">
+            <div className="truncate">{produto.descricao || "Sem descrição"}</div>
+            <div className="text-xs text-muted-foreground truncate">
+              {[(produto.linha || "").trim() || "Sem linha", perfilA!.nome].join(" · ")}
+            </div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
+      {colunasVisiveis.map((t) => (
+        <TableCell key={t.id} className="text-right font-mono">
+          {formatCurrency(precosA[t.id] ?? 0)}
+          <div className="text-[10px] text-muted-foreground">
+            {markupEfetivo(precosA[t.id] ?? 0, custoA).toFixed(3)}x
+          </div>
+        </TableCell>
+      ))}
+    </TableRow>,
+
+    perfilB ? (
+      <TableRow key={`${produto.id}-b`} className="bg-muted/40">
+        <TableCell className="text-xs text-muted-foreground pl-6">{perfilB.nome}</TableCell>
+        <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
+        {colunasVisiveis.map((t) => {
+          const a = precosA[t.id] ?? 0;
+          const b = precosB[t.id] ?? 0;
+          const diff = b - a;
+          const pct = a > 0 ? (diff / a) * 100 : 0;
+          return (
+            <TableCell key={t.id} className="text-right font-mono">
+              {formatCurrency(b)}
+              {Math.abs(diff) > 0.004 && (
+                <div className="text-[10px]">
+                  <Badge
+                    variant={diff > 0 ? "default" : "secondary"}
+                    className="font-mono text-[10px] px-1 py-0"
+                  >
+                    {diff > 0 ? "+" : ""}
+                    {formatCurrency(diff)} ({pct.toFixed(1)}%)
+                  </Badge>
+                </div>
+              )}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    ) : null,
+  ];
 
   const handleExcel = async () => {
     try {
@@ -368,7 +486,76 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
         </div>
 
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      <CardContent className="overflow-x-auto space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar produto ou linha..."
+              className="h-9 w-[240px] pl-8"
+            />
+          </div>
+
+          <Popover open={filtroLinhaAberto} onOpenChange={setFiltroLinhaAberto}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 font-normal">
+                <Layers3 className="h-4 w-4 mr-2 text-primary" />
+                {linhasFiltro.length === 0
+                  ? "Todas as linhas"
+                  : linhasFiltro.length === 1
+                    ? linhasFiltro[0]
+                    : `${linhasFiltro.length} linhas`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[260px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Buscar linha..." className="h-9" />
+                <CommandList className="max-h-[280px]">
+                  <CommandEmpty>Nenhuma linha.</CommandEmpty>
+                  <CommandGroup>
+                    {linhasFiltro.length > 0 && (
+                      <CommandItem
+                        value="__limpar__"
+                        onSelect={() => setLinhasFiltro([])}
+                        className="text-muted-foreground"
+                      >
+                        Limpar seleção ({linhasFiltro.length})
+                      </CommandItem>
+                    )}
+                    {linhasDisponiveis.map((l) => (
+                      <CommandItem
+                        key={l}
+                        value={l}
+                        onSelect={() =>
+                          setLinhasFiltro((prev) =>
+                            prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l],
+                          )
+                        }
+                      >
+                        <Check
+                          className={`h-4 w-4 mr-2 ${
+                            linhasFiltro.includes(l) ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        {l}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          <div className="flex items-center gap-2 pl-1">
+            <Switch id="agrupar-linha" checked={agrupar} onCheckedChange={setAgrupar} />
+            <Label htmlFor="agrupar-linha" className="font-normal text-sm">
+              Agrupar por linha
+            </Label>
+          </div>
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -411,57 +598,26 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.map(({ produto, custoA, precosA, custoB, precosB }) => [
-              <TableRow key={`${produto.id}-a`}>
-                <TableCell className="font-medium">
-                  {produto.descricao || "Sem descrição"}
-                  <div className="text-xs text-muted-foreground">{perfilA.nome}</div>
-                </TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
-                {colunasVisiveis.map((t) => (
-                  <TableCell key={t.id} className="text-right font-mono">
-                    {formatCurrency(precosA[t.id] ?? 0)}
-                    <div className="text-[10px] text-muted-foreground">
-                      {markupEfetivo(precosA[t.id] ?? 0, custoA).toFixed(3)}x
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow>,
-
-              perfilB ? (
-                <TableRow key={`${produto.id}-b`} className="bg-muted/40">
-                  <TableCell className="text-xs text-muted-foreground pl-6">
-                    {perfilB.nome}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
-                  {colunasVisiveis.map((t) => {
-                    const a = precosA[t.id] ?? 0;
-                    const b = precosB[t.id] ?? 0;
-                    const diff = b - a;
-                    const pct = a > 0 ? (diff / a) * 100 : 0;
-                    return (
-                      <TableCell key={t.id} className="text-right font-mono">
-                        {formatCurrency(b)}
-                        {Math.abs(diff) > 0.004 && (
-                          <div className="text-[10px]">
-                            <Badge
-                              variant={diff > 0 ? "default" : "secondary"}
-                              className="font-mono text-[10px] px-1 py-0"
-                            >
-                              {diff > 0 ? "+" : ""}
-                              {formatCurrency(diff)} ({pct.toFixed(1)}%)
-                            </Badge>
-                          </div>
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ) : null,
-            ])}
+            {agrupar
+              ? grupos.map(([nomeLinha, itens]) => [
+                  <TableRow key={`grupo-${nomeLinha}`} className="bg-muted/60">
+                    <TableCell
+                      colSpan={2 + colunasVisiveis.length}
+                      className="text-xs font-semibold uppercase tracking-wide"
+                    >
+                      {nomeLinha}
+                      <span className="ml-2 font-normal text-muted-foreground normal-case">
+                        {itens.length} produto{itens.length > 1 ? "s" : ""}
+                      </span>
+                    </TableCell>
+                  </TableRow>,
+                  ...itens.flatMap((l) => renderProduto(l)),
+                ])
+              : linhas.map((l) => renderProduto(l))}
           </TableBody>
         </Table>
       </CardContent>
+
     </Card>
   );
 }
