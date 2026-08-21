@@ -23,7 +23,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Columns3, FileDown, FileSpreadsheet, GripVertical, RotateCcw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import {
+  Check,
+  Columns3,
+  FileDown,
+  FileSpreadsheet,
+  GripVertical,
+  Layers3,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { logger } from "@/lib/logger";
@@ -257,6 +276,63 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     return out;
   };
 
+
+  type LinhaCalculada = (typeof linhas)[number];
+
+  /** Renderiza as linhas (perfil A e, quando houver, perfil B) de um produto. */
+  const renderProduto = ({ produto, custoA, precosA, custoB, precosB }: LinhaCalculada) => [
+    <TableRow key={`${produto.id}-a`}>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          <ProductThumbnail src={produto.foto_url ?? null} alt={produto.descricao} size="sm" />
+          <div className="min-w-0">
+            <div className="truncate">{produto.descricao || "Sem descrição"}</div>
+            <div className="text-xs text-muted-foreground truncate">
+              {[(produto.linha || "").trim() || "Sem linha", perfilA!.nome].join(" · ")}
+            </div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="text-right font-mono">{formatCurrency(custoA)}</TableCell>
+      {colunasVisiveis.map((t) => (
+        <TableCell key={t.id} className="text-right font-mono">
+          {formatCurrency(precosA[t.id] ?? 0)}
+          <div className="text-[10px] text-muted-foreground">
+            {markupEfetivo(precosA[t.id] ?? 0, custoA).toFixed(3)}x
+          </div>
+        </TableCell>
+      ))}
+    </TableRow>,
+
+    perfilB ? (
+      <TableRow key={`${produto.id}-b`} className="bg-muted/40">
+        <TableCell className="text-xs text-muted-foreground pl-6">{perfilB.nome}</TableCell>
+        <TableCell className="text-right font-mono">{formatCurrency(custoB)}</TableCell>
+        {colunasVisiveis.map((t) => {
+          const a = precosA[t.id] ?? 0;
+          const b = precosB[t.id] ?? 0;
+          const diff = b - a;
+          const pct = a > 0 ? (diff / a) * 100 : 0;
+          return (
+            <TableCell key={t.id} className="text-right font-mono">
+              {formatCurrency(b)}
+              {Math.abs(diff) > 0.004 && (
+                <div className="text-[10px]">
+                  <Badge
+                    variant={diff > 0 ? "default" : "secondary"}
+                    className="font-mono text-[10px] px-1 py-0"
+                  >
+                    {diff > 0 ? "+" : ""}
+                    {formatCurrency(diff)} ({pct.toFixed(1)}%)
+                  </Badge>
+                </div>
+              )}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    ) : null,
+  ];
 
   const handleExcel = async () => {
     try {
