@@ -185,6 +185,39 @@ export function dateToApi(d: string): string {
 }
 
 /**
+ * Monta o identificador de título aceito por /lancar-pagamento.
+ *
+ * O endpoint roteia POR CAMPO, não por valor (payment-handlers.ts):
+ *
+ *   if (codigo_lancamento_integracao) → compara com a coluna de TEXTO
+ *   else                              → compara `codigo_lancamento` com
+ *                                       `codigo_lancamento_huggs`, que é BIGINT
+ *
+ * Mandar o UUID da linha em `codigo_lancamento` cai no segundo ramo e o Postgres
+ * recusa com `invalid input syntax for type bigint`. Era o que as duas telas que
+ * registram pagamento faziam — nenhuma conseguia baixar título pela interface.
+ *
+ * Devolve `null` quando o título não tem nenhum dos dois códigos: nesse caso ele
+ * não é endereçável por este endpoint, e a tela deve avisar em vez de tentar.
+ */
+export type IdentificadorLancamento =
+  | { codigo_lancamento_integracao: string }
+  | { codigo_lancamento: number | string };
+
+export function identificadorLancamento(titulo: {
+  codigo_lancamento_integracao?: string | null;
+  codigo_lancamento_huggs?: number | string | null;
+}): IdentificadorLancamento | null {
+  if (titulo?.codigo_lancamento_integracao) {
+    return { codigo_lancamento_integracao: titulo.codigo_lancamento_integracao };
+  }
+  if (titulo?.codigo_lancamento_huggs !== null && titulo?.codigo_lancamento_huggs !== undefined) {
+    return { codigo_lancamento: titulo.codigo_lancamento_huggs };
+  }
+  return null;
+}
+
+/**
  * Enqueue an ERP sync log entry
  */
 export async function enqueueErpSync(opts: {

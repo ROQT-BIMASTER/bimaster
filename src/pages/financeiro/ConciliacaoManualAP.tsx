@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { ArrowLeft, Check, X, Link2, Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { callApi, formatBRL, fmtDate } from "@/lib/utils/api-helpers";
+import { callApi, formatBRL, fmtDate, identificadorLancamento } from "@/lib/utils/api-helpers";
 import { debounce } from "@/lib/utils/debounce";
 
 const METODOS_PAGAMENTO = ["PIX", "TED", "Boleto", "Dinheiro", "Cartão", "Débito Automático"];
@@ -101,9 +101,23 @@ export default function ConciliacaoManualAP() {
   // Confirm match — migrado em v4.0.0 (PR-7) de /registrar-pagamento → /lancar-pagamento
   const confirmMutation = useMutation({
     mutationFn: async ({ match, metodo }: { match: any; metodo: string }) => {
+      // `conta_pagar_id` é o UUID da linha; /lancar-pagamento compara
+      // `codigo_lancamento` com uma coluna BIGINT. Buscar os códigos do título
+      // antes — ver identificadorLancamento().
+      const { data: titulo } = await supabase
+        .from("contas_pagar")
+        .select("codigo_lancamento_integracao, codigo_lancamento_huggs")
+        .eq("id", match.conta_pagar_id)
+        .maybeSingle();
+
+      const identificador = identificadorLancamento(titulo || {});
+      if (!identificador) {
+        throw new Error("Título sem código de lançamento — não dá para registrar o pagamento.");
+      }
+
       await callApi("contas-pagar-api", {
         path: "/lancar-pagamento",
-        codigo_lancamento: match.conta_pagar_id,
+        ...identificador,
         valor: match.valor_transacao,
         data: match.data_transacao,
         forma_pagamento: toFormaPagamentoEnum(metodo),
