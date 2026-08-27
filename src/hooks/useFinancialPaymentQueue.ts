@@ -430,12 +430,22 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       }
 
       // Auto-export to ERP when marked as paid (baixa)
+      //
+      // A falha aqui NÃO é silenciosa por acaso — ela precisa ser vista. A
+      // exportação lança o título no ERP antes de tentar a baixa, então uma
+      // falha na segunda metade deixa título EM ABERTO na contabilidade real.
+      // Enquanto isso só ia para `logger.warn`, o operador via sucesso na tela
+      // e o título fantasma ficava lá.
       if (variables.financial_status === 'paid' && data) {
         exportPaymentToErp(data.id, undefined, 'payment').then((result) => {
           if (result.success) {
             logger.debug(`ERP payment export success for ${data.code}`);
           } else {
             logger.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
+            toast.error("Pagamento registrado, mas a exportação ao ERP falhou", {
+              description: `${data.code}: ${result.message ?? "erro desconhecido"}. O título pode ter ficado em aberto no ERP — confira antes de seguir.`,
+              duration: 12000,
+            });
           }
         });
       }
@@ -589,11 +599,18 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
             logger.debug(`ERP registration export success for ${data.code}`);
           } else {
             logger.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
+            toast.error("Provisão não chegou ao ERP", {
+              description: `${data.code}: ${result.message ?? "erro desconhecido"}. O registro em Contas a Pagar foi criado normalmente.`,
+              duration: 12000,
+            });
           }
         });
       }
 
-      toast.success("Pagamento Aceito", { description: "Registro criado em Contas a Pagar e provisão enviada ao ERP" });
+      // A exportação acima é assíncrona e pode falhar — não afirmar que a
+      // provisão foi enviada antes de saber. O que já está garantido neste
+      // ponto é o registro em Contas a Pagar.
+      toast.success("Pagamento Aceito", { description: "Registro criado em Contas a Pagar. A provisão está sendo enviada ao ERP." });
     },
     onError: (error) => {
       logger.error('Error accepting payment:', error);
