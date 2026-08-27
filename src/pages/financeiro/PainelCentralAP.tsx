@@ -28,7 +28,7 @@ import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Uplo
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
-import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
+import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enqueueErpSync, identificadorLancamento } from "@/lib/utils/api-helpers";
 import { debounce } from "@/lib/utils/debounce";
 import { useEmpresaContext } from "@/contexts/EmpresaContext";
 import { exportToExcel } from "@/utils/excelExport";
@@ -822,14 +822,22 @@ export default function PainelCentralAP() {
               <Button variant="outline" onClick={() => setPaymentModal(null)}>Cancelar</Button>
               <Button
                 disabled={payMutation.isPending || !payValor || !payData || Number(payValor) <= 0 || payValorExceedsSaldo}
-                onClick={() => payMutation.mutate({
-                  // /lancar-pagamento aceita codigo_lancamento (id interno ou erp_id)
-                  codigo_lancamento: paymentModal.id || paymentModal.erp_id,
-                  valor: Number(payValor),
-                  data: dateToApi(payData),
-                  forma_pagamento: toFormaPagamentoEnum(payMetodo),
-                  ...(payPortador ? { codigo_conta_corrente: payPortador } : {}),
-                })}
+                onClick={() => {
+                  // `codigo_lancamento` casa com a coluna BIGINT `codigo_lancamento_huggs`,
+                  // não com o UUID da linha — ver identificadorLancamento().
+                  const identificador = identificadorLancamento(paymentModal);
+                  if (!identificador) {
+                    toast.error("Título sem código de lançamento — não dá para registrar o pagamento por aqui.");
+                    return;
+                  }
+                  payMutation.mutate({
+                    ...identificador,
+                    valor: Number(payValor),
+                    data: dateToApi(payData),
+                    forma_pagamento: toFormaPagamentoEnum(payMetodo),
+                    ...(payPortador ? { codigo_conta_corrente: payPortador } : {}),
+                  });
+                }}
               >
                 {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar Pagamento
