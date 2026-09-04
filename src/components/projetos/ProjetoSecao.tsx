@@ -114,6 +114,7 @@ export function ProjetoSecao({
   onDeleteSecao,
   onDuplicarSecao,
   onReorderTarefas,
+  reorderIndisponivelMotivo = null,
   dragHandle,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
