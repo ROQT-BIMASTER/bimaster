@@ -23,7 +23,8 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
-import { SortableTarefasList } from "./SortableTarefasList";
+import { SortableTarefasList, DisabledGripRow } from "./SortableTarefasList";
+import { REORDER_MAX_TAREFAS } from "@/lib/projetos/reordenacaoStatus";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 /**
