@@ -56,9 +56,11 @@ interface ProjetoListViewProps {
   sort?: ProjetoSort;
   /** Abre automaticamente o detalhe desta tarefa (usado por deep-link de menção). */
   initialTarefaId?: string | null;
+  /** Limpa filtros e volta a ordenação padrão (reativa o arrastar). */
+  onRestaurarOrdemPadrao?: () => void;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null, onRestaurarOrdemPadrao }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
