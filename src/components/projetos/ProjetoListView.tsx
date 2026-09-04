@@ -193,8 +193,12 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const isFiltering = hasActiveFilters(filters);
   // Reordenar manualmente só faz sentido quando a lista exibida reflete a
   // ordem persistida — com filtro ou ordenação custom, arrastar enganaria.
-  const reorderEnabled =
-    !isFiltering && sort.field === "created_at" && sort.direction === "asc";
+  const reorderStatus = getReorderStatus({
+    isFiltering,
+    sortField: sort.field,
+    sortDirection: sort.direction,
+  });
+  const reorderEnabled = reorderStatus.enabled;
   const secaoIds = useMemo(() => secoes.map((s) => s.id), [secoes]);
   const secaoSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
