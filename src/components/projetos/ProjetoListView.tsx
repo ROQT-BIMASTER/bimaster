@@ -15,6 +15,7 @@ import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, Column
 import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
+import { getReorderStatus, getReorderStatusSecao } from "@/lib/projetos/reordenacaoStatus";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetoPapelAtual } from "@/hooks/useProjetoPapelAtual";
@@ -55,9 +56,11 @@ interface ProjetoListViewProps {
   sort?: ProjetoSort;
   /** Abre automaticamente o detalhe desta tarefa (usado por deep-link de menção). */
   initialTarefaId?: string | null;
+  /** Limpa filtros e volta a ordenação padrão (reativa o arrastar). */
+  onRestaurarOrdemPadrao?: () => void;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null, onRestaurarOrdemPadrao }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
@@ -193,8 +196,12 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const isFiltering = hasActiveFilters(filters);
   // Reordenar manualmente só faz sentido quando a lista exibida reflete a
   // ordem persistida — com filtro ou ordenação custom, arrastar enganaria.
-  const reorderEnabled =
-    !isFiltering && sort.field === "created_at" && sort.direction === "asc";
+  const reorderStatus = getReorderStatus({
+    isFiltering,
+    sortField: sort.field,
+    sortDirection: sort.direction,
+  });
+  const reorderEnabled = reorderStatus.enabled;
   const secaoIds = useMemo(() => secoes.map((s) => s.id), [secoes]);
   const secaoSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -355,6 +362,29 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           />
         </div>
       )}
+      {!reorderEnabled && reorderStatus.mensagem && (
+        <div
+          className={`mb-2 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-[12px] ${
+            darkBg
+              ? "border-white/15 bg-white/5 text-white/80"
+              : "border-border/60 bg-muted/40 text-muted-foreground"
+          }`}
+          role="status"
+        >
+          <GripVertical className="h-3.5 w-3.5 shrink-0 opacity-60" />
+          <span>{reorderStatus.mensagem}</span>
+          {onRestaurarOrdemPadrao && (
+            <Button
+              variant="link"
+              size="sm"
+              className={`h-auto p-0 text-[12px] ${darkBg ? "text-white" : ""}`}
+              onClick={onRestaurarOrdemPadrao}
+            >
+              Restaurar ordem padrão
+            </Button>
+          )}
+        </div>
+      )}
       <div data-tarefas-list-root className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
         <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
@@ -414,9 +444,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
                     onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
                     onDuplicarSecao={handleDuplicarSecao}
                     onReorderTarefas={
-                      reorderEnabled
+                      getReorderStatusSecao(
+                        reorderStatus,
+                        (filteredTarefasPorSecao[secao.id] || []).length,
+                      ).enabled
                         ? (orderedIds) => reorderTarefasSecao.mutate({ secaoId: secao.id, orderedIds })
                         : undefined
+                    }
+                    reorderIndisponivelMotivo={
+                      getReorderStatusSecao(
+                        reorderStatus,
+                        (filteredTarefasPorSecao[secao.id] || []).length,
+                      ).mensagem
                     }
                     dragHandle={dragHandle}
                     onCreateBriefingTasks={handleCreateBriefingTasks}

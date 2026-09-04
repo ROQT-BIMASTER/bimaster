@@ -23,7 +23,8 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
-import { SortableTarefasList } from "./SortableTarefasList";
+import { SortableTarefasList, DisabledGripRow } from "./SortableTarefasList";
+import { REORDER_MAX_TAREFAS } from "@/lib/projetos/reordenacaoStatus";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 /**
@@ -91,6 +92,8 @@ interface ProjetoSecaoProps {
   onDuplicarSecao?: (secaoId: string) => void;
   /** Habilita reordenação manual das tarefas desta seção (drag & drop). */
   onReorderTarefas?: (orderedIds: string[]) => void;
+  /** Motivo exibido na alça quando a reordenação está indisponível. */
+  reorderIndisponivelMotivo?: string | null;
   /** Alça de arraste da própria seção, renderizada no início do cabeçalho. */
   dragHandle?: React.ReactNode;
   teamMembers?: TeamMember[];
@@ -111,6 +114,7 @@ export function ProjetoSecao({
   onDeleteSecao,
   onDuplicarSecao,
   onReorderTarefas,
+  reorderIndisponivelMotivo = null,
   dragHandle,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
@@ -372,9 +376,9 @@ export function ProjetoSecao({
               />
             );
 
-            // Reordenação manual (drag & drop) — apenas em seções de tamanho
-            // normal e quando o pai libera (sem filtros/ordenação custom).
-            if (onReorderTarefas && tarefas.length <= VIRTUALIZE_THRESHOLD) {
+            // Reordenação manual (drag & drop) — liberada também em seções
+            // longas (até REORDER_MAX_TAREFAS) quando o pai permite.
+            if (onReorderTarefas && tarefas.length <= REORDER_MAX_TAREFAS) {
               return (
                 <SortableTarefasList
                   tarefas={tarefas}
@@ -385,8 +389,20 @@ export function ProjetoSecao({
               );
             }
 
-            // Default render path (unchanged) for small/medium sections.
+            // Sem reordenação: mostra a alça desabilitada explicando o motivo,
+            // em vez de simplesmente sumir com o recurso.
             if (tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              if (reorderIndisponivelMotivo) {
+                return tarefas.map((tarefa) => (
+                  <DisabledGripRow
+                    key={(tarefa as any).__clientKey || tarefa.id}
+                    darkBg={darkBg}
+                    motivo={reorderIndisponivelMotivo}
+                  >
+                    {renderRow(tarefa)}
+                  </DisabledGripRow>
+                ));
+              }
               return tarefas.map((tarefa) => renderRow(tarefa));
             }
 

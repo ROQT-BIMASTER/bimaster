@@ -108,3 +108,34 @@ export function SortableTarefasList({
     </DndContext>
   );
 }
+
+/**
+ * Linha com a alça de arrastar visível porém desabilitada, usada quando a
+ * reordenação está indisponível (filtro/ordenação ativos ou seção muito longa).
+ * Mantém o recurso descoberto pelo usuário, explicando o motivo no hover.
+ */
+export function DisabledGripRow({
+  darkBg,
+  motivo,
+  children,
+}: {
+  darkBg?: boolean;
+  motivo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-stretch group/dnd">
+      <span
+        className={cn(
+          "flex items-center justify-center w-5 shrink-0 cursor-not-allowed opacity-0 group-hover/dnd:opacity-60 transition-opacity",
+          darkBg ? "text-white/30" : "text-muted-foreground/40",
+        )}
+        aria-hidden="true"
+        title={motivo}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </span>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
+}
