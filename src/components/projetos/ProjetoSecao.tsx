@@ -92,6 +92,8 @@ interface ProjetoSecaoProps {
   onDuplicarSecao?: (secaoId: string) => void;
   /** Habilita reordenação manual das tarefas desta seção (drag & drop). */
   onReorderTarefas?: (orderedIds: string[]) => void;
+  /** Motivo exibido na alça quando a reordenação está indisponível. */
+  reorderIndisponivelMotivo?: string | null;
   /** Alça de arraste da própria seção, renderizada no início do cabeçalho. */
   dragHandle?: React.ReactNode;
   teamMembers?: TeamMember[];
