@@ -362,6 +362,29 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           />
         </div>
       )}
+      {!reorderEnabled && reorderStatus.mensagem && (
+        <div
+          className={`mb-2 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-[12px] ${
+            darkBg
+              ? "border-white/15 bg-white/5 text-white/80"
+              : "border-border/60 bg-muted/40 text-muted-foreground"
+          }`}
+          role="status"
+        >
+          <GripVertical className="h-3.5 w-3.5 shrink-0 opacity-60" />
+          <span>{reorderStatus.mensagem}</span>
+          {onRestaurarOrdemPadrao && (
+            <Button
+              variant="link"
+              size="sm"
+              className={`h-auto p-0 text-[12px] ${darkBg ? "text-white" : ""}`}
+              onClick={onRestaurarOrdemPadrao}
+            >
+              Restaurar ordem padrão
+            </Button>
+          )}
+        </div>
+      )}
       <div data-tarefas-list-root className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
         <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
