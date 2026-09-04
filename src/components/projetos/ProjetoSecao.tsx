@@ -372,9 +372,9 @@ export function ProjetoSecao({
               />
             );
 
-            // Reordenação manual (drag & drop) — apenas em seções de tamanho
-            // normal e quando o pai libera (sem filtros/ordenação custom).
-            if (onReorderTarefas && tarefas.length <= VIRTUALIZE_THRESHOLD) {
+            // Reordenação manual (drag & drop) — liberada também em seções
+            // longas (até REORDER_MAX_TAREFAS) quando o pai permite.
+            if (onReorderTarefas && tarefas.length <= REORDER_MAX_TAREFAS) {
               return (
                 <SortableTarefasList
                   tarefas={tarefas}
@@ -385,8 +385,20 @@ export function ProjetoSecao({
               );
             }
 
-            // Default render path (unchanged) for small/medium sections.
+            // Sem reordenação: mostra a alça desabilitada explicando o motivo,
+            // em vez de simplesmente sumir com o recurso.
             if (tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              if (reorderIndisponivelMotivo) {
+                return tarefas.map((tarefa) => (
+                  <DisabledGripRow
+                    key={(tarefa as any).__clientKey || tarefa.id}
+                    darkBg={darkBg}
+                    motivo={reorderIndisponivelMotivo}
+                  >
+                    {renderRow(tarefa)}
+                  </DisabledGripRow>
+                ));
+              }
               return tarefas.map((tarefa) => renderRow(tarefa));
             }
 
