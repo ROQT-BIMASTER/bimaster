@@ -444,9 +444,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
                     onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
                     onDuplicarSecao={handleDuplicarSecao}
                     onReorderTarefas={
-                      reorderEnabled
+                      getReorderStatusSecao(
+                        reorderStatus,
+                        (filteredTarefasPorSecao[secao.id] || []).length,
+                      ).enabled
                         ? (orderedIds) => reorderTarefasSecao.mutate({ secaoId: secao.id, orderedIds })
                         : undefined
+                    }
+                    reorderIndisponivelMotivo={
+                      getReorderStatusSecao(
+                        reorderStatus,
+                        (filteredTarefasPorSecao[secao.id] || []).length,
+                      ).mensagem
                     }
                     dragHandle={dragHandle}
                     onCreateBriefingTasks={handleCreateBriefingTasks}
