@@ -346,7 +346,19 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
             darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
           )}>
             <div className="p-4">
-              {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} />}
+              {activeTab === "lista" && (
+                <ProjetoListView
+                  projetoId={projeto.id}
+                  darkBg={darkBg}
+                  filters={filters}
+                  sort={sort}
+                  initialTarefaId={deepTarefaId}
+                  onRestaurarOrdemPadrao={() => {
+                    setFilters(EMPTY_FILTERS);
+                    setSort(DEFAULT_SORT);
+                  }}
+                />
+              )}
               {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
               {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
               {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
