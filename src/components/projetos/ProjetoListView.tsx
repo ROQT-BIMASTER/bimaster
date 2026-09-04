@@ -15,6 +15,7 @@ import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, Column
 import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
+import { getReorderStatus, getReorderStatusSecao } from "@/lib/projetos/reordenacaoStatus";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetoPapelAtual } from "@/hooks/useProjetoPapelAtual";
