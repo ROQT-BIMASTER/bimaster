@@ -104,16 +104,31 @@ export function SortableTarefasList({
     onReorder(arrayMove(ids, oldIndex, newIndex));
   };
 
-  return (
+  const longa = !!maxHeight;
+
+  const conteudo = (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {tarefas.map((t) => (
-          <SortableRow key={(t as any).__clientKey || t.id} tarefa={t} darkBg={darkBg}>
+          <SortableRow
+            key={(t as any).__clientKey || t.id}
+            tarefa={t}
+            darkBg={darkBg}
+            optimizeOffscreen={longa}
+          >
             {renderRow(t)}
           </SortableRow>
         ))}
       </SortableContext>
     </DndContext>
+  );
+
+  if (!longa) return conteudo;
+
+  return (
+    <div className="overflow-y-auto" style={{ maxHeight, contain: "layout paint" }}>
+      {conteudo}
+    </div>
   );
 }
 
