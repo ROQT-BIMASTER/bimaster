@@ -70,6 +70,8 @@ interface SortableTarefasListProps {
   darkBg?: boolean;
   onReorder: (orderedIds: string[]) => void;
   renderRow: (tarefa: ProjetoTarefa) => React.ReactNode;
+  /** Altura máxima com rolagem interna, usada em seções longas. */
+  maxHeight?: number;
 }
 
 /**
