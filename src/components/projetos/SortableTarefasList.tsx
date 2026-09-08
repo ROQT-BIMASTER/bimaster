@@ -39,6 +39,9 @@ const SortableRow = memo(function SortableRow({ tarefa, darkBg, children, optimi
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 20 : undefined,
     position: "relative",
+    ...(optimizeOffscreen && !isDragging
+      ? ({ contentVisibility: "auto", containIntrinsicSize: "auto 36px" } as React.CSSProperties)
+      : {}),
   };
 
   return (
