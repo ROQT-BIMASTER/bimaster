@@ -24,6 +24,8 @@ interface SortableRowProps {
   tarefa: ProjetoTarefa;
   darkBg?: boolean;
   children: React.ReactNode;
+  /** Em seções longas, evita pintar linhas fora da viewport. */
+  optimizeOffscreen?: boolean;
 }
 
 const SortableRow = memo(function SortableRow({ tarefa, darkBg, children, optimizeOffscreen }: SortableRowProps) {
