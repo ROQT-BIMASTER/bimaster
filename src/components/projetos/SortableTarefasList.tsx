@@ -86,6 +86,7 @@ export function SortableTarefasList({
   darkBg,
   onReorder,
   renderRow,
+  maxHeight,
 }: SortableTarefasListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
