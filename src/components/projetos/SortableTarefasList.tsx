@@ -26,7 +26,7 @@ interface SortableRowProps {
   children: React.ReactNode;
 }
 
-const SortableRow = memo(function SortableRow({ tarefa, darkBg, children }: SortableRowProps) {
+const SortableRow = memo(function SortableRow({ tarefa, darkBg, children, optimizeOffscreen }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tarefa.id,
   });
