@@ -24,9 +24,11 @@ interface SortableRowProps {
   tarefa: ProjetoTarefa;
   darkBg?: boolean;
   children: React.ReactNode;
+  /** Em seções longas, evita pintar linhas fora da viewport. */
+  optimizeOffscreen?: boolean;
 }
 
-const SortableRow = memo(function SortableRow({ tarefa, darkBg, children }: SortableRowProps) {
+const SortableRow = memo(function SortableRow({ tarefa, darkBg, children, optimizeOffscreen }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tarefa.id,
   });
@@ -37,6 +39,9 @@ const SortableRow = memo(function SortableRow({ tarefa, darkBg, children }: Sort
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 20 : undefined,
     position: "relative",
+    ...(optimizeOffscreen && !isDragging
+      ? ({ contentVisibility: "auto", containIntrinsicSize: "auto 36px" } as React.CSSProperties)
+      : {}),
   };
 
   return (
@@ -65,6 +70,8 @@ interface SortableTarefasListProps {
   darkBg?: boolean;
   onReorder: (orderedIds: string[]) => void;
   renderRow: (tarefa: ProjetoTarefa) => React.ReactNode;
+  /** Altura máxima com rolagem interna, usada em seções longas. */
+  maxHeight?: number;
 }
 
 /**
@@ -79,6 +86,7 @@ export function SortableTarefasList({
   darkBg,
   onReorder,
   renderRow,
+  maxHeight,
 }: SortableTarefasListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -96,16 +104,31 @@ export function SortableTarefasList({
     onReorder(arrayMove(ids, oldIndex, newIndex));
   };
 
-  return (
+  const longa = !!maxHeight;
+
+  const conteudo = (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {tarefas.map((t) => (
-          <SortableRow key={(t as any).__clientKey || t.id} tarefa={t} darkBg={darkBg}>
+          <SortableRow
+            key={(t as any).__clientKey || t.id}
+            tarefa={t}
+            darkBg={darkBg}
+            optimizeOffscreen={longa}
+          >
             {renderRow(t)}
           </SortableRow>
         ))}
       </SortableContext>
     </DndContext>
+  );
+
+  if (!longa) return conteudo;
+
+  return (
+    <div className="overflow-y-auto" style={{ maxHeight, contain: "layout paint" }}>
+      {conteudo}
+    </div>
   );
 }
 

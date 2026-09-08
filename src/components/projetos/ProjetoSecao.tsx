@@ -385,6 +385,11 @@ export function ProjetoSecao({
                   darkBg={darkBg}
                   onReorder={onReorderTarefas}
                   renderRow={(t) => renderRow(t)}
+                  maxHeight={
+                    tarefas.length > VIRTUALIZE_THRESHOLD
+                      ? Math.min(720, Math.max(400, window.innerHeight - 320))
+                      : undefined
+                  }
                 />
               );
             }
