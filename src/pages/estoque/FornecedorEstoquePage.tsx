@@ -240,6 +240,33 @@ export default function FornecedorEstoquePage() {
   const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
 
 
+  const exportOpts: FornecedorExportOpts = useMemo(() => ({
+    busca, empresas, casadoFiltro, apenasComSaldo,
+    status: statusSel, categorias: categoriasSel, linhas: linhasSel,
+    dataDe: dataDe ? format(dataDe, 'yyyy-MM-dd') : null,
+    dataAte: dataAte ? format(dataAte, 'yyyy-MM-dd') : null,
+    sortBy, sortDir,
+  }), [busca, empresas, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, linhasSel, dataDe, dataAte, sortBy, sortDir]);
+
+  const filtrosResumo = useMemo(() => {
+    const partes: string[] = [];
+    if (busca.trim()) partes.push(`busca "${busca.trim()}"`);
+    if (empresas.length) {
+      partes.push(`fornecedor: ${empresas.map((id) => empresasOpt.find((e) => e.id === id)?.nome ?? id).join(', ')}`);
+    }
+    if (distribuidorasSel.length) {
+      partes.push(`filiais: ${distribuidorasSel.map((id) => distribuidoras.find((d) => d.id === id)?.abrev ?? id).join(', ')}`);
+    }
+    if (statusSel.length) partes.push(`status: ${statusSel.join(', ')}`);
+    if (categoriasSel.length) partes.push(`categorias: ${categoriasSel.join(', ')}`);
+    if (linhasSel.length) partes.push(`linhas: ${linhasSel.join(', ')}`);
+    if (dataDe || dataAte) partes.push(`período: ${dataDe ? format(dataDe, 'dd/MM/yyyy') : '…'} a ${dataAte ? format(dataAte, 'dd/MM/yyyy') : '…'}`);
+    if (casadoFiltro === 'casados') partes.push('somente casados');
+    if (casadoFiltro === 'nao_casados') partes.push('somente não casados');
+    if (apenasComSaldo) partes.push('somente com saldo no fornecedor');
+    return partes.length ? partes.join(' · ') : 'nenhum (todos os itens)';
+  }, [busca, empresas, empresasOpt, distribuidorasSel, distribuidoras, statusSel, categoriasSel, linhasSel, dataDe, dataAte, casadoFiltro, apenasComSaldo]);
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
   // Agrupa rows por nome_linha preservando a ordenação original como tie-breaker.
