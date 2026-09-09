@@ -296,7 +296,6 @@ export default function FornecedorEstoquePage() {
       case 'empresa': return (
         <TableCell key={k}>
           <div className="text-sm">{r.empresa_nome ?? '—'}</div>
-          <div className="text-[10px] text-muted-foreground">{r.empresa_id}</div>
         </TableCell>
       );
       case 'ean': return <TableCell key={k} className="font-mono text-xs">{r.ean_caixa ?? '—'}</TableCell>;
