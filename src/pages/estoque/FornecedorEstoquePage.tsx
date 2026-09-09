@@ -189,6 +189,23 @@ export default function FornecedorEstoquePage() {
     try { localStorage.setItem(storageKey(uid), JSON.stringify(cols)); } catch {}
   }, [cols, uid]);
 
+  // Preferência de filiais exibidas (colunas), por usuário
+  const [filiaisHidratado, setFiliaisHidratado] = useState(false);
+  useEffect(() => {
+    setFiliaisHidratado(false);
+    try {
+      const raw = localStorage.getItem(filiaisStorageKey(uid));
+      const parsed = raw ? JSON.parse(raw) : null;
+      setDistribuidorasSel(Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'number') : []);
+    } catch { setDistribuidorasSel([]); }
+    setFiliaisHidratado(true);
+  }, [uid]);
+  useEffect(() => {
+    if (!filiaisHidratado) return;
+    try { localStorage.setItem(filiaisStorageKey(uid), JSON.stringify(distribuidorasSel)); } catch {}
+  }, [distribuidorasSel, filiaisHidratado, uid]);
+
+
   const visibleCols = useMemo(() => cols.order.filter((k) => !cols.hidden.includes(k)), [cols]);
   const isHidden = (k: ColKey) => cols.hidden.includes(k);
   const toggleHidden = (k: ColKey, v: boolean) =>
