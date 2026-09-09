@@ -264,8 +264,8 @@ export default function FornecedorEstoquePage() {
     else { setSortBy(col); setSortDir(col === 'futura_descricao' ? 'asc' : 'desc'); }
   };
 
-  const empresasLabel = empresas.length === 0 ? 'Todas as empresas' : empresas.length === 1
-    ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Empresa ${empresas[0]}`) : `${empresas.length} empresas`;
+  const empresasLabel = empresas.length === 0 ? 'Todos os fornecedores' : empresas.length === 1
+    ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Fornecedor ${empresas[0]}`) : `${empresas.length} fornecedores`;
   const distLabel = distribuidorasSel.length === 0 ? 'Todas as filiais' : distribuidorasSel.length === 1
     ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
