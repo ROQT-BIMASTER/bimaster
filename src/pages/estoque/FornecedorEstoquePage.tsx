@@ -413,14 +413,14 @@ export default function FornecedorEstoquePage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{empresasLabel}</Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Empresa (fornecedor)</DropdownMenuLabel><DropdownMenuSeparator />
+                  <DropdownMenuLabel>Fornecedor</DropdownMenuLabel><DropdownMenuSeparator />
                   {empresasOpt.map((e) => (
                     <DropdownMenuCheckboxItem key={e.id} checked={empresas.includes(e.id)}
                       onCheckedChange={(v) => setEmpresas((p) => v ? [...p, e.id] : p.filter((x) => x !== e.id))}>
-                      {e.nome} · {e.id}
+                      {e.nome}
                     </DropdownMenuCheckboxItem>
                   ))}
-                  {empresasOpt.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma empresa</div>}
+                  {empresasOpt.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum fornecedor</div>}
                 </DropdownMenuContent>
               </DropdownMenu>
 
