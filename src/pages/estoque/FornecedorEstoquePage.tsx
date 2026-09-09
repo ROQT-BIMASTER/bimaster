@@ -51,7 +51,7 @@ const cxFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximum
 
 type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'validade' | 'casado' | 'nossoProduto' | 'atualizado';
 const COL_LABEL: Record<ColKey, string> = {
-  empresa: 'Empresa',
+  empresa: 'Fornecedor',
   ean: 'EAN caixa',
   codFutura: 'Cód. Futura',
   descricao: 'Descrição',
