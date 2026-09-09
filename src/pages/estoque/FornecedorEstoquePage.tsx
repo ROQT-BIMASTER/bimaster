@@ -45,6 +45,7 @@ import {
 } from '@/hooks/estoque/useFornecedorIntegrado';
 import { SyncHealthBadge } from '@/components/estoque/SyncHealthBadge';
 import { FornecedorExportButton } from '@/components/estoque/fornecedor/FornecedorExportButton';
+import { FiliaisColunasMenu } from '@/components/estoque/fornecedor/FiliaisColunasMenu';
 
 const PAGE_SIZE = 25;
 const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -70,6 +71,7 @@ const DEFAULT_HIDDEN: ColKey[] = ['ean', 'codFutura', 'categoria'];
 interface ColsState { order: ColKey[]; hidden: ColKey[]; }
 const defaultColsState: ColsState = { order: DEFAULT_ORDER, hidden: DEFAULT_HIDDEN };
 const storageKey = (uid: string | null) => `fornecedor-estoque:cols:v2:${uid ?? 'anon'}`;
+const filiaisStorageKey = (uid: string | null) => `fornecedor-estoque:filiais:v1:${uid ?? 'anon'}`;
 
 function formatTs(value: string | null): string {
   if (!value) return '—';
