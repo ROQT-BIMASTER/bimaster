@@ -379,6 +379,7 @@ export default function FornecedorEstoquePage() {
                 </button>
               </DropdownMenuContent>
             </DropdownMenu>
+            <FornecedorExportButton opts={exportOpts} filiais={distribuidorasVisiveis} filtrosResumo={filtrosResumo} />
             <Button asChild variant="outline" size="sm">
               <Link to="/dashboard/estoque/fornecedor-depara">
                 <ExternalLink className="mr-2 h-4 w-4" /> Exceções de de-para
