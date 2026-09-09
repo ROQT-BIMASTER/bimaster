@@ -278,7 +278,7 @@ export default function FornecedorEstoquePage() {
 
   const renderHeaderCell = (k: ColKey) => {
     switch (k) {
-      case 'empresa': return <TableHead key={k}>Empresa</TableHead>;
+      case 'empresa': return <TableHead key={k}>Fornecedor</TableHead>;
       case 'ean': return <TableHead key={k}>EAN caixa</TableHead>;
       case 'codFutura': return <TableHead key={k}>Cód. Futura</TableHead>;
       case 'descricao': return <TableHead key={k}><SortBtn label="Descrição" col="futura_descricao" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
