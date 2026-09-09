@@ -45,6 +45,7 @@ import {
 } from '@/hooks/estoque/useFornecedorIntegrado';
 import { SyncHealthBadge } from '@/components/estoque/SyncHealthBadge';
 import { FornecedorExportButton } from '@/components/estoque/fornecedor/FornecedorExportButton';
+import { FiliaisColunasMenu } from '@/components/estoque/fornecedor/FiliaisColunasMenu';
 
 const PAGE_SIZE = 25;
 const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -70,6 +71,7 @@ const DEFAULT_HIDDEN: ColKey[] = ['ean', 'codFutura', 'categoria'];
 interface ColsState { order: ColKey[]; hidden: ColKey[]; }
 const defaultColsState: ColsState = { order: DEFAULT_ORDER, hidden: DEFAULT_HIDDEN };
 const storageKey = (uid: string | null) => `fornecedor-estoque:cols:v2:${uid ?? 'anon'}`;
+const filiaisStorageKey = (uid: string | null) => `fornecedor-estoque:filiais:v1:${uid ?? 'anon'}`;
 
 function formatTs(value: string | null): string {
   if (!value) return '—';
@@ -187,6 +189,23 @@ export default function FornecedorEstoquePage() {
     try { localStorage.setItem(storageKey(uid), JSON.stringify(cols)); } catch {}
   }, [cols, uid]);
 
+  // Preferência de filiais exibidas (colunas), por usuário
+  const [filiaisHidratado, setFiliaisHidratado] = useState(false);
+  useEffect(() => {
+    setFiliaisHidratado(false);
+    try {
+      const raw = localStorage.getItem(filiaisStorageKey(uid));
+      const parsed = raw ? JSON.parse(raw) : null;
+      setDistribuidorasSel(Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'number') : []);
+    } catch { setDistribuidorasSel([]); }
+    setFiliaisHidratado(true);
+  }, [uid]);
+  useEffect(() => {
+    if (!filiaisHidratado) return;
+    try { localStorage.setItem(filiaisStorageKey(uid), JSON.stringify(distribuidorasSel)); } catch {}
+  }, [distribuidorasSel, filiaisHidratado, uid]);
+
+
   const visibleCols = useMemo(() => cols.order.filter((k) => !cols.hidden.includes(k)), [cols]);
   const isHidden = (k: ColKey) => cols.hidden.includes(k);
   const toggleHidden = (k: ColKey, v: boolean) =>
@@ -232,12 +251,12 @@ export default function FornecedorEstoquePage() {
   const colSpan = visibleCols.length + distribuidorasVisiveis.length + 1;
 
   const limparFiltros = () => {
-    setBuscaInput(''); setEmpresas([]); setDistribuidorasSel([]);
+    setBuscaInput(''); setEmpresas([]);
     setCasadoFiltro('todos'); setApenasComSaldo(false);
     setStatusSel([]); setCategoriasSel([]); setLinhasSel([]);
     setDataDe(undefined); setDataAte(undefined);
   };
-  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
 
 
   const exportOpts: FornecedorExportOpts = useMemo(() => ({
@@ -295,8 +314,6 @@ export default function FornecedorEstoquePage() {
 
   const empresasLabel = empresas.length === 0 ? 'Todos os fornecedores' : empresas.length === 1
     ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Fornecedor ${empresas[0]}`) : `${empresas.length} fornecedores`;
-  const distLabel = distribuidorasSel.length === 0 ? 'Todas as filiais' : distribuidorasSel.length === 1
-    ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
   const categoriaLabel = categoriasSel.length === 0 ? 'Todas categorias' : categoriasSel.length === 1 ? categoriasSel[0] : `${categoriasSel.length} categorias`;
   const linhaLabel = linhasSel.length === 0 ? 'Todas linhas' : linhasSel.length === 1 ? linhasSel[0] : `${linhasSel.length} linhas`;
@@ -454,19 +471,11 @@ export default function FornecedorEstoquePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{distLabel}</Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Filiais (distribuidoras)</DropdownMenuLabel><DropdownMenuSeparator />
-                  {distribuidoras.map((d) => (
-                    <DropdownMenuCheckboxItem key={d.id} checked={distribuidorasSel.includes(d.id)}
-                      onCheckedChange={(v) => setDistribuidorasSel((p) => v ? [...p, d.id] : p.filter((x) => x !== d.id))}>
-                      {d.abrev} — {d.nome}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                  {distribuidoras.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma filial</div>}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <FiliaisColunasMenu
+                distribuidoras={distribuidoras}
+                selecionadas={distribuidorasSel}
+                onChange={setDistribuidorasSel}
+              />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{statusLabel}</Button></DropdownMenuTrigger>
