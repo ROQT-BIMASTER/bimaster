@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   useDistribuidorasEmpresas,
   useEmpresasFornecedor,
+  type FornecedorExportOpts,
   useFornecedorEstoqueKpisAvancados,
   useFornecedorFiltroOpcoes,
   useFornecedorIntegradoKpis,
