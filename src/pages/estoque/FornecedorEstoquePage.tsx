@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   useDistribuidorasEmpresas,
   useEmpresasFornecedor,
+  type FornecedorExportOpts,
   useFornecedorEstoqueKpisAvancados,
   useFornecedorFiltroOpcoes,
   useFornecedorIntegradoKpis,
@@ -43,6 +44,7 @@ import {
   type FornecedorSortBy,
 } from '@/hooks/estoque/useFornecedorIntegrado';
 import { SyncHealthBadge } from '@/components/estoque/SyncHealthBadge';
+import { FornecedorExportButton } from '@/components/estoque/fornecedor/FornecedorExportButton';
 
 const PAGE_SIZE = 25;
 const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -51,7 +53,7 @@ const cxFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximum
 
 type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'validade' | 'casado' | 'nossoProduto' | 'atualizado';
 const COL_LABEL: Record<ColKey, string> = {
-  empresa: 'Empresa',
+  empresa: 'Fornecedor',
   ean: 'EAN caixa',
   codFutura: 'Cód. Futura',
   descricao: 'Descrição',
@@ -238,6 +240,33 @@ export default function FornecedorEstoquePage() {
   const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
 
 
+  const exportOpts: FornecedorExportOpts = useMemo(() => ({
+    busca, empresas, casadoFiltro, apenasComSaldo,
+    status: statusSel, categorias: categoriasSel, linhas: linhasSel,
+    dataDe: dataDe ? format(dataDe, 'yyyy-MM-dd') : null,
+    dataAte: dataAte ? format(dataAte, 'yyyy-MM-dd') : null,
+    sortBy, sortDir,
+  }), [busca, empresas, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, linhasSel, dataDe, dataAte, sortBy, sortDir]);
+
+  const filtrosResumo = useMemo(() => {
+    const partes: string[] = [];
+    if (busca.trim()) partes.push(`busca "${busca.trim()}"`);
+    if (empresas.length) {
+      partes.push(`fornecedor: ${empresas.map((id) => empresasOpt.find((e) => e.id === id)?.nome ?? id).join(', ')}`);
+    }
+    if (distribuidorasSel.length) {
+      partes.push(`filiais: ${distribuidorasSel.map((id) => distribuidoras.find((d) => d.id === id)?.abrev ?? id).join(', ')}`);
+    }
+    if (statusSel.length) partes.push(`status: ${statusSel.join(', ')}`);
+    if (categoriasSel.length) partes.push(`categorias: ${categoriasSel.join(', ')}`);
+    if (linhasSel.length) partes.push(`linhas: ${linhasSel.join(', ')}`);
+    if (dataDe || dataAte) partes.push(`período: ${dataDe ? format(dataDe, 'dd/MM/yyyy') : '…'} a ${dataAte ? format(dataAte, 'dd/MM/yyyy') : '…'}`);
+    if (casadoFiltro === 'casados') partes.push('somente casados');
+    if (casadoFiltro === 'nao_casados') partes.push('somente não casados');
+    if (apenasComSaldo) partes.push('somente com saldo no fornecedor');
+    return partes.length ? partes.join(' · ') : 'nenhum (todos os itens)';
+  }, [busca, empresas, empresasOpt, distribuidorasSel, distribuidoras, statusSel, categoriasSel, linhasSel, dataDe, dataAte, casadoFiltro, apenasComSaldo]);
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
   // Agrupa rows por nome_linha preservando a ordenação original como tie-breaker.
@@ -264,8 +293,8 @@ export default function FornecedorEstoquePage() {
     else { setSortBy(col); setSortDir(col === 'futura_descricao' ? 'asc' : 'desc'); }
   };
 
-  const empresasLabel = empresas.length === 0 ? 'Todas as empresas' : empresas.length === 1
-    ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Empresa ${empresas[0]}`) : `${empresas.length} empresas`;
+  const empresasLabel = empresas.length === 0 ? 'Todos os fornecedores' : empresas.length === 1
+    ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Fornecedor ${empresas[0]}`) : `${empresas.length} fornecedores`;
   const distLabel = distribuidorasSel.length === 0 ? 'Todas as filiais' : distribuidorasSel.length === 1
     ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
@@ -278,7 +307,7 @@ export default function FornecedorEstoquePage() {
 
   const renderHeaderCell = (k: ColKey) => {
     switch (k) {
-      case 'empresa': return <TableHead key={k}>Empresa</TableHead>;
+      case 'empresa': return <TableHead key={k}>Fornecedor</TableHead>;
       case 'ean': return <TableHead key={k}>EAN caixa</TableHead>;
       case 'codFutura': return <TableHead key={k}>Cód. Futura</TableHead>;
       case 'descricao': return <TableHead key={k}><SortBtn label="Descrição" col="futura_descricao" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
@@ -296,7 +325,6 @@ export default function FornecedorEstoquePage() {
       case 'empresa': return (
         <TableCell key={k}>
           <div className="text-sm">{r.empresa_nome ?? '—'}</div>
-          <div className="text-[10px] text-muted-foreground">{r.empresa_id}</div>
         </TableCell>
       );
       case 'ean': return <TableCell key={k} className="font-mono text-xs">{r.ean_caixa ?? '—'}</TableCell>;
@@ -380,6 +408,7 @@ export default function FornecedorEstoquePage() {
                 </button>
               </DropdownMenuContent>
             </DropdownMenu>
+            <FornecedorExportButton opts={exportOpts} filiais={distribuidorasVisiveis} filtrosResumo={filtrosResumo} />
             <Button asChild variant="outline" size="sm">
               <Link to="/dashboard/estoque/fornecedor-depara">
                 <ExternalLink className="mr-2 h-4 w-4" /> Exceções de de-para
@@ -414,14 +443,14 @@ export default function FornecedorEstoquePage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{empresasLabel}</Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Empresa (fornecedor)</DropdownMenuLabel><DropdownMenuSeparator />
+                  <DropdownMenuLabel>Fornecedor</DropdownMenuLabel><DropdownMenuSeparator />
                   {empresasOpt.map((e) => (
                     <DropdownMenuCheckboxItem key={e.id} checked={empresas.includes(e.id)}
                       onCheckedChange={(v) => setEmpresas((p) => v ? [...p, e.id] : p.filter((x) => x !== e.id))}>
-                      {e.nome} · {e.id}
+                      {e.nome}
                     </DropdownMenuCheckboxItem>
                   ))}
-                  {empresasOpt.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma empresa</div>}
+                  {empresasOpt.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum fornecedor</div>}
                 </DropdownMenuContent>
               </DropdownMenu>
 

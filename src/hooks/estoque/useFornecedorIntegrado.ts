@@ -287,6 +287,55 @@ export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
   });
 }
 
+export type FornecedorExportOpts = Omit<UseFornecedorListOpts, 'page' | 'pageSize'>;
+
+/**
+ * Busca TODAS as linhas do recorte atual (mesmos filtros da listagem),
+ * paginando em lotes. Usado pela exportação Excel.
+ */
+export async function fetchFornecedorIntegradoAll(
+  opts: FornecedorExportOpts,
+  maxRows = 20000,
+  batchSize = 1000,
+): Promise<FornecedorIntegradoRow[]> {
+  const all: FornecedorIntegradoRow[] = [];
+  let offset = 0;
+
+  while (offset < maxRows) {
+    let q = (supabase as any).from('v_estoque_fornecedor_integrado').select('*');
+
+    if (opts.empresas.length) q = q.in('empresa_id', opts.empresas);
+    if (opts.status.length) q = q.in('futura_status', opts.status);
+    if (opts.categorias.length) q = q.in('categoria', opts.categorias);
+    if (opts.linhas.length) q = q.in('nome_linha', opts.linhas);
+    if (opts.dataDe) q = q.gte('data_atualizacao_origem', opts.dataDe);
+    if (opts.dataAte) q = q.lte('data_atualizacao_origem', opts.dataAte);
+    if (opts.casadoFiltro === 'casados') q = q.eq('casado', true);
+    if (opts.casadoFiltro === 'nao_casados') q = q.eq('casado', false);
+    if (opts.apenasComSaldo) q = q.gt('fornecedor_caixas', 0);
+    if (opts.busca.trim()) {
+      const term = `%${opts.busca.trim()}%`;
+      q = q.or(
+        `futura_descricao.ilike.${term},ean_caixa.ilike.${term},futura_codigo.ilike.${term},sku.ilike.${term},nome_comercial.ilike.${term}`,
+      );
+    }
+
+    q = q
+      .order(opts.sortBy, { ascending: opts.sortDir === 'asc', nullsFirst: false })
+      .order('futura_codigo', { ascending: true, nullsFirst: false })
+      .range(offset, offset + batchSize - 1);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    const rows = (data ?? []) as FornecedorIntegradoRow[];
+    all.push(...rows);
+    if (rows.length < batchSize) break;
+    offset += batchSize;
+  }
+
+  return all;
+}
+
 /** Listas distintas de status e categorias para popular filtros. */
 export function useFornecedorFiltroOpcoes() {
   return useQuery({
