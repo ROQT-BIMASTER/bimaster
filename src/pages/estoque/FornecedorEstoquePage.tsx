@@ -44,6 +44,7 @@ import {
   type FornecedorSortBy,
 } from '@/hooks/estoque/useFornecedorIntegrado';
 import { SyncHealthBadge } from '@/components/estoque/SyncHealthBadge';
+import { FornecedorExportButton } from '@/components/estoque/fornecedor/FornecedorExportButton';
 
 const PAGE_SIZE = 25;
 const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
