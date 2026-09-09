@@ -251,12 +251,12 @@ export default function FornecedorEstoquePage() {
   const colSpan = visibleCols.length + distribuidorasVisiveis.length + 1;
 
   const limparFiltros = () => {
-    setBuscaInput(''); setEmpresas([]); setDistribuidorasSel([]);
+    setBuscaInput(''); setEmpresas([]);
     setCasadoFiltro('todos'); setApenasComSaldo(false);
     setStatusSel([]); setCategoriasSel([]); setLinhasSel([]);
     setDataDe(undefined); setDataAte(undefined);
   };
-  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
 
 
   const exportOpts: FornecedorExportOpts = useMemo(() => ({
@@ -473,19 +473,11 @@ export default function FornecedorEstoquePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{distLabel}</Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Filiais (distribuidoras)</DropdownMenuLabel><DropdownMenuSeparator />
-                  {distribuidoras.map((d) => (
-                    <DropdownMenuCheckboxItem key={d.id} checked={distribuidorasSel.includes(d.id)}
-                      onCheckedChange={(v) => setDistribuidorasSel((p) => v ? [...p, d.id] : p.filter((x) => x !== d.id))}>
-                      {d.abrev} — {d.nome}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                  {distribuidoras.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma filial</div>}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <FiliaisColunasMenu
+                distribuidoras={distribuidoras}
+                selecionadas={distribuidorasSel}
+                onChange={setDistribuidorasSel}
+              />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{statusLabel}</Button></DropdownMenuTrigger>
