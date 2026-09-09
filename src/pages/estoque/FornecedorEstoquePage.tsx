@@ -314,8 +314,6 @@ export default function FornecedorEstoquePage() {
 
   const empresasLabel = empresas.length === 0 ? 'Todos os fornecedores' : empresas.length === 1
     ? (empresasOpt.find((e) => e.id === empresas[0])?.nome ?? `Fornecedor ${empresas[0]}`) : `${empresas.length} fornecedores`;
-  const distLabel = distribuidorasSel.length === 0 ? 'Todas as filiais' : distribuidorasSel.length === 1
-    ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
   const categoriaLabel = categoriasSel.length === 0 ? 'Todas categorias' : categoriasSel.length === 1 ? categoriasSel[0] : `${categoriasSel.length} categorias`;
   const linhaLabel = linhasSel.length === 0 ? 'Todas linhas' : linhasSel.length === 1 ? linhasSel[0] : `${linhasSel.length} linhas`;
