@@ -4,9 +4,11 @@
 export type EtapaCanonica =
   | "digitacao"
   | "aberto"
+  | "liberado"
   | "separacao"
   | "separado"
   | "conferido"
+  | "expedicao"
   | "faturado"
   | "em_rota"
   | "entregue"
@@ -33,6 +35,11 @@ export const ETAPA_THEME: Record<EtapaCanonica, EtapaThemeEntry> = {
     border: "border-t-4 border-t-sky-500",
     badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30",
   },
+  liberado: {
+    label: "Liberado (crédito)",
+    border: "border-t-4 border-t-teal-500",
+    badge: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30",
+  },
   separacao: {
     label: "Em separação",
     border: "border-t-4 border-t-amber-500",
@@ -47,6 +54,11 @@ export const ETAPA_THEME: Record<EtapaCanonica, EtapaThemeEntry> = {
     label: "Conferido",
     border: "border-t-4 border-t-violet-500",
     badge: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30",
+  },
+  expedicao: {
+    label: "Em expedição",
+    border: "border-t-4 border-t-indigo-500",
+    badge: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
   },
   faturado: {
     label: "Faturado",
@@ -91,12 +103,16 @@ export const KANBAN_COLUNAS: KanbanColuna[] = [
   { id: "faturado", etapas: ["faturado"], label: "Faturado" },
 ];
 
-/** Colunas do Kanban Result (Ruby_SP) — inclui "Entregue" ao final. */
+/** Colunas do Kanban Result (Ruby_SP) — fluxo canônico do conector:
+ * digitacao → liberado (crédito/financeiro) → separacao → conferido (embalagem)
+ * → expedicao (embarque/romaneio) → faturado → entregue (canhoto).
+ * O Result não emite a etapa "separado" (exclusiva da Futura). */
 export const KANBAN_COLUNAS_RESULT: KanbanColuna[] = [
   { id: "digitacao", etapas: ["digitacao", "aberto"], label: "Em digitação" },
+  { id: "liberado", etapas: ["liberado"], label: "Liberado (crédito)" },
   { id: "separacao", etapas: ["separacao"], label: "Em separação" },
-  { id: "separado", etapas: ["separado"], label: "Separado" },
   { id: "conferido", etapas: ["conferido"], label: "Conferido" },
+  { id: "expedicao", etapas: ["expedicao"], label: "Em expedição" },
   { id: "faturado", etapas: ["faturado"], label: "Faturado" },
   { id: "entregue", etapas: ["entregue"], label: "Entregue" },
 ];

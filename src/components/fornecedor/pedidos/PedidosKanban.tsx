@@ -18,7 +18,7 @@ interface PedidosKanbanProps {
   ordem?: PedidosKanbanOrdem;
 }
 
-const ETAPAS_EM_ANDAMENTO = new Set(["digitacao", "separacao", "separado", "conferido"]);
+const ETAPAS_EM_ANDAMENTO = new Set(["digitacao", "liberado", "separacao", "separado", "conferido", "expedicao"]);
 
 export function PedidosKanban({
   pedidos,
@@ -64,9 +64,11 @@ export function PedidosKanban({
   }, [colunas]);
 
   const gridCols =
-    colunas.length >= 6
-      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
-      : "grid-cols-1 md:grid-cols-2 lg:grid-cols-5";
+    colunas.length >= 7
+      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
+      : colunas.length >= 6
+        ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-5";
 
   return (
     <div className="space-y-3">
