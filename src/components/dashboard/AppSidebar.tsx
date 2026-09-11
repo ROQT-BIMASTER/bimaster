@@ -1193,6 +1193,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
 
 
+      case "fornecedor":
+        return (
+          <ModuleSubmenu icon={Truck} title="Fornecedor" colorKey="comercial">
+            <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos em andamento" />
+            <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Análise de Vendas" />
+            <MenuItemLink to="/dashboard/fornecedor/estoque" icon={Package} title="Estoque do Fornecedor" />
+            <MenuItemLink to="/dashboard/fornecedor/depara-ean" icon={Database} title="De-Para EAN" />
+          </ModuleSubmenu>
+        );
+
       case "fornecedor_vendas":
         return (
           <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
