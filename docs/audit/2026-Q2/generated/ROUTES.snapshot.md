@@ -5,15 +5,15 @@
 
 ## Totais
 
-- `<Route>` declarados: **394**
-- Paths únicos: **394**
+- `<Route>` declarados: **402**
+- Paths únicos: **402**
 
 ## Distribuição por primeiro segmento
 
 | Segmento | Rotas |
 | --- | ---: |
-| `/dashboard` | 344 |
-| `/admin` | 13 |
+| `/dashboard` | 351 |
+| `/admin` | 14 |
 | `/auth` | 3 |
 | `/configuracoes` | 3 |
 | `/portal` | 3 |
@@ -53,13 +53,13 @@
 | `trade` | 53 |
 | `financeiro` | 33 |
 | `fabrica` | 27 |
+| `projetos` | 21 |
 | `estoque` | 20 |
-| `projetos` | 20 |
 | `admin` | 19 |
 | `fabrica-china` | 17 |
 | `fornecedor` | 12 |
+| `comercial` | 11 |
 | `marketing` | 10 |
-| `comercial` | 9 |
 | `configuracoes` | 9 |
 | `suporte` | 8 |
 | `precos` | 7 |
@@ -72,10 +72,13 @@
 | `integracoes` | 3 |
 | `oms` | 3 |
 | `briefings` | 2 |
+| `calendario` | 2 |
 | `chat` | 2 |
 | `composicao` | 2 |
 | `compras-internacionais` | 2 |
 | `reunioes` | 2 |
+| `tarefas` | 2 |
+| `*` | 1 |
 | `admin-api-support` | 1 |
 | `agente-huggs` | 1 |
 | `ai-analytics` | 1 |
@@ -124,7 +127,6 @@
 | `security-explorer` | 1 |
 | `seguranca-dashboard` | 1 |
 | `simulacao` | 1 |
-| `tarefas` | 1 |
 | `trilha-auditoria-acessos` | 1 |
 | `vendas` | 1 |
 
@@ -141,6 +143,7 @@
 /admin/integracoes-saude
 /admin/integracoes/google-drive
 /admin/marketing-integracoes
+/admin/novidades
 /admin/solicitacoes-acesso
 /admin/suporte
 /admin/telas-perdidas
@@ -156,6 +159,7 @@
 /configuracoes/integracoes/notion
 /contato
 /dashboard
+/dashboard/*
 /dashboard/admin-api-support
 /dashboard/admin/alertas-backfill-tarefas
 /dashboard/admin/asana-importacao
@@ -186,6 +190,8 @@
 /dashboard/bancos
 /dashboard/briefings
 /dashboard/briefings/:id
+/dashboard/calendario
+/dashboard/calendario/*
 /dashboard/central/amostras
 /dashboard/central/aprovacoes
 /dashboard/central/composicao
@@ -196,6 +202,7 @@
 /dashboard/chat/aprovacoes
 /dashboard/clientes
 /dashboard/comercial
+/dashboard/comercial/exportacao-clientes
 /dashboard/comercial/ibge
 /dashboard/comercial/inteligencia
 /dashboard/comercial/lancamentos
@@ -203,6 +210,7 @@
 /dashboard/comercial/mineracao
 /dashboard/comercial/municipios-inteligencia
 /dashboard/comercial/reativacao
+/dashboard/comercial/relatorio-vendedores
 /dashboard/comercial/whitespace
 /dashboard/composicao
 /dashboard/composicao/sync
@@ -401,6 +409,7 @@
 /dashboard/projetos/admin/visibilidade
 /dashboard/projetos/aprovacoes
 /dashboard/projetos/aprovacoes/auditoria
+/dashboard/projetos/calendario
 /dashboard/projetos/central
 /dashboard/projetos/central/preferencias
 /dashboard/projetos/convites
@@ -444,6 +453,7 @@
 /dashboard/suporte/processos/novo
 /dashboard/suporte/rotinas-fixas
 /dashboard/tarefas
+/dashboard/tarefas/modelos
 /dashboard/trade
 /dashboard/trade/admin
 /dashboard/trade/admin/approval-levels

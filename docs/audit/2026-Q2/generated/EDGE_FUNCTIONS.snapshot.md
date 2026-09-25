@@ -4,8 +4,8 @@
 
 ## Totais
 
-- Funções: **310**
-- `auth: "none"`: **129**
+- Funções: **315**
+- `auth: "none"`: **132**
 - `rateLimit: 0`: **11**
 - `requireMfa: true`: **6**
 - `requireStepUp`: **7**
@@ -14,6 +14,7 @@
 
 | Função | auth | rateLimit | MFA | step-up |
 | --- | --- | ---: | :-: | --- |
+| `admin-align-storage-buckets` | none | 10 |  |  |
 | `admin-bulk-set-password` | jwt | 5 | ✓ | user.password.bulk |
 | `admin-reset-password` | jwt | 10 | ✓ | user.password.reset |
 | `agency-strategy-ai` | jwt | 30 |  |  |
@@ -59,6 +60,8 @@
 | `briefing-export-summary` | jwt | 20 |  |  |
 | `briefing-rework-field` | jwt | 20 |  |  |
 | `cache-post-media` | ? | ? |  |  |
+| `calendario-ics` | ? | ? |  |  |
+| `calendario-lembretes-dispatch` | none | 12 |  |  |
 | `canhoto-rubysp` | none | 120 |  |  |
 | `categorias-api` | none | 60 |  |  |
 | `central-copilot` | jwt | 30 |  |  |
@@ -137,6 +140,7 @@
 | `extrair-insumos-imagem` | jwt | 10 |  |  |
 | `extrair-materia-prima-ia` | jwt | 10 |  |  |
 | `extrair-produto-ia` | jwt | 10 |  |  |
+| `extrair-produto-ia-v2` | jwt | 10 |  |  |
 | `fal-video-generate` | jwt | 10 |  |  |
 | `fal-video-status` | jwt | 60 |  |  |
 | `fetch-influencer-content` | none | 10 |  |  |
@@ -241,6 +245,7 @@
 | `qa-smoke-seed` | jwt | 5 |  |  |
 | `realtime-call-session` | none | 30 |  |  |
 | `receber-ccusto-rubysp` | none | 60 |  |  |
+| `receber-clientes-rubysp` | none | 60 |  |  |
 | `receber-compras-result` | none | 60 |  |  |
 | `receber-compras-vendas-mensal` | none | 60 |  |  |
 | `receber-contas-pagar-rubysp` | none | 60 |  |  |

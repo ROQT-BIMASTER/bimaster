@@ -4,10 +4,10 @@
 
 ## Totais
 
-- Diretórios em `src/components/`: **70**
-- Páginas raiz em `src/pages/`: **237**
-- Subdiretórios em `src/pages/`: **23**
-- Hooks (`src/hooks/`): **341**
+- Diretórios em `src/components/`: **72**
+- Páginas raiz em `src/pages/`: **240**
+- Subdiretórios em `src/pages/`: **24**
+- Hooks (`src/hooks/`): **367**
 - Contexts (`src/contexts/`): **9**
 
 ## Diretórios de componentes
@@ -30,6 +30,7 @@ comercial
 common
 composicao
 compras
+comum
 conciliacao
 configuracoes
 configuracoes-acesso
@@ -58,6 +59,7 @@ meetings
 minhas-tarefas
 navigation
 notifications
+novidades
 orcamento
 painel-executivo
 performance
@@ -89,7 +91,7 @@ whatsapp
 
 | Subdiretório | Páginas (.tsx, recursivo) |
 | --- | ---: |
-| `admin` | 30 |
+| `admin` | 31 |
 | `financeiro` | 16 |
 | `estoque` | 14 |
 | `modules` | 10 |
@@ -112,6 +114,7 @@ whatsapp
 | `controladoria` | 1 |
 | `rr-tasks` | 1 |
 | `security` | 1 |
+| `tarefas` | 1 |
 
 ## Contexts
 
