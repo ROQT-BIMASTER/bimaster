@@ -35,6 +35,7 @@ import {
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import {
   Check,
+  ClipboardCheck,
   Columns3,
   FileDown,
   FileSpreadsheet,
@@ -63,6 +64,8 @@ import {
   type CabecalhoPDF,
   type ComparativoLinhaExport,
 } from "@/lib/fabrica/exportComparativoPerfis";
+import { montarVisaoDiretoria, regraDaTabela } from "@/lib/fabrica/visaoDiretoriaPrecos";
+import { AprovacaoDiretoriaDialog } from "./AprovacaoDiretoriaDialog";
 
 const STORAGE_KEY = "simulador:comparativo:ordem-colunas";
 const HIDDEN_KEY = "simulador:comparativo:colunas-ocultas";
@@ -76,9 +79,13 @@ interface Props {
   perfilB: PerfilMarkup | null;
 }
 
-export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: Props) {
+export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB: perfilBSelecionado }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "anon";
+  const nomeUsuario = String(user?.user_metadata?.full_name ?? user?.user_metadata?.nome ?? "");
+  // Perfil B igual ao A só duplicaria as linhas sem diferença a comparar.
+  const perfilB =
+    perfilBSelecionado && perfilBSelecionado.id !== perfilA?.id ? perfilBSelecionado : null;
   const hiddenKey = `${HIDDEN_KEY}:${uid}`;
 
   const [ordem, setOrdem] = useState<string[]>([]);
@@ -182,6 +189,16 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     });
   };
 
+
+  const [diretoriaAberto, setDiretoriaAberto] = useState(false);
+
+  /** Regra de formação de cada tabela no perfil A (ex.: "+42% s/ Clear"). */
+  const regrasA = useMemo(() => {
+    const out: Record<string, string> = {};
+    if (!perfilA) return out;
+    for (const t of tabelas) out[t.id] = regraDaTabela(t, tabelas, perfilA.itens).regra;
+    return out;
+  }, [tabelas, perfilA]);
 
   // Filtros da simulação
   const [busca, setBusca] = useState("");
@@ -347,6 +364,21 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
     }
   };
 
+  const montarVisao = () =>
+    montarVisaoDiretoria({
+      perfil: perfilA.nome,
+      itensPerfil: perfilA.itens,
+      tabelas,
+      colunas: colunasVisiveis,
+      produtos: linhas.map((l) => ({
+        produto: l.produto.descricao,
+        linha: l.produto.linha,
+        custo: l.custoA,
+        precos: l.precosA,
+      })),
+      agruparPorLinha: agrupar,
+    });
+
   const handlePDF = () => {
     try {
       exportarComparativoPDF(
@@ -410,6 +442,18 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button size="sm" onClick={() => setDiretoriaAberto(true)}>
+            <ClipboardCheck className="h-4 w-4 mr-2" />
+            Diretoria
+          </Button>
+          <AprovacaoDiretoriaDialog
+            open={diretoriaAberto}
+            onOpenChange={setDiretoriaAberto}
+            uid={uid}
+            nomeUsuario={nomeUsuario}
+            montarVisao={montarVisao}
+          />
 
           <Button variant="outline" size="sm" onClick={handleExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
@@ -592,6 +636,11 @@ export function ComparativoPerfisTable({ produtos, tabelas, perfilA, perfilB }: 
                     <GripVertical className="h-3 w-3 text-muted-foreground" aria-hidden />
                     <span>{t.nome}</span>
                   </div>
+                  {regrasA[t.id] && (
+                    <div className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">
+                      {regrasA[t.id]}
+                    </div>
+                  )}
                 </TableHead>
               ))}
 
