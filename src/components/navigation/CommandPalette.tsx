@@ -22,7 +22,7 @@ import {
   Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe,
   Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send,
   Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2,
-  UserCheck, Target, RefreshCw, CalendarDays, Search,
+  UserCheck, Target, RefreshCw, CalendarDays, Search, Bitcoin,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ const iconMap: Record<string, LucideIcon> = {
   Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe,
   Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send,
   Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2,
-  UserCheck, Target, RefreshCw, CalendarDays, Search,
+  UserCheck, Target, RefreshCw, CalendarDays, Search, Bitcoin,
 };
 
 function getIcon(name: string): LucideIcon {

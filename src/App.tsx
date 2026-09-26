@@ -296,6 +296,7 @@ const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
 const ConciliacaoBancaria = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoBancaria"));
 const InvestimentosCorporativos = lazyWithRetry(() => import("./pages/financeiro/InvestimentosCorporativos"));
+const SimuladorBitcoin = lazyWithRetry(() => import("./pages/financeiro/SimuladorBitcoin"));
 const OrcamentoCorporativo = lazyWithRetry(() => import("./pages/financeiro/OrcamentoCorporativo"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
@@ -934,6 +935,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<RedirectToConsolidado />} />
             <Route path="/dashboard/financeiro/plano-reducao/:planoId/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioConsolidadoPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/simulador-bitcoin" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_saldos_bancarios"><SimuladorBitcoin /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/orcamento" element={<ProtectedRoute><ScreenProtectedRoute screenCode="orcamento_periodos"><OrcamentoCorporativo /></ScreenProtectedRoute></ProtectedRoute>} />
             
             

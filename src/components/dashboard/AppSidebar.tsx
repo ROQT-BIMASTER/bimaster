@@ -3,7 +3,7 @@ import {
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X, Headset,
   ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy, PackageSearch, KanbanSquare,
-  Truck, LayoutDashboard, ClipboardList
+  Truck, LayoutDashboard, ClipboardList, Bitcoin
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { LanguagePreferencePopover } from "@/components/profile/LanguagePreferencePopover";
@@ -682,6 +682,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: "Gestão Contas a Pagar", url: "/dashboard/contas-pagar", icon: FileText, screenCode: "financeiro_contas_pagar_gestao" },
     { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
+    { title: "Simulador Bitcoin", url: "/dashboard/financeiro/simulador-bitcoin", icon: Bitcoin, screenCode: "financeiro_saldos_bancarios", badge: <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">Simulação</Badge> },
   ];
 
   // Módulo "Cadastros" — fonte única para telas de cadastro

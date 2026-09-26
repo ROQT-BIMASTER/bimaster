@@ -107,6 +107,7 @@ export const commandRoutes: CommandRoute[] = [
   { title: "Cobrança Inadimplentes", path: "/dashboard/financeiro/cobranca", module: "Financeiro", icon: "AlertTriangle", moduleCode: "financeiro", screenCode: "fin_cobranca" },
   { title: "Conciliação Bancária", path: "/dashboard/financeiro/conciliacao", module: "Financeiro", icon: "Scale", moduleCode: "financeiro", screenCode: "fin_conciliacao" },
   { title: "Investimentos", path: "/dashboard/financeiro/investimentos", module: "Financeiro", icon: "TrendingUp", moduleCode: "financeiro", screenCode: "fin_investimentos" },
+  { title: "Simulador Bitcoin", path: "/dashboard/financeiro/simulador-bitcoin", module: "Financeiro", icon: "Bitcoin", moduleCode: "financeiro", screenCode: "fin_investimentos", keywords: ["btc", "cripto", "simulador", "trading"] },
   { title: "Dashboard Financeiro Consolidado", path: "/dashboard/financeiro/consolidado", module: "Financeiro", icon: "BarChart3", moduleCode: "financeiro", screenCode: "fin_consolidado" },
   { title: "Empresas", path: "/dashboard/financeiro/empresas", module: "Financeiro", icon: "Building2", moduleCode: "financeiro", screenCode: "fin_empresas" },
   { title: "Centros de Custo", path: "/dashboard/financeiro/centros-custo", module: "Financeiro", icon: "Layers", moduleCode: "financeiro", screenCode: "fin_centros_custo" },
