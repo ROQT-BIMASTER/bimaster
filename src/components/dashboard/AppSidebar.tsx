@@ -563,6 +563,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     processos: ["processos", "workflows", "etapas"],
     cadastros: ["cadastros", "fornecedores", "bancos", "portadores", "centros de custo", "plano de contas", "departamentos", "empresas", "clientes"],
     compras: ["compras", "entradas", "futura", "notas fiscais", "icms", "st", "ipi", "distribuidoras"],
+    quadra: ["quadra", "quadra de futebol", "futebol", "reservas", "mensalistas", "aluguel de horário", "livro-caixa"],
   }), [t]);
 
   // Auto-open modules matching search (must be before early return)
@@ -796,6 +797,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "aprovacao_artes": return 3;
       case "fornecedor_vendas": return 6;
       case "fornecedor_vendas_result": return 3;
+      case "quadra": return 4;
       case "cadastros": return cadastrosItems.filter(i => hasPermission(i.screenCode)).length;
       default: return 0;
     }
@@ -1230,6 +1232,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/compras/entradas-futura" icon={Receipt} title="Entradas Futura" />
             <MenuItemLink to="/dashboard/compras/entradas-result" icon={Receipt} title="Entradas Result (livro)" />
             <MenuItemLink to="/dashboard/compras/vendas" icon={TrendingUp} title="Compras × Vendas" />
+          </ModuleSubmenu>
+        );
+
+      case "quadra":
+        return (
+          <ModuleSubmenu icon={Trophy} title="Quadra de Futebol" colorKey="financeiro" count={4}>
+            <MenuItemLink to="/dashboard/quadra" icon={LayoutDashboard} title="Painel" end />
+            <MenuItemLink to="/dashboard/quadra/lancamentos" icon={Receipt} title="Lançamentos" />
+            <MenuItemLink to="/dashboard/quadra/reservas" icon={CalendarDays} title="Reservas" />
+            <MenuItemLink to="/dashboard/quadra/mensalistas" icon={Users} title="Mensalistas" />
           </ModuleSubmenu>
         );
 

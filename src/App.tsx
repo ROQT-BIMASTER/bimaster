@@ -416,6 +416,10 @@ const ProdutosVendasPage = lazyWithRetry(() => import("./pages/fornecedor/Produt
 const EntradasFuturaPage = lazyWithRetry(() => import("./pages/compras/EntradasFuturaPage"));
 const EntradasResultPage = lazyWithRetry(() => import("./pages/compras/EntradasResultPage"));
 const ComprasVendasPage = lazyWithRetry(() => import("./pages/compras/ComprasVendasPage"));
+const QuadraDashboardPage = lazyWithRetry(() => import("./pages/quadra/QuadraDashboardPage"));
+const QuadraLancamentosPage = lazyWithRetry(() => import("./pages/quadra/QuadraLancamentosPage"));
+const QuadraReservasPage = lazyWithRetry(() => import("./pages/quadra/QuadraReservasPage"));
+const QuadraMensalistasPage = lazyWithRetry(() => import("./pages/quadra/QuadraMensalistasPage"));
 const AnalisesBuilder = lazyWithRetry(() => import("./pages/vendas/AnalisesBuilder"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
@@ -812,6 +816,12 @@ function AppContent() {
             <Route path="/dashboard/compras/entradas-futura" element={<ModuleRoute moduleCode="compras"><EntradasFuturaPage /></ModuleRoute>} />
             <Route path="/dashboard/compras/entradas-result" element={<ModuleRoute moduleCode="compras"><EntradasResultPage /></ModuleRoute>} />
             <Route path="/dashboard/compras/vendas" element={<ModuleRoute moduleCode="compras"><ComprasVendasPage /></ModuleRoute>} />
+
+            {/* Módulo Quadra de Futebol - controle financeiro */}
+            <Route path="/dashboard/quadra" element={<ModuleRoute moduleCode="quadra"><ScreenProtectedRoute screenCode="quadra_financeiro"><QuadraDashboardPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/quadra/lancamentos" element={<ModuleRoute moduleCode="quadra"><ScreenProtectedRoute screenCode="quadra_financeiro"><QuadraLancamentosPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/quadra/reservas" element={<ModuleRoute moduleCode="quadra"><ScreenProtectedRoute screenCode="quadra_financeiro"><QuadraReservasPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/quadra/mensalistas" element={<ModuleRoute moduleCode="quadra"><ScreenProtectedRoute screenCode="quadra_financeiro"><QuadraMensalistasPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/estoque/fornecedor" element={<Navigate to="/dashboard/fornecedor/estoque" replace />} />
             <Route path="/dashboard/estoque/fornecedor-depara" element={<Navigate to="/dashboard/fornecedor/depara-ean" replace />} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
